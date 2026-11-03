@@ -401,6 +401,145 @@
   cursor: not-allowed;
 }
 
+/* Scoreboard goal reached */
+.score.now.on-goal {
+  background: var(--ok-bg);
+}
+
+/* Tracker */
+.tracker {
+  margin-top: 24px;
+}
+.tracker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.late-text {
+  color: var(--warn);
+}
+.ghost {
+  background: var(--card);
+  border: 2px solid var(--line);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.tracker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 10px;
+}
+.track-card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-left-width: 8px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.track-card.tone-late {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+.track-card.tone-soon {
+  border-left-color: #c27c00;
+}
+.track-card.tone-ok {
+  border-left-color: var(--accent);
+}
+.track-card.tone-done {
+  opacity: 0.7;
+}
+.track-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.clock {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.clock.tone-late {
+  color: var(--warn);
+}
+.clock.tone-soon {
+  color: var(--amber);
+}
+.clock.tone-ok,
+.clock.tone-done {
+  color: var(--accent);
+}
+.track-dept {
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.track-from {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.track-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.small {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.done-tag {
+  color: var(--accent);
+  font-weight: 700;
+}
+.urg-urgent {
+  background: var(--warn);
+  color: #fff;
+}
+.urg-soon {
+  background: #c27c00;
+  color: #fff;
+}
+.urg-routine {
+  background: var(--accent);
+  color: #fff;
+}
+.route-error {
+  margin-top: 10px;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  z-index: 10;
+}
+
 /* Phone */
 @media (max-width: 760px) {
   .app {
@@ -438,5 +577,8 @@
   }
   .detail {
     position: static;
+  }
+  .hide-on-phone {
+    display: none;
   }
 }

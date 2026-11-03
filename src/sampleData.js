@@ -82,3 +82,46 @@ export const SAMPLE_REFERRALS = [
       'Chronic cough for 2 months, smoker 40 years, unintentional weight loss. Chest x-ray shows a lung mass. Please see urgently.',
   },
 ]
+
+// Referrals already routed before today (made up), so the tracker isn't empty.
+// routedDay is relative to "today" (0). turnaround is set once scheduled.
+export const SAMPLE_TRACKER = [
+  {
+    id: 'R-1031',
+    from: 'Dr. Mae Lindqvist, Brookside Health',
+    department: 'Pulmonology',
+    urgency: 'Soon',
+    owner: 'Tom W.',
+    routedDay: -4,
+    status: 'Sent',
+  },
+  {
+    id: 'R-1035',
+    from: 'Dr. Kofi Mensah, Elm Park Clinic',
+    department: 'Orthopedics',
+    urgency: 'Routine',
+    owner: 'Priya S.',
+    routedDay: -2,
+    status: 'Sent',
+  },
+  {
+    id: 'R-1028',
+    from: 'Dr. Ana Ruiz, Hilltop Family Medicine',
+    department: 'Cardiology',
+    urgency: 'Urgent',
+    owner: 'Dana P.',
+    routedDay: -6,
+    status: 'Done',
+    turnaround: 2,
+  },
+  {
+    id: 'R-1025',
+    from: 'Dr. Ben Cho, Lakeview Primary Care',
+    department: 'Neurology',
+    urgency: 'Soon',
+    owner: 'Marcus L.',
+    routedDay: -7,
+    status: 'Scheduled',
+    turnaround: 3,
+  },
+]
