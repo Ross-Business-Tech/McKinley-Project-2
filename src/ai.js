@@ -3,7 +3,7 @@
 // simple rules and text templates. Later, the body of askAI could be swapped for a call
 // to a real model (through a here.now proxy route) without changing the rest of the app.
 
-import { FAILURE_TYPES } from './data.js'
+import { FAILURE_TYPES, CRIB, STOP_WINDOWS, TECHS, COST_PER_HOUR } from './data.js'
 
 export const AI_LABEL = 'Prototype AI (simulated)'
 
@@ -102,9 +102,57 @@ function assess(robot) {
   }
 }
 
+
+function planRepair(robot, assessment) {
+  const failure = FAILURE_TYPES[assessment.failureKey]
+  const deadline = assessment.hoursToFailure
+
+  // Pick an existing line stop before the predicted failure. Prefer one long enough for the whole job.
+  const before = STOP_WINDOWS.filter((w) => w.startsIn < deadline)
+  const fits = before.find((w) => w.length >= failure.plannedHours)
+  const window = fits || before[0] || { label: 'Right now (controlled stop)', startsIn: 0, length: 0 }
+  const extraHours = Math.max(0, failure.plannedHours - window.length)
+
+  const items = [
+    ...failure.parts.map((name) => ({ name, kind: 'Part' })),
+    ...failure.tools.map((name) => ({ name, kind: 'Tool' })),
+  ].map((item) => {
+    const stock = CRIB[item.name]
+    if (stock && stock.qty > 0) return { ...item, status: 'reserved', note: `Reserved · ${stock.bin}` }
+    return { ...item, status: 'missing', note: stock?.fallback || 'Not in stock. The agent flagged it to the maintenance planner.' }
+  })
+
+  const tech = TECHS.find((t) => t.skills.includes(assessment.failureKey))
+  const plannedCost = extraHours * COST_PER_HOUR
+  const unplannedCost = failure.unplannedHours * COST_PER_HOUR
+
+  return {
+    workOrder: `WO-${4800 + Number(robot.id.slice(-3))}`,
+    robotId: robot.id,
+    title: `${failure.name}: ${robot.id} (${robot.line})`,
+    window: window.label,
+    windowNote:
+      extraHours === 0
+        ? `Fits inside the stop, so the line loses no extra time.`
+        : `No stop before the predicted failure is long enough, so the agent suggests stretching this one by ${Math.round(extraHours * 60)} min.`,
+    deadline: formatHours(deadline),
+    steps: failure.steps,
+    items,
+    missingCount: items.filter((i) => i.status === 'missing').length,
+    suggestedTechId: tech ? tech.id : '',
+    suggestedReason: tech ? `trained for ${failure.name.toLowerCase()}.` : '',
+    safety: failure.safety,
+    safetyNote: failure.safetyNote,
+    plannedCost,
+    unplannedCost,
+    plannedHours: failure.plannedHours,
+    unplannedHours: failure.unplannedHours,
+  }
+}
+
 /**
  * The one entry point for the AI agent.
- * input: { task: 'assess', robot }
+ * input: { task: 'assess', robot } or { task: 'plan_repair', robot, assessment }
  * Returns a Promise, just like a real model call would.
  */
 export async function askAI(input) {
@@ -118,6 +166,12 @@ export async function askAI(input) {
       return { error: 'No sensor readings were found for this robot, so the agent cannot assess it yet.' }
     }
     return assess(input.robot)
+  }
+  if (input.task === 'plan_repair') {
+    if (!input.robot || !input.assessment || !input.assessment.failureKey) {
+      return { error: 'This robot has no predicted problem, so there is nothing to repair yet.' }
+    }
+    return planRepair(input.robot, input.assessment)
   }
   return { error: `The agent does not know how to do "${input.task}" yet.` }
 }

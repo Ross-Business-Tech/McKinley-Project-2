@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ROBOTS, COST_PER_HOUR } from './data.js'
 import { askAI, AI_LABEL, formatHours } from './ai.js'
+import RepairPlanner from './RepairPlanner.jsx'
 import './App.css'
 
 const RISK_LABEL = { high: 'Act now', medium: 'Watch', low: 'Healthy' }
@@ -14,7 +15,7 @@ function AiBadge() {
   return <span className="ai-badge">{AI_LABEL}</span>
 }
 
-function RobotCard({ robot, result, selected, onSelect }) {
+function RobotCard({ robot, result, selected, onSelect, hasOrder }) {
   return (
     <button
       type="button"
@@ -32,6 +33,7 @@ function RobotCard({ robot, result, selected, onSelect }) {
           ? 'No failure expected in the next 2 days'
           : `${result.failureName} in ${formatHours(result.hoursToFailure)}`}
       </span>
+      {hasOrder && <span className="order-tag">📋 Work order sent</span>}
     </button>
   )
 }
@@ -58,7 +60,7 @@ function SignalRow({ r }) {
   )
 }
 
-function RobotDetail({ robot, onBack }) {
+function RobotDetail({ robot, onBack, order, onSend }) {
   const [state, setState] = useState({ loading: true })
 
   useEffect(() => {
@@ -119,6 +121,10 @@ function RobotDetail({ robot, onBack }) {
         )}
       </div>
 
+      {!state.loading && !res.error && res.risk !== 'low' && (
+        <RepairPlanner key={robot.id} robot={robot} assessment={res} order={order} onSend={onSend} />
+      )}
+
       <h3>Sensor readings</h3>
       <ul className="signals">
         {robot.signals.map((s) => {
@@ -139,6 +145,7 @@ function RobotDetail({ robot, onBack }) {
 export default function App() {
   const [results, setResults] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
+  const [orders, setOrders] = useState({})
 
   // On load, the agent scans every robot and ranks them by risk.
   useEffect(() => {
@@ -215,12 +222,18 @@ export default function App() {
                 result={results[robot.id]}
                 selected={robot.id === selectedId}
                 onSelect={() => setSelectedId(robot.id)}
+                hasOrder={Boolean(orders[robot.id])}
               />
             ))}
         </section>
 
         {selected ? (
-          <RobotDetail robot={selected} onBack={() => setSelectedId(null)} />
+          <RobotDetail
+            robot={selected}
+            onBack={() => setSelectedId(null)}
+            order={orders[selected.id]}
+            onSend={(order) => setOrders((prev) => ({ ...prev, [selected.id]: order }))}
+          />
         ) : (
           <section className="detail empty">
             <p>Tap a robot to see what the agent found and what it recommends.</p>
