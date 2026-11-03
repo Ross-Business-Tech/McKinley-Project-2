@@ -143,6 +143,7 @@ function planRepair(robot, assessment) {
     suggestedReason: tech ? `trained for ${failure.name.toLowerCase()}.` : '',
     safety: failure.safety,
     safetyNote: failure.safetyNote,
+    safetyChecks: failure.safetyChecks || [],
     plannedCost,
     unplannedCost,
     plannedHours: failure.plannedHours,

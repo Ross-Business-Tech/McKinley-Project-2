@@ -15,7 +15,7 @@ function AiBadge() {
   return <span className="ai-badge">{AI_LABEL}</span>
 }
 
-function RobotCard({ robot, result, selected, onSelect, hasOrder }) {
+function RobotCard({ robot, result, selected, onSelect, order }) {
   return (
     <button
       type="button"
@@ -33,7 +33,11 @@ function RobotCard({ robot, result, selected, onSelect, hasOrder }) {
           ? 'No failure expected in the next 2 days'
           : `${result.failureName} in ${formatHours(result.hoursToFailure)}`}
       </span>
-      {hasOrder && <span className="order-tag">📋 Work order sent</span>}
+      {order && (
+        <span className="order-tag">
+          {order.status === 'awaiting_safety' ? '🔒 Waiting for safety sign-off' : '📋 Work order released'}
+        </span>
+      )}
     </button>
   )
 }
@@ -60,7 +64,7 @@ function SignalRow({ r }) {
   )
 }
 
-function RobotDetail({ robot, onBack, order, onSend }) {
+function RobotDetail({ robot, onBack, order, onSend, onApprove }) {
   const [state, setState] = useState({ loading: true })
 
   useEffect(() => {
@@ -122,7 +126,7 @@ function RobotDetail({ robot, onBack, order, onSend }) {
       </div>
 
       {!state.loading && !res.error && res.risk !== 'low' && (
-        <RepairPlanner key={robot.id} robot={robot} assessment={res} order={order} onSend={onSend} />
+        <RepairPlanner key={robot.id} robot={robot} assessment={res} order={order} onSend={onSend} onApprove={onApprove} />
       )}
 
       <h3>Sensor readings</h3>
@@ -222,7 +226,7 @@ export default function App() {
                 result={results[robot.id]}
                 selected={robot.id === selectedId}
                 onSelect={() => setSelectedId(robot.id)}
-                hasOrder={Boolean(orders[robot.id])}
+                order={orders[robot.id]}
               />
             ))}
         </section>
@@ -233,6 +237,9 @@ export default function App() {
             onBack={() => setSelectedId(null)}
             order={orders[selected.id]}
             onSend={(order) => setOrders((prev) => ({ ...prev, [selected.id]: order }))}
+            onApprove={() =>
+              setOrders((prev) => ({ ...prev, [selected.id]: { ...prev[selected.id], status: 'released' } }))
+            }
           />
         ) : (
           <section className="detail empty">

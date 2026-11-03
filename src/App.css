@@ -340,3 +340,39 @@
 @media (max-width: 760px) {
   .cost-compare { grid-template-columns: 1fr; }
 }
+
+/* Safety gate */
+.work-order.locked { border-color: #f59e0b; background: #fffdf5; }
+.locked .wo-status { background: var(--medium-bg); color: var(--medium); }
+.safety-preview { margin: 12px 0 0; font-weight: 600; color: var(--medium); }
+.safety-gate {
+  margin-top: 16px;
+  border: 2px solid #f59e0b;
+  background: #fffbeb;
+  border-radius: 10px;
+  padding: 14px;
+}
+.safety-gate.approved { border-color: var(--low); background: var(--low-bg); }
+.safety-head { margin: 0; font-weight: 800; font-size: 1.1rem; color: var(--medium); }
+.approved .safety-head { color: var(--low); }
+.safety-note { margin: 6px 0 0; font-size: 0.95rem; }
+.safety-lead-view { margin-top: 12px; background: #fff; border: 1px dashed #d97706; border-radius: 8px; padding: 12px; }
+.role-tag {
+  display: inline-block;
+  margin: 0 0 8px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.checks label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; min-height: 44px; }
+.checks input { width: 24px; height: 24px; margin: 2px 0 0; flex: none; accent-color: var(--low); }
+.checks.done { margin-top: 10px; color: var(--low); font-weight: 600; font-size: 0.95rem; }
+.safety-btn { background: #92400e; }
+.safety-btn:hover { background: #78350f; }
+.locked-msg { margin: 14px 0 0; background: var(--medium-bg); color: var(--medium); padding: 10px 12px; border-radius: 8px; font-weight: 700; }

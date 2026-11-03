@@ -18,6 +18,7 @@ export const FAILURE_TYPES = {
     safetyNote: 'Done from outside the cell with the teach pendant. No lockout needed.',
   },
   servo_overheat: {
+    safetyChecks: ["Lockout points for the robot and cell power are identified", "Hoist sling is inspected and rated for the servo motor's weight", "A second person stays at the cell gate while the arm is slung"],
     steps: ["Lock out and tag the robot cell", "Sling the arm and swap the Axis 3 servo motor", "Regrease the gearbox and check alignment", "Remove lockout, run a slow test cycle"],
     name: 'Joint servo overheating',
     warning: 'Servo temperature and vibration rising together over several shifts',
@@ -30,6 +31,7 @@ export const FAILURE_TYPES = {
     safetyNote: 'Requires lockout/tagout and entering the robot cell.',
   },
   cable_wear: {
+    safetyChecks: ["Lockout points for the robot and weld power are identified", "Weld power is tested and shown to be at zero before cables are touched", "Cell gate key goes with the technician who holds the lock"],
     steps: ["Lock out and tag the robot cell", "Replace the dress-pack cable set along the arm", "Check weld current with the multimeter", "Remove lockout, run a test weld"],
     name: 'Dress-pack cable wear',
     warning: 'Weld current draw is erratic and higher than normal',

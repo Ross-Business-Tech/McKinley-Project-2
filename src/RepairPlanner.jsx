@@ -7,7 +7,66 @@ function money(n) {
 }
 
 // The agent drafts a work order, reserves parts and tools, and the technician sends it.
-export default function RepairPlanner({ robot, assessment, order, onSend }) {
+// Safety Lead sign-off. The agent drafts the checklist but can never approve safety work itself.
+function SafetyGate({ plan, order, onApprove }) {
+  const [checked, setChecked] = useState(plan.safetyChecks.map(() => false))
+  const [error, setError] = useState('')
+  const approved = order && order.status === 'released'
+  const waiting = order && order.status === 'awaiting_safety'
+
+  function approve() {
+    if (checked.includes(false)) {
+      setError('Tick every safety check before approving. If one can’t be met, the job stays locked.')
+      return
+    }
+    setError('')
+    onApprove()
+  }
+
+  return (
+    <div className={`safety-gate ${approved ? 'approved' : ''}`}>
+      <p className="safety-head">
+        <span aria-hidden="true">{approved ? '🔓' : '🔒'}</span>{' '}
+        {approved ? 'Safety Lead approved this job' : 'Safety Lead sign-off required'}
+      </p>
+      <p className="safety-note">
+        {plan.safetyNote} The agent prepared this checklist, but only the Safety Lead can approve the job.
+      </p>
+      {waiting && (
+        <div className="safety-lead-view">
+          <p className="role-tag">Safety Lead view</p>
+          <ul className="checks">
+            {plan.safetyChecks.map((c, i) => (
+              <li key={c}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={checked[i]}
+                    onChange={() => setChecked((prev) => prev.map((v, j) => (j === i ? !v : v)))}
+                  />
+                  <span>{c}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          {error && <p className="error-msg">{error}</p>}
+          <button type="button" className="primary-btn safety-btn" onClick={approve}>
+            Approve as Safety Lead
+          </button>
+        </div>
+      )}
+      {approved && (
+        <ul className="checks done">
+          {plan.safetyChecks.map((c) => (
+            <li key={c}>✔ {c}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+export default function RepairPlanner({ robot, assessment, order, onSend, onApprove }) {
   const [plan, setPlan] = useState(order ? order.plan : null)
   const [loading, setLoading] = useState(false)
   const [techId, setTechId] = useState(order ? order.techId : '')
@@ -28,7 +87,7 @@ export default function RepairPlanner({ robot, assessment, order, onSend }) {
       return
     }
     setError('')
-    onSend({ plan, techId })
+    onSend({ plan, techId, status: plan.safety ? 'awaiting_safety' : 'released' })
   }
 
   if (!plan) {
@@ -47,10 +106,13 @@ export default function RepairPlanner({ robot, assessment, order, onSend }) {
   const suggested = TECHS.find((t) => t.id === plan.suggestedTechId)
 
   return (
-    <div className={`repair work-order ${order ? 'sent' : ''}`}>
+    <div className={`repair work-order ${order?.status === 'released' ? 'sent' : ''} ${order?.status === 'awaiting_safety' ? 'locked' : ''}`}>
       <div className="ai-panel-head">
         <h3>
-          {plan.workOrder} <span className="wo-status">{order ? 'Sent' : 'Draft'}</span>
+          {plan.workOrder}{' '}
+          <span className="wo-status">
+            {!order ? 'Draft' : order.status === 'awaiting_safety' ? 'Waiting for safety' : 'Released'}
+          </span>
         </h3>
         <span className="ai-badge">{AI_LABEL}</span>
       </div>
@@ -111,11 +173,19 @@ export default function RepairPlanner({ robot, assessment, order, onSend }) {
         ))}
       </ul>
 
-      {order ? (
+      {plan.safety && order && <SafetyGate plan={plan} order={order} onApprove={onApprove} />}
+
+      {order?.status === 'released' && (
         <p className="success-msg">
-          ✔ Sent to {tech ? tech.label.split(' · ')[0] : 'the technician'}. Parts and tools are held in the crib for this job.
+          ✔ Released to {tech ? tech.label.split(' · ')[0] : 'the technician'}. Parts and tools are held in the crib for this job.
         </p>
-      ) : (
+      )}
+      {order?.status === 'awaiting_safety' && (
+        <p className="locked-msg">
+          🔒 Locked. {tech ? tech.label.split(' · ')[0] : 'The technician'} can’t start until the Safety Lead approves.
+        </p>
+      )}
+      {!order && (
         <>
           <h4>Assign a technician</h4>
           {suggested && (
@@ -138,8 +208,11 @@ export default function RepairPlanner({ robot, assessment, order, onSend }) {
             </select>
           </label>
           {error && <p className="error-msg">{error}</p>}
+          {plan.safety && (
+            <p className="safety-preview">🔒 This job touches safety, so it goes to the Safety Lead for approval first.</p>
+          )}
           <button type="button" className="primary-btn" onClick={send}>
-            Send work order
+            {plan.safety ? 'Send to Safety Lead for approval' : 'Send work order'}
           </button>
         </>
       )}
