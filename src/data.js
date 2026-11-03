@@ -155,3 +155,20 @@ export const TECHS = [
   { id: 'T2', label: 'Tech 2 · Welding equipment', skills: ['tip_wear', 'wire_feed'] },
   { id: 'T3', label: 'Tech 3 · Electrical', skills: ['cable_wear', 'wire_feed'] },
 ]
+
+// Invented pilot results: unplanned downtime hours on the 6 welding robots,
+// the month before the agent vs. the first month with it.
+export const PILOT_RESULTS = {
+  beforeLabel: 'October (before agent)',
+  afterLabel: 'November pilot (with agent)',
+  targetCut: 0.3,
+  byFailure: [
+    { key: 'tip_wear', before: 12, after: 6 },
+    { key: 'servo_overheat', before: 14, after: 10 },
+    { key: 'cable_wear', before: 8, after: 6 },
+    { key: 'wire_feed', before: 6, after: 4 },
+  ],
+  caughtEarly: { caught: 9, total: 13 },
+  fixedInsideBreaks: 6,
+  partsWaitsAvoided: 5,
+}

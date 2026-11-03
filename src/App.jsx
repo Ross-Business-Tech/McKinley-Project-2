@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ROBOTS, COST_PER_HOUR } from './data.js'
 import { askAI, AI_LABEL, formatHours } from './ai.js'
 import RepairPlanner from './RepairPlanner.jsx'
+import Results from './Results.jsx'
 import './App.css'
 
 const RISK_LABEL = { high: 'Act now', medium: 'Watch', low: 'Healthy' }
@@ -150,6 +151,7 @@ export default function App() {
   const [results, setResults] = useState(null)
   const [selectedId, setSelectedId] = useState(null)
   const [orders, setOrders] = useState({})
+  const [view, setView] = useState('robots')
 
   // On load, the agent scans every robot and ranks them by risk.
   useEffect(() => {
@@ -185,6 +187,20 @@ export default function App() {
         </div>
         <p className="shift">2nd shift · sample data</p>
       </header>
+
+      <nav className="tabs" aria-label="Views">
+        <button type="button" className={view === 'robots' ? 'active' : ''} onClick={() => setView('robots')} aria-pressed={view === 'robots'}>
+          Robots
+        </button>
+        <button type="button" className={view === 'results' ? 'active' : ''} onClick={() => setView('results')} aria-pressed={view === 'results'}>
+          Results
+        </button>
+      </nav>
+
+      {view === 'results' ? (
+        <Results orders={orders} />
+      ) : (
+      <>
 
       <section className="summary" aria-label="Risk summary">
         {!results ? (
@@ -247,6 +263,8 @@ export default function App() {
           </section>
         )}
       </main>
+      </>
+      )}
     </div>
   )
 }
