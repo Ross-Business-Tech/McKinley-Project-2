@@ -21,7 +21,7 @@ export function travel(a, b) {
 export const TECHS = [
   { id: 'A', name: 'Tech A', trade: 'Plumbing + general', skills: ['plumbing', 'general'], base: 'HL', rate: 38 },
   { id: 'B', name: 'Tech B', trade: 'HVAC + general', skills: ['hvac', 'general'], base: 'SP', rate: 38 },
-  { id: 'C', name: 'Tech C', trade: 'All trades (Michigan)', skills: ['plumbing', 'hvac', 'general'], base: 'BW', rate: 38 },
+  { id: 'C', name: 'Tech C', trade: 'All trades, Michigan', skills: ['plumbing', 'hvac', 'general'], base: 'BW', rate: 38 },
   { id: 'V', name: 'Pest vendor', trade: 'Pest control', skills: ['pest'], base: 'HL', vendor: true, flat: 85 },
 ]
 

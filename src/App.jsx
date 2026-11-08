@@ -138,11 +138,20 @@ function Skipped() {
   return <p className="note">Skipped: the plan could not work in real life, so it is not scored.</p>
 }
 
+function UrgencyTag({ job, marked }) {
+  return (
+    <span className="chips">
+      <span className={`pill ${urgClass(marked)}`}>Marked {URGENCY[marked]}</span>
+      {marked < job.urgency && <span className="chip bad">Less urgent than it really is</span>}
+    </span>
+  )
+}
+
 function Pill({ ok, yes = 'Pass', no = 'Fail' }) {
   return <span className={`pill ${ok ? 'ok' : 'crit'}`}>{ok ? yes : no}</span>
 }
 
-function Timelines({ list, compact }) {
+function Timelines({ list, compact, urgency }) {
   return (
     <div className="stack">
       {list.map(({ tech, stops }) => (
@@ -156,6 +165,7 @@ function Timelines({ list, compact }) {
               <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
               <span>
                 <b>{s.job.rid}</b> · {COMMUNITIES[s.job.comm].name} · {s.job.trade}
+                {urgency && <UrgencyTag job={s.job} marked={urgency[s.job.id] ?? s.job.urgency} />}
                 {!compact && s.note && <span className="note"> — {s.note}</span>}
                 <span className="chips">
                   {s.wasted && <span className="chip flag">Wasted trip (outside entry window)</span>}
@@ -251,7 +261,7 @@ function StepBody({ n, scenario, r }) {
   if (n === 3) {
     return (
       <div className="stack">
-        <Timelines list={r.planTl} />
+        <Timelines list={r.planTl} urgency={scenario.urgency} />
         <p className="note"><s>{scenario.selfReport}</s> We ignore anything the planner says about itself; only the plan counts.</p>
       </div>
     )
@@ -290,10 +300,10 @@ function StepBody({ n, scenario, r }) {
       </div>
     )
   }
-  return <Scorecard r={r} scenario={scenario} />
+  return <Scorecard r={r} />
 }
 
-function Scorecard({ r, scenario }) {
+function Scorecard({ r }) {
   const p = r.planScore
   const h = r.handScore
   return (
@@ -308,13 +318,14 @@ function Scorecard({ r, scenario }) {
         ))}
       </div>
       {p && (
-        <section className="strip" aria-label="Planner compared with by hand">
+        <section className={`strip ${r.pass ? '' : 'dim'}`} aria-label="Planner compared with by hand">
           <div className="stat"><b>{h.driveMin - p.driveMin >= 0 ? '−' : '+'}{Math.abs(h.driveMin - p.driveMin)} min</b><span>Drive time vs. by hand</span></div>
           <div className="stat"><b>{h.wasted - p.wasted >= 0 ? '−' : '+'}{Math.abs(h.wasted - p.wasted)}</b><span>Wasted trips vs. by hand</span></div>
           <div className="stat"><b>${Math.abs(h.cost - p.cost)}</b><span>{p.cost <= h.cost ? 'Estimated saving' : 'Estimated extra cost'}</span></div>
         </section>
       )}
-      <p className="note">Estimate only: {scenario.label.toLowerCase()} was tested on a made-up day, not a real one.</p>
+      {p && !r.pass && <p className="note">These numbers do not count: a must-pass check failed.</p>}
+      <p className="note">Estimate only: this was a made-up test day, not a real one.</p>
     </div>
   )
 }
