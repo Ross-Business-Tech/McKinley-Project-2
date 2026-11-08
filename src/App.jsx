@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { COMMUNITIES, JOBS, SCENARIOS, TECHS, URGENCY } from './data.js'
+import { COMMUNITIES, JOBS, SCENARIOS, SHEET_NAME, TECHS, URGENCY } from './data.js'
 import { fmt, runEvaluation } from './evaluate.js'
 
 const STEPS = [
@@ -129,7 +129,7 @@ export default function App() {
           })}
         </ol>
       )}
-      <footer className="note">Prototype with invented data. No real resident, property or technician is shown.</footer>
+      <footer className="note">Built from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
     </main>
   )
 }
@@ -216,13 +216,18 @@ function StepBody({ n, scenario, r }) {
   if (n === 1) {
     return (
       <div className="stack">
+        <p className="note">
+          <b>From the spreadsheet:</b> who the resident is, their community, entry window, pets, language, contact preference and
+          staff note, plus each request's wording (the sheet's row IDs are shown). <b>Assumed by us:</b> urgency, skill needed, how
+          long each job takes, the crew and the drive times. Source: {SHEET_NAME}
+        </p>
         <div className="scroll">
           <table>
-            <thead><tr><th>Request</th><th>Where</th><th>What the resident wrote</th></tr></thead>
+            <thead><tr><th>Request</th><th>Where</th><th>What the sheet says</th></tr></thead>
             <tbody>
               {JOBS.map((j) => (
                 <tr key={j.id}>
-                  <td><b>{j.rid}</b><br /><span className="note">{j.trade}</span></td>
+                  <td><b>{j.rid}</b><br /><span className="note">{j.trade}<br />Row {j.iid}</span></td>
                   <td>{COMMUNITIES[j.comm].name}</td>
                   <td>{j.text}<span className="chips">{j.hidden.map((h) => <span key={h} className="chip">{h}</span>)}</span></td>
                 </tr>
@@ -235,7 +240,7 @@ function StepBody({ n, scenario, r }) {
           Sandpiper Pointe, 15 min between Birchwood and Fernhill.
         </p>
         <details>
-          <summary>Answer key (sealed from the planner)</summary>
+          <summary>Answer key (sealed from the planner; urgency and skill are our assumptions)</summary>
           <div className="scroll">
             <table>
               <thead><tr><th>Request</th><th>True urgency</th><th>Right skill</th><th>Must tell the tech</th></tr></thead>

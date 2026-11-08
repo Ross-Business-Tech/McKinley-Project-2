@@ -2,12 +2,17 @@
 export const SHIFT_START = 480 // 8:00 AM, in minutes after midnight
 export const SHIFT_END = 960 // 4:00 PM
 
+import sheet from './sample-residents.json'
+
+// Residents and requests come from the sprint's sample spreadsheet (synthetic). Each community code
+// stands for the community name used in the sheet.
 export const COMMUNITIES = {
-  HL: { name: 'Heron Lake', region: 'Orlando' },
+  HL: { name: 'Heron Lake Apartments', region: 'Orlando' },
   SP: { name: 'Sandpiper Pointe', region: 'Orlando' },
   BW: { name: 'Birchwood Commons', region: 'Michigan' },
-  FH: { name: 'Fernhill', region: 'Michigan' },
+  FH: { name: 'Fernhill Apartments', region: 'Michigan' },
 }
+const CODE_BY_NAME = Object.fromEntries(Object.entries(COMMUNITIES).map(([k, v]) => [v.name, k]))
 
 // Rough drive minutes between communities. Same community = 5 (parking and walking).
 export function travel(a, b) {
@@ -27,53 +32,64 @@ export const TECHS = [
 
 export const URGENCY = { 3: 'Urgent', 2: 'Soon', 1: 'Routine' }
 
-// win = resident's entry window [start, end] in minutes. key = the word that must reach the technician.
-export const JOBS = [
-  { id: 'W1', rid: 'R008', comm: 'HL', skill: 'plumbing', trade: 'Plumbing', urgency: 3, dur: 60, win: [540, 900],
-    text: 'Kitchen sink leaking under the cabinet AGAIN. 4th time.',
-    hidden: ['Home weekdays 9–3 only', 'Missed callback in May'],
-    key: 'camera', note: 'Plumbing vendor to camera the drain line; resident home weekdays 9–3' },
-  { id: 'W2', rid: 'R001', comm: 'HL', skill: 'hvac', trade: 'HVAC', urgency: 2, dur: 45, win: [480, 660],
-    text: 'AC makes a loud rattling noise when it kicks on. Mornings please.',
-    hidden: ['Dog must be crated', 'Replacement pending'],
-    key: 'crate', note: 'Crate Biscuit (dog) before entry; replacement pending, do not promise a date' },
-  { id: 'W3', rid: 'R015', comm: 'HL', skill: 'pest', trade: 'Pest', urgency: 1, dur: 40, win: [480, 960],
-    text: 'A few roaches again in the kitchen. Please treat the neighbors too.',
-    hidden: ['Treat neighboring units'],
-    key: 'neighbor', note: 'Treat neighboring units at the same visit' },
-  { id: 'W4', rid: 'R010', comm: 'SP', skill: 'general', trade: 'General', urgency: 1, dur: 30, win: [480, 960],
-    text: 'Bathroom faucet dripping. Same cat rules as always.',
-    hidden: ['Cat bolts for the door'],
-    key: 'cat', note: 'Keep the front door shut; cat Pepper bolts' },
-  { id: 'W5', rid: 'R003', comm: 'SP', skill: 'general', trade: 'General', urgency: 2, dur: 20, win: [660, 960],
-    text: 'Smoke detector chirping. After 11 AM please, text first.',
-    hidden: ['Works nights, sleeps days', 'Text, never call before 10'],
-    key: 'text', note: 'Arrive after 11 AM; text first, no calls before 10' },
-  { id: 'W6', rid: 'R012', comm: 'HL', skill: 'general', trade: 'General', urgency: 1, dur: 30, win: [780, 960],
-    text: 'La puerta del balcón no cierra bien.',
-    hidden: ['Spanish speaker', 'Afternoons only'],
-    key: 'spanish', note: 'Resident prefers Spanish, by text' },
-  { id: 'W7', rid: 'R018', comm: 'SP', skill: 'general', trade: 'General', urgency: 3, dur: 15, win: [480, 960],
-    text: 'I am locked out of my apartment.',
-    hidden: ['Lockout fee applies'],
-    key: 'id', note: 'Check ID before letting in; lockout fee applies' },
-  { id: 'W8', rid: 'R004', comm: 'FH', skill: 'hvac', trade: 'HVAC', urgency: 3, dur: 60, win: [480, 960],
-    text: 'Heat not coming on. Thermostat set to 70, apartment is 61.',
-    hidden: ['Friendly dog at home'],
-    key: 'dog', note: 'Dog (Waffles) is friendly; OK to enter' },
-  { id: 'W9', rid: 'R016', comm: 'BW', skill: 'general', trade: 'General', urgency: 1, dur: 30, win: [720, 960],
-    text: 'Cracked outlet cover and a wall patch before I move out.',
-    hidden: ['Moving out Nov 30', 'Prefers email'],
-    key: 'email', note: 'Contact by email; moving out Nov 30' },
-  { id: 'W10', rid: 'R013', comm: 'FH', skill: 'plumbing', trade: 'Plumbing', urgency: 1, dur: 30, win: [660, 780],
-    text: 'Kitchen drain is slow and smells.',
-    hidden: ['Late mornings only (11–1)'],
-    key: 'late', note: 'Late mornings only (11–1)' },
-  { id: 'W11', rid: 'R017', comm: 'FH', skill: 'general', trade: 'General', urgency: 1, dur: 40, win: [480, 960],
-    text: 'Dishwasher is not draining.',
-    hidden: ['Dishwasher replaced in May'],
-    key: 'warranty', note: 'Dishwasher was replaced in May; check warranty first' },
+// The sheet's entry-window words, turned into minutes after midnight (our reading of each phrase).
+const WINDOWS = {
+  'any time': [480, 960],
+  weekdays: [480, 960],
+  'mornings (8-11 AM)': [480, 660],
+  'weekdays 9 AM - 3 PM': [540, 900],
+  'after 11 AM': [660, 960],
+  'afternoons (1-5 PM)': [780, 960],
+  afternoons: [720, 960],
+  'late mornings': [660, 780],
+  evenings: [480, 960], // outside shift hours; only used for R018's lockout, which cannot wait
+}
+
+const residentById = Object.fromEntries(sheet.residents.map((r) => [r.resident_id, r]))
+const interactionById = Object.fromEntries(sheet.interactions.map((i) => [i.interaction_id, i]))
+
+// ASSUMED (not in the sheet): urgency answer key, skill, how long the job takes, and which phrase must reach the tech.
+const SPECS = [
+  { id: 'W1', rid: 'R008', iid: 'I046', skill: 'plumbing', trade: 'Plumbing', urgency: 3, dur: 60, key: 'callback' },
+  { id: 'W2', rid: 'R001', iid: 'I008', skill: 'hvac', trade: 'HVAC', urgency: 2, dur: 45, key: 'crate' },
+  { id: 'W3', rid: 'R015', iid: 'I079', skill: 'pest', trade: 'Pest', urgency: 1, dur: 40, key: 'neighboring' },
+  { id: 'W4', rid: 'R010', iid: 'I055', skill: 'general', trade: 'General', urgency: 1, dur: 30, key: 'front door' },
+  { id: 'W5', rid: 'R003', iid: 'I013', skill: 'general', trade: 'General', urgency: 2, dur: 20, key: 'text first' },
+  { id: 'W6', rid: 'R012', iid: 'I066', skill: 'general', trade: 'General', urgency: 1, dur: 30, key: 'spanish' },
+  { id: 'W7', rid: 'R018', iid: 'I091', skill: 'general', trade: 'General', urgency: 3, dur: 15, key: 'lockout' },
+  { id: 'W8', rid: 'R004', iid: 'I022', skill: 'hvac', trade: 'HVAC', urgency: 3, dur: 60, key: 'waffles' },
+  { id: 'W9', rid: 'R016', iid: 'I084', skill: 'general', trade: 'General', urgency: 1, dur: 30, key: 'nov 30' },
+  { id: 'W10', rid: 'R013', iid: 'I068', skill: 'general', trade: 'General', urgency: 1, dur: 30, key: 'late mornings' },
+  { id: 'W11', rid: 'R017', iid: 'I088', skill: 'general', trade: 'General', urgency: 1, dur: 40, key: 'dishwasher replaced' },
 ]
+
+function build(spec) {
+  const res = residentById[spec.rid]
+  const ix = interactionById[spec.iid]
+  const text = ix.full_text.split(/\s(?:Office:|Tech note)/)[0].replace(/^Resident:\s*/, '')
+  const entry = res.preferred_entry_window
+  const pets = res.pets !== 'none' ? `Pets: ${res.pets}. ` : ''
+  const lang = res.preferred_language !== 'English' ? `Language: ${res.preferred_language}. ` : ''
+  return {
+    ...spec,
+    comm: CODE_BY_NAME[res.community],
+    win: WINDOWS[entry] || WINDOWS['any time'],
+    text,
+    subject: ix.subject,
+    entry,
+    hidden: [
+      res.notes_for_staff.replace(/\.$/, ''),
+      `Entry: ${entry}`,
+      ...(res.pets !== 'none' ? [`Pet: ${res.pets}`] : []),
+      ...(lang ? [`Language: ${res.preferred_language}`] : []),
+      `Prefers ${res.preferred_contact}`,
+    ],
+    note: `${res.notes_for_staff} ${pets}${lang}Entry: ${entry}. Prefers ${res.preferred_contact}.`,
+  }
+}
+
+export const JOBS = SPECS.map(build)
+export const SHEET_NAME = sheet.source
 
 const full = (ids) => ids.map((id) => ({ id, note: JOBS.find((j) => j.id === id).note }))
 const withAt = (list) => list.map(([id, at]) => ({ id, at, note: JOBS.find((j) => j.id === id).note }))
