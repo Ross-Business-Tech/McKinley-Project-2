@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import './App.css'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
-import { SEVERITY, TECHS } from './triage/config.js'
+import { SEVERITY, TECHS, COMMUNITIES } from './triage/config.js'
 
 const tag = (sev) => SEVERITY[sev]
 
@@ -16,9 +16,13 @@ function App() {
   const [resId, setResId] = useState('')
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
+  const [site, setSite] = useState('all')
 
-  const orders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
-  const plan = useMemo(() => buildPlan(orders, tech), [orders, tech])
+  const allOrders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
+  const orders = useMemo(() => allOrders.filter((o) => site === 'all' || (site === 'unassigned' ? !o.community : o.community === site)), [allOrders, site])
+  const team = useMemo(() => TECHS.filter((t) => site === 'all' || t.site === site), [site])
+  const plan = useMemo(() => buildPlan(orders, tech, team.length ? team : TECHS), [orders, tech, team])
+  const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
   const ranked = [...orders].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
 
   const stats = {
@@ -56,6 +60,15 @@ function App() {
         </section>
       </header>
 
+      <nav className="sites" aria-label="Site team">
+        {[['all', 'All sites', allOrders.length], ...Object.keys(COMMUNITIES).map((k) => [k, k, countFor(k)]), ['unassigned', 'Unit not found', countFor('unassigned')]].map(([k, l, n]) => (
+          <button key={k} className={site === k ? 'on' : ''} onClick={() => setSite(k)}>{l} <span>{n}</span></button>
+        ))}
+      </nav>
+      {site !== 'all' && site !== 'unassigned' && (
+        <p className="small team">{site} team: {team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ')})`).join(' · ')}</p>
+      )}
+
       <nav className="tabs">
         {[['queue', 'Priority list'], ['routes', 'Technician routes'], ['new', 'Add request']].map(([k, l]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
@@ -72,7 +85,7 @@ function App() {
           <label>Resident (optional; if blank we look for a unit number in the message)
             <select value={resId} onChange={(e) => setResId(e.target.value)}>
               <option value="">Find it from the message</option>
-              {RESIDENTS.map((r) => <option key={r.id} value={r.id}>Unit {r.unit} · {r.name} · {r.community}</option>)}
+              {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
             </select>
           </label>
           <button className="primary" type="submit">Triage it</button>
@@ -127,7 +140,7 @@ function App() {
                   </select>
                   <select aria-label="Reassign" value={tech[o.id] || ''} onChange={(e) => setTech({ ...tech, [o.id]: e.target.value || undefined })}>
                     <option value="">{t ? `Auto: ${t.name}` : 'Auto-assign'}</option>
-                    {TECHS.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.region})</option>)}
+                    {team.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.site})</option>)}
                   </select>
                   {o.entry.status === 'hold' && (
                     <button onClick={() => patch(o.id, { okReceived: !o.okReceived })}>{o.okReceived ? 'OK received ✓' : 'Resident said OK'}</button>
@@ -144,10 +157,10 @@ function App() {
 
       {tab === 'routes' && (
         <>
-          <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>
-          {plan.techs.map(({ tech: t, plan: p, byHand }) => (
+          {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
+          {(site === 'unassigned' ? [] : plan.techs).map(({ tech: t, plan: p, byHand }) => (
             <section key={t.id} className="card">
-              <h2>{t.name} <span className="small">· {t.region} · {t.skills.join(', ')}</span></h2>
+              <h2>{t.name} <span className="small">· {t.site} · {t.skills.join(', ')}</span></h2>
               <p className="small">{p.stops.length} jobs · {Math.round(p.drive)} min driving (by hand: {Math.round(byHand.drive)}) · done around {fmt(p.finish)}</p>
               <ol className="route">
                 {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
@@ -163,6 +176,13 @@ function App() {
               </ol>
             </section>
           ))}
+          {plan.unknown.length > 0 && (
+            <section className="card">
+              <h2>Unit not found ({plan.unknown.length})</h2>
+              <p className="small">No site team yet. The manager confirms the unit with the resident, then re-adds the request with the unit number.</p>
+              <ul>{plan.unknown.map((o) => <li key={o.id}>{o.label}: “{o.text.slice(0, 60)}…”</li>)}</ul>
+            </section>
+          )}
           {plan.held.length > 0 && (
             <section className="card">
               <h2>Waiting on resident OK ({plan.held.length})</h2>

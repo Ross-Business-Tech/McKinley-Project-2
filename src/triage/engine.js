@@ -176,22 +176,22 @@ export const fmt = (t) => {
   return `${hh}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
 
-function candidateTechs(job) {
-  const region = job.resident?.region
-  return TECHS.filter((t) => (!region || t.region === region))
+// Each site has its own team, so jobs only go to technicians based at that site.
+function candidateTechs(job, techs) {
+  return techs.filter((t) => !job.community || t.site === job.community)
 }
 
 // Assign every job to the best-fit technician: right skill first, then lightest load.
-function assign(jobs, overrides) {
-  const load = Object.fromEntries(TECHS.map((t) => [t.id, 0]))
-  const assigned = Object.fromEntries(TECHS.map((t) => [t.id, []]))
+function assign(jobs, overrides, techs) {
+  const load = Object.fromEntries(techs.map((t) => [t.id, 0]))
+  const assigned = Object.fromEntries(techs.map((t) => [t.id, []]))
   const ordered = [...jobs].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
   for (const job of ordered) {
     let tech
-    if (overrides[job.id]) tech = TECHS.find((t) => t.id === overrides[job.id])
+    if (overrides[job.id]) tech = techs.find((t) => t.id === overrides[job.id])
     if (!tech) {
-      const cands = candidateTechs(job)
-      const pool = cands.length ? cands : TECHS
+      const cands = candidateTechs(job, techs)
+      const pool = cands.length ? cands : techs
       tech = [...pool].sort((a, b) => {
         const sa = a.skills.includes(job.skill) ? 0 : 1
         const sb = b.skills.includes(job.skill) ? 0 : 1
@@ -253,11 +253,14 @@ function smartOrder(tech, jobs) {
   return seq
 }
 
-export function buildPlan(orders, overrides = {}) {
-  const ready = orders.filter((o) => o.entry.status !== 'hold')
-  const held = orders.filter((o) => o.entry.status === 'hold')
-  const assigned = assign(ready, overrides)
-  const techs = TECHS.map((tech) => {
+export function buildPlan(orders, overrides = {}, teamList = TECHS) {
+  // Unknown units are not routed: someone must confirm the unit first.
+  const unknown = orders.filter((o) => !o.resident)
+  const known = orders.filter((o) => o.resident)
+  const ready = known.filter((o) => o.entry.status !== 'hold')
+  const held = known.filter((o) => o.entry.status === 'hold')
+  const assigned = assign(ready, overrides, teamList)
+  const techs = teamList.map((tech) => {
     const jobs = assigned[tech.id]
     const smart = simulate(tech, smartOrder(tech, jobs))
     const hand = simulate(tech, [...jobs].sort((a, b) => a.received.localeCompare(b.received)))
@@ -269,5 +272,5 @@ export function buildPlan(orders, overrides = {}) {
     return { tech, plan: useSmart ? smart : hand, byHand: hand, jobs }
   })
   const saved = techs.reduce((n, t) => n + Math.max(0, t.byHand.drive - t.plan.drive), 0)
-  return { techs, held, saved }
+  return { techs, held, unknown, saved }
 }

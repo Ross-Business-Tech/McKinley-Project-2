@@ -43,3 +43,10 @@ footer{margin:28px 4px;text-align:center}
 .order h2,.card h2{text-align:left;color:var(--ink)}
 .route li{text-align:left}.route li>b{display:inline}
 .actions select{font-size:.85rem}
+
+.sites{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:none}.sites::-webkit-scrollbar{display:none}
+.sites button{flex:0 0 auto;border-radius:99px;padding:7px 14px;min-height:0;font-weight:600;font-size:.85rem;color:var(--mute)}
+.sites button span{opacity:.7;margin-left:4px}.sites .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.team{margin:0 0 12px}
+html,body{overflow-x:hidden}.sites{margin:0;max-width:100%}.app{overflow-x:clip}
+#root{display:block;width:100%;max-width:100%;border-inline:0;text-align:left;overflow-x:clip}

@@ -9,25 +9,29 @@ export const SEVERITY = {
   1: { label: 'Cosmetic', color: 'gray', sla: 'When convenient', desc: 'Paint touch-ups, caulking, blinds.' },
 }
 
+// The three Ann Arbor sites. Each has its own maintenance team (see TECHS below).
+// Resident-to-site assignment in the sample data is made up.
 export const COMMUNITIES = {
-  'Heron Lake Apartments': { region: 'Orlando' },
-  'Sandpiper Pointe': { region: 'Orlando' },
-  'Birchwood Commons': { region: 'Michigan' },
-  'Fernhill Apartments': { region: 'Michigan' },
+  'Spruce Knob': { region: 'Michigan', city: 'Ann Arbor' },
+  'Glencoe Hills': { region: 'Michigan', city: 'Ann Arbor' },
+  Evergreen: { region: 'Michigan', city: 'Ann Arbor' },
 }
 
-// Rough drive time in minutes. Same community = 4 (walking between buildings).
+// Rough drive time in minutes (made up until we have the site maps).
+// Same site = 4 (walking between buildings). Between sites = 12.
 export function travelMinutes(a, b) {
-  if (!a || !b || a === b) return a === b ? 4 : 0
-  return COMMUNITIES[a]?.region === COMMUNITIES[b]?.region ? 18 : 999
+  if (!a || !b) return 0
+  return a === b ? 4 : 12
 }
 
 // Made-up technicians. Skills are what each person is strongest at.
 export const TECHS = [
-  { id: 'T1', name: 'Marcus', region: 'Orlando', home: 'Heron Lake Apartments', skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
-  { id: 'T2', name: 'Priya', region: 'Orlando', home: 'Sandpiper Pointe', skills: ['plumbing', 'appliance', 'general'], shift: [8, 17] },
-  { id: 'T3', name: 'Dale', region: 'Michigan', home: 'Birchwood Commons', skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
-  { id: 'T4', name: 'Tasha', region: 'Michigan', home: 'Fernhill Apartments', skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'SK1', name: 'Dale', site: 'Spruce Knob', region: 'Michigan', home: 'Spruce Knob', skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
+  { id: 'SK2', name: 'Tasha', site: 'Spruce Knob', region: 'Michigan', home: 'Spruce Knob', skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'GH1', name: 'Marcus', site: 'Glencoe Hills', region: 'Michigan', home: 'Glencoe Hills', skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
+  { id: 'GH2', name: 'Priya', site: 'Glencoe Hills', region: 'Michigan', home: 'Glencoe Hills', skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'EV1', name: 'Jonah', site: 'Evergreen', region: 'Michigan', home: 'Evergreen', skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
+  { id: 'EV2', name: 'Rosa', site: 'Evergreen', region: 'Michigan', home: 'Evergreen', skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
 ]
 
 // Minutes a typical job takes, and what to bring. Edit freely.

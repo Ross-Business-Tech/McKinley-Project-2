@@ -2,8 +2,8 @@
  {
   "id": "R001",
   "name": "Marisol Q.",
-  "community": "Heron Lake Apartments",
-  "region": "Orlando",
+  "community": "Spruce Knob",
+  "region": "Michigan",
   "unit": "101",
   "type": "2BR",
   "pets": "dog - Biscuit",
@@ -15,7 +15,7 @@
  {
   "id": "R002",
   "name": "Theo B.",
-  "community": "Birchwood Commons",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "108",
   "type": "1BR",
@@ -28,8 +28,8 @@
  {
   "id": "R003",
   "name": "Jordan P.",
-  "community": "Sandpiper Pointe",
-  "region": "Orlando",
+  "community": "Evergreen",
+  "region": "Michigan",
   "unit": "115",
   "type": "1BR",
   "pets": null,
@@ -41,7 +41,7 @@
  {
   "id": "R004",
   "name": "Keiko A.",
-  "community": "Fernhill Apartments",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "122",
   "type": "2BR",
@@ -54,7 +54,7 @@
  {
   "id": "R005",
   "name": "Malik T.",
-  "community": "Fernhill Apartments",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "129",
   "type": "2BR",
@@ -67,8 +67,8 @@
  {
   "id": "R006",
   "name": "Sofia M.",
-  "community": "Sandpiper Pointe",
-  "region": "Orlando",
+  "community": "Evergreen",
+  "region": "Michigan",
   "unit": "136",
   "type": "1BR",
   "pets": null,
@@ -80,7 +80,7 @@
  {
   "id": "R007",
   "name": "Hana W.",
-  "community": "Birchwood Commons",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "143",
   "type": "studio",
@@ -93,8 +93,8 @@
  {
   "id": "R008",
   "name": "Desmond A.",
-  "community": "Heron Lake Apartments",
-  "region": "Orlando",
+  "community": "Glencoe Hills",
+  "region": "Michigan",
   "unit": "150",
   "type": "3BR",
   "pets": "dog - Rosie",
@@ -106,7 +106,7 @@
  {
   "id": "R009",
   "name": "Owen C.",
-  "community": "Fernhill Apartments",
+  "community": "Evergreen",
   "region": "Michigan",
   "unit": "157",
   "type": "2BR",
@@ -119,8 +119,8 @@
  {
   "id": "R010",
   "name": "Leah B.",
-  "community": "Sandpiper Pointe",
-  "region": "Orlando",
+  "community": "Spruce Knob",
+  "region": "Michigan",
   "unit": "164",
   "type": "1BR",
   "pets": "cat - Pepper",
@@ -132,7 +132,7 @@
  {
   "id": "R011",
   "name": "Devon R.",
-  "community": "Birchwood Commons",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "210",
   "type": "1BR",
@@ -145,8 +145,8 @@
  {
   "id": "R012",
   "name": "Valeria M.",
-  "community": "Heron Lake Apartments",
-  "region": "Orlando",
+  "community": "Evergreen",
+  "region": "Michigan",
   "unit": "216",
   "type": "2BR",
   "pets": null,
@@ -158,7 +158,7 @@
  {
   "id": "R013",
   "name": "Callum O.",
-  "community": "Fernhill Apartments",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "222",
   "type": "1BR",
@@ -171,8 +171,8 @@
  {
   "id": "R014",
   "name": "Nadia K.",
-  "community": "Sandpiper Pointe",
-  "region": "Orlando",
+  "community": "Glencoe Hills",
+  "region": "Michigan",
   "unit": "228",
   "type": "2BR",
   "pets": null,
@@ -184,8 +184,8 @@
  {
   "id": "R015",
   "name": "Rafael Q.",
-  "community": "Heron Lake Apartments",
-  "region": "Orlando",
+  "community": "Evergreen",
+  "region": "Michigan",
   "unit": "234",
   "type": "1BR",
   "pets": null,
@@ -197,7 +197,7 @@
  {
   "id": "R016",
   "name": "Lena H.",
-  "community": "Birchwood Commons",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "240",
   "type": "2BR",
@@ -210,7 +210,7 @@
  {
   "id": "R017",
   "name": "Imani F.",
-  "community": "Fernhill Apartments",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "246",
   "type": "3BR",
@@ -223,8 +223,8 @@
  {
   "id": "R018",
   "name": "Gabriel N.",
-  "community": "Sandpiper Pointe",
-  "region": "Orlando",
+  "community": "Evergreen",
+  "region": "Michigan",
   "unit": "252",
   "type": "studio",
   "pets": null,
@@ -236,7 +236,7 @@
  {
   "id": "R019",
   "name": "Ezra W.",
-  "community": "Birchwood Commons",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "258",
   "type": "1BR",
@@ -249,8 +249,8 @@
  {
   "id": "R020",
   "name": "Simone H.",
-  "community": "Heron Lake Apartments",
-  "region": "Orlando",
+  "community": "Glencoe Hills",
+  "region": "Michigan",
   "unit": "264",
   "type": "1BR",
   "pets": "cat - Juniper",
