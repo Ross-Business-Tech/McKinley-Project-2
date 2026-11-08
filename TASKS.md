@@ -6,14 +6,14 @@ Based on the Architecture PDF. Task numbers match the PDF's to-do list. All data
 
 | Person | Focus | Tasks |
 |---|---|---|
-| **Shayla** | Data and scheduler | 4, 5, 6, 7, 8, 13 |
+| **Shivaji** | Data and scheduler | 4, 5, 6, 7, 8, 13 |
 | **Macy** | Rules and AI | 9, 10, 11, 12 |
-| **Shivaji** | Manager screen | 14, 15, 16, 17 |
+| **Shayla** | Manager screen | 14, 15, 16, 17 |
 | **Everyone** | Setup and proving it works | 1, 2, 3, 18, 19 |
 
-## Shayla: Data (steps 1-2) and Scheduler (step 5)
+## Shivaji: Data (steps 1-2) and Scheduler (step 5)
 
-Builds the shared database everyone else reads from, plus the scheduler that uses the travel times she creates.
+Builds the shared database everyone else reads from, plus the scheduler that uses the travel times created here.
 
 - [ ] 4. Load the resident spreadsheet into SQLite.
 - [ ] 5. Create the technician table: names, region, skills, shifts.
@@ -22,7 +22,7 @@ Builds the shared database everyone else reads from, plus the scheduler that use
 - [ ] 8. Write 20 test orders covering each README test case, with the expected result for each.
 - [ ] 13. Build the scheduler and the by-hand baseline, plus the comparison.
 
-**Hands off to:** Macy (test orders and database to run rules on) and Shivaji (day plans to display).
+**Hands off to:** Macy (test orders and database to run rules on) and Shayla (day plans to display).
 
 ## Macy: Rules engine (step 3) and AI step (step 4)
 
@@ -33,9 +33,9 @@ Builds the "brains": the fixed rules that must always be right, and the AI that 
 - [ ] 11. Write the AI prompt and its JSON output format.
 - [ ] 12. Add the "never lower priority" and low-confidence checks on the AI output.
 
-**Hands off to:** Shivaji (ranked priority, reasons and flags for each job card).
+**Hands off to:** Shayla (ranked priority, reasons and flags for each job card).
 
-## Shivaji: Manager app (steps 6-7)
+## Shayla: Manager app (steps 6-7)
 
 Builds the one screen the maintenance manager opens each day.
 
@@ -46,26 +46,26 @@ Builds the one screen the maintenance manager opens each day.
 
 Also covers the layout from the design summary: summary strip, ranked queue (left, wider), side panel with crew split and repeat-problems chart (right), data table (bottom).
 
-**Depends on:** Shayla's data and scheduler, and Macy's rules and AI output. Start with sample data so the screen can be built in parallel.
+**Depends on:** Shivaji's data and scheduler, and Macy's rules and AI output. Start with sample data so the screen can be built in parallel.
 
 ## Everyone (shared)
 
 - [ ] 1. Confirm the team's language and tools (Python assumed). *Decide together on day one.*
-- [ ] 2. Tell the sprint organizers the README's example column doesn't match row R001. *Shayla sends it, since she works with the spreadsheet.*
+- [ ] 2. Tell the sprint organizers the README's example column doesn't match row R001. *Shivaji sends it, since that person works with the spreadsheet.*
 - [ ] 3. Get an AI API key for the prototype. *Macy asks the instructor. Never put keys in the code; use a here.now proxy route.*
 - [ ] 18. Run all 20 test orders and compare against expected results. *All three, once the pieces connect.*
-- [ ] 19. Prepare a short demo showing time saved versus the by-hand plan. *Shivaji leads; the others supply their parts.*
+- [ ] 19. Prepare a short demo showing time saved versus the by-hand plan. *Shayla leads; the others supply their parts.*
 
 ## Midpoint to-dos
 
 - [ ] Define the problems
 - [ ] Discuss what we need
-- [ ] Show the interface (at least the user interface), led by Shivaji
+- [ ] Show the interface (at least the user interface), led by Shayla
 - [ ] Send the deck to the client a day before the call
 
 ## Suggested order
 
 1. **Day one, together:** tasks 1 and 3.
-2. **In parallel:** Shayla starts the data (4-8), Macy writes the rules (9-10), Shivaji builds the screen with sample data (14-17).
-3. **Then:** Macy adds the AI step (11-12), Shayla builds the scheduler (13).
+2. **In parallel:** Shivaji starts the data (4-8), Macy writes the rules (9-10), Shayla builds the screen with sample data (14-17).
+3. **Then:** Macy adds the AI step (11-12), Shivaji builds the scheduler (13).
 4. **Last, together:** tasks 18 and 19.
