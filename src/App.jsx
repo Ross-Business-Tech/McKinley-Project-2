@@ -2,9 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { COMMUNITIES, JOBS, SCENARIOS, SHEET_NAME, TECHS, URGENCY } from './data.js'
 import { fmt, runEvaluation } from './evaluate.js'
+import { LIVE_SCENARIO } from './planner.js'
+
+const ALL_SCENARIOS = [LIVE_SCENARIO, ...SCENARIOS]
 
 const STEPS = [
-  { n: 1, title: 'Write the test day', short: 'A made-up day of requests, crew and drive times' },
+  { n: 1, title: 'Write the test day', short: 'A day of requests from the sheet, plus an assumed crew and drive times' },
   { n: 2, title: 'Planner makes a plan', short: 'The planner sees the day, never the answer key' },
   { n: 3, title: 'Plan handed back', short: 'Only the plan itself is judged' },
   { n: 4, title: 'Check', short: 'Could this plan work in real life?' },
@@ -18,11 +21,11 @@ const urgClass = (u) => (u === 3 ? 'crit' : u === 2 ? 'warn' : 'ok')
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 export default function App() {
-  const [scenarioId, setScenarioId] = useState('good')
+  const [scenarioId, setScenarioId] = useState('live')
   const [status, setStatus] = useState('idle') // idle | running | done
   const [step, setStep] = useState(0) // number of finished steps
   const timer = useRef(null)
-  const scenario = SCENARIOS.find((s) => s.id === scenarioId)
+  const scenario = ALL_SCENARIOS.find((s) => s.id === scenarioId)
   const result = useMemo(() => {
     try {
       return runEvaluation(scenario)
@@ -76,18 +79,18 @@ export default function App() {
   return (
     <main className="wrap">
       <header className="stack">
-        <span className="tag">Evaluator demo · made-up test day</span>
+        <span className="tag">Evaluator demo · built from the sample spreadsheet</span>
         <h1>Plan Evaluator</h1>
         <p className="sub">
           Tests a maintenance planner the way a teacher grades an exam: the planner hands in a plan, we check it, compare it with a
-          by-hand plan, score both, and apply must-pass gates. Everything here is invented, so results are estimates.
+          by-hand plan, score both, and apply must-pass gates. The people and requests come from the sprint's sample spreadsheet. The crew, job times and drive times are assumptions, so results are estimates.
         </p>
       </header>
 
       <section className="panel stack" aria-label="Choose a planner to test">
         <h2>1. Pick a planner to test</h2>
         <div className="seg" role="radiogroup" aria-label="Planner scenarios">
-          {SCENARIOS.map((s) => (
+          {ALL_SCENARIOS.map((s) => (
             <button key={s.id} role="radio" aria-checked={s.id === scenarioId} className={s.id === scenarioId ? 'seg-on' : ''} onClick={() => pick(s.id)}>
               {s.label}
             </button>
@@ -261,7 +264,18 @@ function StepBody({ n, scenario, r }) {
     )
   }
   if (n === 2) {
-    return <p>The planner receives the requests and crew list above. It does not know it is being graded and never sees the answer key.</p>
+    return (
+      <div className="stack">
+        <p>The planner receives the requests and crew list above. It does not know it is being graded and never sees the answer key.</p>
+        {scenario.rules && (
+          <>
+            <b>How this planner decides</b>
+            <ol className="rules">{scenario.rules.map((r) => <li key={r}>{r}</li>)}</ol>
+          </>
+        )}
+        {!scenario.rules && <p className="note">This plan is a scripted example, written by hand to show one kind of mistake.</p>}
+      </div>
+    )
   }
   if (n === 3) {
     return (
@@ -330,7 +344,7 @@ function Scorecard({ r }) {
         </section>
       )}
       {p && !r.pass && <p className="note">These numbers do not count: a must-pass check failed.</p>}
-      <p className="note">Estimate only: this was a made-up test day, not a real one.</p>
+      <p className="note">Estimate only: the test day uses synthetic data and assumed times, not a real day.</p>
     </div>
   )
 }

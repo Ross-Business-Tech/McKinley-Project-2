@@ -55,3 +55,4 @@ th { border-top: 0; font-family: var(--mono); font-size: 11px; text-transform: u
 .stat span { font-size: 12px; color: var(--muted); }
 details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
 .strip.dim { opacity: .45; filter: grayscale(1); }
+.rules { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
