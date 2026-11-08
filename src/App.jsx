@@ -15,6 +15,7 @@ function App() {
   const [msg, setMsg] = useState('')
   const [resId, setResId] = useState('')
   const [showScale, setShowScale] = useState(false)
+  const [open, setOpen] = useState({})
 
   const orders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
   const plan = useMemo(() => buildPlan(orders, tech), [orders, tech])
@@ -43,17 +44,17 @@ function App() {
 
   return (
     <main className="app">
-      <header>
+      <header className="hero">
+        <span className="chip">Sample data</span>
         <h1>Maintenance Triage Board</h1>
-        <p className="sub">Sample data only. Paste a request, see what to fix first and the best route for each technician.</p>
+        <p>What to fix first, who should go, and the smartest route for the day.</p>
+        <section className="stats">
+          <div className="s-red"><b>{stats.action}</b><span>Do today</span></div>
+          <div className="s-amber"><b>{stats.repeat}</b><span>Repeat problems</span></div>
+          <div className="s-blue"><b>{stats.vendor}</b><span>May need a vendor</span></div>
+          <div className="s-gray"><b>{stats.hold}</b><span>Waiting on OK</span></div>
+        </section>
       </header>
-
-      <section className="stats">
-        <div><b>{stats.action}</b><span>Do today</span></div>
-        <div><b>{stats.repeat}</b><span>Repeat problems</span></div>
-        <div><b>{stats.vendor}</b><span>May need a vendor</span></div>
-        <div><b>{stats.hold}</b><span>Waiting on resident OK</span></div>
-      </section>
 
       <nav className="tabs">
         {[['queue', 'Priority list'], ['routes', 'Technician routes'], ['new', 'Add request']].map(([k, l]) => (
@@ -97,14 +98,28 @@ function App() {
                   <span className="small">{tag(o.sev).sla} · {o.label}</span>
                 </div>
                 <p className="text">“{o.text}”</p>
-                <p className="small">
+                <p className="unit">
                   {o.resident ? <>Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : <b className="warn">Unit NOT FOUND</b>}
                 </p>
-                <p className="why">Why: {o.reasons.join('. ')}.</p>
-                <p className={`entry ${o.entry.status}`}><b>Entry:</b> {o.entry.text}</p>
-                {o.vendor && <p className="tagline vendor">Likely outside vendor: {o.vendor.vendor}. {o.vendor.why}. (Assumption. Confirm with McKinley.)</p>}
-                {o.flags.map((f) => <p key={f} className="tagline">⚑ {f}</p>)}
-                <p className="small">Bring: {o.bring.join(', ')} · about {o.mins} min</p>
+                <div className="chips">
+                  <span className={`chip e-${o.entry.status}`}>
+                    {{ emergency: 'Enter now', hold: 'Needs resident OK', ok: 'OK to enter', none: 'No entry needed', unknown: 'Unit unknown' }[o.entry.status]}
+                  </span>
+                  {o.vendor && <span className="chip c-vendor">Vendor: {o.vendor.vendor}</span>}
+                  {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
+                  {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
+                  {t && <span className="chip c-tech">{t.name}</span>}
+                </div>
+                <button className="link" onClick={() => setOpen({ ...open, [o.id]: !open[o.id] })}>{open[o.id] ? 'Hide details' : 'Why this rank & details'}</button>
+                {open[o.id] && (
+                  <div className="details">
+                    <p className="why">Why: {o.reasons.join('. ')}.</p>
+                    <p><b>Entry:</b> {o.entry.text}</p>
+                    {o.vendor && <p>Likely outside vendor: {o.vendor.vendor}. {o.vendor.why}. (Assumption. Confirm with McKinley.)</p>}
+                    {o.flags.map((f) => <p key={f}>⚑ {f}</p>)}
+                    <p>Bring: {o.bring.join(', ')} · about {o.mins} min</p>
+                  </div>
+                )}
                 <div className="row actions">
                   <select aria-label="Change priority" value={state[o.id]?.sevOverride || o.sev}
                     onChange={(e) => patch(o.id, { sevOverride: Number(e.target.value) })}>
