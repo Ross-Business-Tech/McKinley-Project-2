@@ -178,7 +178,7 @@ export const fmt = (t) => {
 
 // Each site has its own team, so jobs only go to technicians based at that site.
 function candidateTechs(job, techs) {
-  return techs.filter((t) => !job.community || t.site === job.community)
+  return techs.filter((t) => !job.community || t.sites.includes(job.community))
 }
 
 // Assign every job to the best-fit technician: right skill first, then lightest load.

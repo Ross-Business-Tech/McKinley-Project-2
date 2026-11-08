@@ -1,33 +1,72 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
-import { SEVERITY, TECHS, COMMUNITIES } from './triage/config.js'
+import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
+import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
 
+function load(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key))
+    return v || fallback
+  } catch {
+    return fallback
+  }
+}
+function save(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    /* private mode: fine, just don't remember */
+  }
+}
+
 function App() {
   const [raw, setRaw] = useState(TEST_ORDERS)
-  const [state, setState] = useState({}) // per-order manager changes: sevOverride, okReceived
-  const [tech, setTech] = useState({}) // per-order reassign
+  const [state, setState] = useState({})
+  const [tech, setTech] = useState({})
   const [approved, setApproved] = useState({})
+  const [contacted, setContacted] = useState({})
   const [tab, setTab] = useState('queue')
   const [msg, setMsg] = useState('')
   const [resId, setResId] = useState('')
+  const [reqPhone, setReqPhone] = useState('')
+  const [reqEmail, setReqEmail] = useState('')
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
   const [site, setSite] = useState('all')
+  const [sites, setSites] = useState(() => load('mk-sites', DEFAULT_SITES))
+  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams', TECHS))
 
+  useEffect(() => save('mk-sites', sites), [sites])
+  useEffect(() => save('mk-teams', teamsRaw), [teamsRaw])
+
+  const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
   const allOrders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
-  const orders = useMemo(() => allOrders.filter((o) => site === 'all' || (site === 'unassigned' ? !o.community : o.community === site)), [allOrders, site])
-  const team = useMemo(() => TECHS.filter((t) => site === 'all' || t.site === site), [site])
-  const plan = useMemo(() => buildPlan(orders, tech, team.length ? team : TECHS), [orders, tech, team])
+  const orders = useMemo(
+    () => allOrders.filter((o) => site === 'all' || (site === 'unassigned' ? !o.community : o.community === site)),
+    [allOrders, site],
+  )
+  const team = useMemo(() => allTeams.filter((t) => site === 'all' || t.sites.includes(site)), [allTeams, site])
+  const plan = useMemo(() => buildPlan(orders, tech, team), [orders, tech, team])
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
   const ranked = [...orders].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
 
+  const followups = useMemo(
+    () =>
+      orders
+        .map((o) => ({ o, items: missingInfo(o) }))
+        .filter((f) => f.items.length)
+        .sort((a, b) => b.o.sev - a.o.sev),
+    [orders],
+  )
+  const openFollowups = followups.filter((f) => !contacted[f.o.id])
+
   const stats = {
     action: orders.filter((o) => o.sev >= 4).length,
-    repeat: orders.filter((o) => (o.repeats || 0) >= 3).length,
+    missing: openFollowups.length,
     vendor: orders.filter((o) => o.vendor).length,
     hold: orders.filter((o) => o.entry.status === 'hold').length,
   }
@@ -38,39 +77,57 @@ function App() {
     e.preventDefault()
     if (!msg.trim()) return
     const n = raw.length + 1
-    setRaw([...raw, { id: `W${String(n).padStart(2, '0')}`, residentId: resId || null, received: '10:30', text: msg.trim() }])
+    setRaw([
+      ...raw,
+      { id: `W${String(n).padStart(2, '0')}`, residentId: resId || null, received: '10:30', text: msg.trim(), phone: reqPhone.trim(), email: reqEmail.trim() },
+    ])
     setMsg('')
     setResId('')
-    setTab('queue')
+    setReqPhone('')
+    setReqEmail('')
+    setTab('followups')
   }
 
   const assignedTo = (id) => plan.techs.find((t) => t.jobs.some((j) => j.id === id))?.tech
 
+  const updateTech = (id, p) => setTeamsRaw((ts) => ts.map((t) => (t.id === id ? { ...t, ...p } : t)))
+  const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
+
+  const TABS = [
+    ['queue', 'Priority'],
+    ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
+    ['routes', 'Routes'],
+    ['teams', 'Teams'],
+    ['new', 'Add'],
+  ]
+
   return (
     <main className="app">
       <header className="hero">
-        <span className="chip">Sample data</span>
-        <h1>Maintenance Triage Board</h1>
-        <p>What to fix first, who should go, and the smartest route for the day.</p>
+        <span className="chip">Prototype · sample data</span>
+        <h1>Maintenance Hub</h1>
+        <p>For McKinley communities: what to fix first, who should go, and the smartest route for the day.</p>
         <section className="stats">
-          <div className="s-red"><b>{stats.action}</b><span>Do today</span></div>
-          <div className="s-amber"><b>{stats.repeat}</b><span>Repeat problems</span></div>
-          <div className="s-blue"><b>{stats.vendor}</b><span>May need a vendor</span></div>
-          <div className="s-gray"><b>{stats.hold}</b><span>Waiting on OK</span></div>
+          <div><b>{stats.action}</b><span>Do today</span></div>
+          <div><b>{stats.missing}</b><span>Need follow-up</span></div>
+          <div><b>{stats.vendor}</b><span>May need a vendor</span></div>
+          <div><b>{stats.hold}</b><span>Waiting on OK</span></div>
         </section>
       </header>
 
       <nav className="sites" aria-label="Site team">
-        {[['all', 'All sites', allOrders.length], ...Object.keys(COMMUNITIES).map((k) => [k, k, countFor(k)]), ['unassigned', 'Unit not found', countFor('unassigned')]].map(([k, l, n]) => (
+        {[['all', 'All sites', allOrders.length], ...sites.map((s) => [s.name, s.name, countFor(s.name)]), ['unassigned', 'Unit not found', countFor('unassigned')]].map(([k, l, n]) => (
           <button key={k} className={site === k ? 'on' : ''} onClick={() => setSite(k)}>{l} <span>{n}</span></button>
         ))}
       </nav>
       {site !== 'all' && site !== 'unassigned' && (
-        <p className="small team">{site} team: {team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ')})`).join(' · ')}</p>
+        <p className="small team">
+          {site} team: {team.length ? team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ') || 'general'})`).join(' · ') : 'no technicians yet. Add them on the Teams tab.'}
+        </p>
       )}
 
       <nav className="tabs">
-        {[['queue', 'Priority list'], ['routes', 'Technician routes'], ['new', 'Add request']].map(([k, l]) => (
+        {TABS.map(([k, l]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
         ))}
       </nav>
@@ -88,8 +145,58 @@ function App() {
               {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
             </select>
           </label>
+          <div className="two">
+            <label>Requester phone (optional)
+              <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value)} placeholder="555-0100" inputMode="tel" />
+            </label>
+            <label>Requester email (optional)
+              <input value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" />
+            </label>
+          </div>
           <button className="primary" type="submit">Triage it</button>
         </form>
+      )}
+
+      {tab === 'followups' && (
+        <>
+          <p className="small notice">
+            When a request is missing something, it shows up here with a message already written. Tap Text, Email or Call and it opens that app on your phone with the words filled in. Nothing is sent automatically. Sending on its own would need a texting/email service set up by McKinley IT.
+          </p>
+          {followups.length === 0 && <section className="card"><p>Nothing missing. Every request has what we need.</p></section>}
+          {followups.map(({ o, items }) => {
+            const d = drafts(o, items, sites)
+            const done = contacted[o.id]
+            return (
+              <article key={o.id} className={`card order ${tag(o.sev).color} ${done ? 'faded' : ''}`}>
+                <div className="row">
+                  <span className={`pill ${tag(o.sev).color}`}>{o.sev} · {tag(o.sev).label}</span>
+                  <span className="small">{o.label}</span>
+                  {d.urgent && !done && <span className="chip e-emergency">Urgent: don't wait for a reply</span>}
+                </div>
+                <p className="text">“{o.text}”</p>
+                <p className="unit">{o.resident ? `Unit ${o.resident.unit} · ${o.resident.name} · ${o.community}` : 'Unit NOT FOUND'}</p>
+                <div className="chips">
+                  {items.map((i) => <span key={i.key} className="chip c-missing">Missing: {i.label}</span>)}
+                </div>
+                <div className="draft">
+                  <b>Message ready to send{d.spanish ? ' (in Spanish)' : ''}</b>
+                  <p>{d.body}</p>
+                </div>
+                {!d.text && !d.email && <p className="small warn">No phone or email on file for this requester. Alert the leasing office to track them down.</p>}
+                <div className="row actions">
+                  {d.text && <a className={`btn ${d.channel === 'text' ? 'primary' : ''}`} href={d.text}>Text{d.channel === 'text' ? ' (preferred)' : ''}</a>}
+                  {d.email && <a className={`btn ${d.channel === 'email' ? 'primary' : ''}`} href={d.email}>Email{d.channel === 'email' ? ' (preferred)' : ''}</a>}
+                  {d.call && <a className={`btn ${d.channel === 'call' ? 'primary' : ''}`} href={d.call}>Call{d.channel === 'call' ? ' (preferred)' : ''}</a>}
+                  <a className={`btn ${!d.text && !d.email ? 'primary' : ''}`} href={d.alert}>Alert {d.office.name}</a>
+                </div>
+                {d.callScript && <p className="small">Call notes: {d.callScript}</p>}
+                <button className={done ? 'done' : ''} onClick={() => setContacted({ ...contacted, [o.id]: !done })}>
+                  {done ? 'Marked as contacted ✓' : 'Mark as contacted'}
+                </button>
+              </article>
+            )
+          })}
+        </>
       )}
 
       {tab === 'queue' && (
@@ -104,6 +211,7 @@ function App() {
           )}
           {ranked.map((o) => {
             const t = assignedTo(o.id)
+            const miss = missingInfo(o)
             return (
               <article key={o.id} className={`card order ${tag(o.sev).color}`}>
                 <div className="row">
@@ -118,6 +226,7 @@ function App() {
                   <span className={`chip e-${o.entry.status}`}>
                     {{ emergency: 'Enter now', hold: 'Needs resident OK', ok: 'OK to enter', none: 'No entry needed', unknown: 'Unit unknown' }[o.entry.status]}
                   </span>
+                  {miss.length > 0 && !contacted[o.id] && <button className="chip c-missing chipbtn" onClick={() => setTab('followups')}>Missing info: follow up</button>}
                   {o.vendor && <span className="chip c-vendor">Vendor: {o.vendor.vendor}</span>}
                   {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
@@ -140,7 +249,7 @@ function App() {
                   </select>
                   <select aria-label="Reassign" value={tech[o.id] || ''} onChange={(e) => setTech({ ...tech, [o.id]: e.target.value || undefined })}>
                     <option value="">{t ? `Auto: ${t.name}` : 'Auto-assign'}</option>
-                    {team.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.site})</option>)}
+                    {team.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.sites.join(', ')})</option>)}
                   </select>
                   {o.entry.status === 'hold' && (
                     <button onClick={() => patch(o.id, { okReceived: !o.okReceived })}>{o.okReceived ? 'OK received ✓' : 'Resident said OK'}</button>
@@ -160,7 +269,7 @@ function App() {
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
           {(site === 'unassigned' ? [] : plan.techs).map(({ tech: t, plan: p, byHand }) => (
             <section key={t.id} className="card">
-              <h2>{t.name} <span className="small">· {t.site} · {t.skills.join(', ')}</span></h2>
+              <h2>{t.name} <span className="small">· {t.sites.join(', ')} · {t.skills.join(', ')}</span></h2>
               <p className="small">{p.stops.length} jobs · {Math.round(p.drive)} min driving (by hand: {Math.round(byHand.drive)}) · done around {fmt(p.finish)}</p>
               <ol className="route">
                 {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
@@ -179,7 +288,7 @@ function App() {
           {plan.unknown.length > 0 && (
             <section className="card">
               <h2>Unit not found ({plan.unknown.length})</h2>
-              <p className="small">No site team yet. The manager confirms the unit with the resident, then re-adds the request with the unit number.</p>
+              <p className="small">No site team yet. Use the Follow-ups tab to reach the requester or alert the leasing office.</p>
               <ul>{plan.unknown.map((o) => <li key={o.id}>{o.label}: “{o.text.slice(0, 60)}…”</li>)}</ul>
             </section>
           )}
@@ -192,8 +301,92 @@ function App() {
           )}
         </>
       )}
+
+      {tab === 'teams' && (
+        <>
+          <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
+          {sites.map((s) => (
+            <section key={s.name} className="card">
+              <div className="row between">
+                <h2>{s.name} <span className="small">· {s.city}</span></h2>
+                {!DEFAULT_SITES.some((d) => d.name === s.name) && (
+                  <button className="link" onClick={() => { setSites(sites.filter((x) => x.name !== s.name)); setTeamsRaw(teamsRaw.map((t) => ({ ...t, sites: t.sites.filter((x) => x !== s.name) }))) }}>Remove site</button>
+                )}
+              </div>
+              <div className="two">
+                <label>Leasing office phone
+                  <input value={s.phone || ''} onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, phone: e.target.value } : x)))} inputMode="tel" />
+                </label>
+                <label>Leasing office email
+                  <input value={s.email || ''} onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, email: e.target.value } : x)))} inputMode="email" />
+                </label>
+              </div>
+              <h3>Team</h3>
+              {allTeams.filter((t) => t.sites.includes(s.name)).map((t) => (
+                <TechEditor key={t.id} t={teamsRaw.find((x) => x.id === t.id)} sites={sites} update={(p) => updateTech(t.id, p)} toggle={toggle}
+                  remove={() => setTeamsRaw(teamsRaw.filter((x) => x.id !== t.id))} />
+              ))}
+              <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
+            </section>
+          ))}
+          <AddSite onAdd={(s) => setSites([...sites, s])} existing={sites} />
+          <button className="link" onClick={() => { setSites(DEFAULT_SITES); setTeamsRaw(TECHS) }}>Reset teams to the sample setup</button>
+        </>
+      )}
       <footer className="small">Made-up technicians, vendors, travel times and requests. Entry-notice rules are assumptions to confirm with McKinley and the lease. This is not legal advice.</footer>
     </main>
+  )
+}
+
+function TechEditor({ t, sites, update, toggle, remove }) {
+  return (
+    <div className="tech">
+      <div className="row between">
+        <input className="name" value={t.name} onChange={(e) => update({ name: e.target.value })} aria-label="Technician name" />
+        <button className="link" onClick={remove}>Remove</button>
+      </div>
+      <p className="small">Strengths</p>
+      <div className="chips">
+        {SKILLS.map((k) => (
+          <button key={k} className={`chip chipbtn ${t.skills.includes(k) ? 'sel' : ''}`} onClick={() => update({ skills: toggle(t.skills, k) })}>{k}</button>
+        ))}
+      </div>
+      <p className="small">Works at</p>
+      <div className="chips">
+        {sites.map((s) => (
+          <button key={s.name} className={`chip chipbtn ${t.sites.includes(s.name) ? 'sel' : ''}`} onClick={() => update({ sites: toggle(t.sites, s.name) })}>{s.name}</button>
+        ))}
+      </div>
+      <div className="two">
+        <label>Shift starts
+          <select value={t.shift[0]} onChange={(e) => update({ shift: [Number(e.target.value), t.shift[1]] })}>
+            {[6, 7, 8, 9, 10].map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
+          </select>
+        </label>
+        <label>Shift ends
+          <select value={t.shift[1]} onChange={(e) => update({ shift: [t.shift[0], Number(e.target.value)] })}>
+            {[14, 15, 16, 17, 18, 19, 20].map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
+          </select>
+        </label>
+      </div>
+    </div>
+  )
+}
+
+function AddSite({ onAdd, existing }) {
+  const [name, setName] = useState('')
+  const [city, setCity] = useState('')
+  const dup = existing.some((s) => s.name.toLowerCase() === name.trim().toLowerCase())
+  return (
+    <form className="card" onSubmit={(e) => { e.preventDefault(); if (name.trim() && !dup) { onAdd({ name: name.trim(), city: city.trim(), phone: '', email: '' }); setName(''); setCity('') } }}>
+      <h2>Add another McKinley property</h2>
+      <div className="two">
+        <label>Property name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Heron Lake" /></label>
+        <label>City<input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Ann Arbor, MI" /></label>
+      </div>
+      {dup && <p className="small warn">That property is already on the list.</p>}
+      <button className="primary" type="submit">Add property</button>
+    </form>
   )
 }
 
