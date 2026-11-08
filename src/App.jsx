@@ -1,121 +1,164 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useMemo, useState } from 'react'
 import './App.css'
+import { TEST_ORDERS } from './triage/testOrders.js'
+import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
+import { SEVERITY, TECHS } from './triage/config.js'
+
+const tag = (sev) => SEVERITY[sev]
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [raw, setRaw] = useState(TEST_ORDERS)
+  const [state, setState] = useState({}) // per-order manager changes: sevOverride, okReceived
+  const [tech, setTech] = useState({}) // per-order reassign
+  const [approved, setApproved] = useState({})
+  const [tab, setTab] = useState('queue')
+  const [msg, setMsg] = useState('')
+  const [resId, setResId] = useState('')
+  const [showScale, setShowScale] = useState(false)
+
+  const orders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
+  const plan = useMemo(() => buildPlan(orders, tech), [orders, tech])
+  const ranked = [...orders].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
+
+  const stats = {
+    action: orders.filter((o) => o.sev >= 4).length,
+    repeat: orders.filter((o) => (o.repeats || 0) >= 3).length,
+    vendor: orders.filter((o) => o.vendor).length,
+    hold: orders.filter((o) => o.entry.status === 'hold').length,
+  }
+
+  const patch = (id, p) => setState((s) => ({ ...s, [id]: { ...s[id], ...p } }))
+
+  function addOrder(e) {
+    e.preventDefault()
+    if (!msg.trim()) return
+    const n = raw.length + 1
+    setRaw([...raw, { id: `W${String(n).padStart(2, '0')}`, residentId: resId || null, received: '10:30', text: msg.trim() }])
+    setMsg('')
+    setResId('')
+    setTab('queue')
+  }
+
+  const assignedTo = (id) => plan.techs.find((t) => t.jobs.some((j) => j.id === id))?.tech
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <main className="app">
+      <header>
+        <h1>Maintenance Triage Board</h1>
+        <p className="sub">Sample data only. Paste a request, see what to fix first and the best route for each technician.</p>
+      </header>
+
+      <section className="stats">
+        <div><b>{stats.action}</b><span>Do today</span></div>
+        <div><b>{stats.repeat}</b><span>Repeat problems</span></div>
+        <div><b>{stats.vendor}</b><span>May need a vendor</span></div>
+        <div><b>{stats.hold}</b><span>Waiting on resident OK</span></div>
       </section>
 
-      <div className="ticks"></div>
+      <nav className="tabs">
+        {[['queue', 'Priority list'], ['routes', 'Technician routes'], ['new', 'Add request']].map(([k, l]) => (
+          <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
+        ))}
+      </nav>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {tab === 'new' && (
+        <form className="card" onSubmit={addOrder}>
+          <h2>Add a maintenance request</h2>
+          <label>Paste the message
+            <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={4}
+              placeholder="e.g. Unit 143: the toilet is overflowing and water is on the floor" />
+          </label>
+          <label>Resident (optional; if blank we look for a unit number in the message)
+            <select value={resId} onChange={(e) => setResId(e.target.value)}>
+              <option value="">Find it from the message</option>
+              {RESIDENTS.map((r) => <option key={r.id} value={r.id}>Unit {r.unit} · {r.name} · {r.community}</option>)}
+            </select>
+          </label>
+          <button className="primary" type="submit">Triage it</button>
+        </form>
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {tab === 'queue' && (
+        <>
+          <button className="link" onClick={() => setShowScale(!showScale)}>{showScale ? 'Hide' : 'Show'} severity scale</button>
+          {showScale && (
+            <ul className="scale">
+              {[5, 4, 3, 2, 1].map((n) => (
+                <li key={n}><span className={`pill ${tag(n).color}`}>{n} · {tag(n).label}</span> <b>{tag(n).sla}.</b> {tag(n).desc}</li>
+              ))}
+            </ul>
+          )}
+          {ranked.map((o) => {
+            const t = assignedTo(o.id)
+            return (
+              <article key={o.id} className={`card order ${tag(o.sev).color}`}>
+                <div className="row">
+                  <span className={`pill ${tag(o.sev).color}`}>{o.sev} · {tag(o.sev).label}</span>
+                  <span className="small">{tag(o.sev).sla} · {o.label}</span>
+                </div>
+                <p className="text">“{o.text}”</p>
+                <p className="small">
+                  {o.resident ? <>Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : <b className="warn">Unit NOT FOUND</b>}
+                </p>
+                <p className="why">Why: {o.reasons.join('. ')}.</p>
+                <p className={`entry ${o.entry.status}`}><b>Entry:</b> {o.entry.text}</p>
+                {o.vendor && <p className="tagline vendor">Likely outside vendor: {o.vendor.vendor}. {o.vendor.why}. (Assumption. Confirm with McKinley.)</p>}
+                {o.flags.map((f) => <p key={f} className="tagline">⚑ {f}</p>)}
+                <p className="small">Bring: {o.bring.join(', ')} · about {o.mins} min</p>
+                <div className="row actions">
+                  <select aria-label="Change priority" value={state[o.id]?.sevOverride || o.sev}
+                    onChange={(e) => patch(o.id, { sevOverride: Number(e.target.value) })}>
+                    {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>Priority {n}: {tag(n).label}</option>)}
+                  </select>
+                  <select aria-label="Reassign" value={tech[o.id] || ''} onChange={(e) => setTech({ ...tech, [o.id]: e.target.value || undefined })}>
+                    <option value="">{t ? `Auto: ${t.name}` : 'Auto-assign'}</option>
+                    {TECHS.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.region})</option>)}
+                  </select>
+                  {o.entry.status === 'hold' && (
+                    <button onClick={() => patch(o.id, { okReceived: !o.okReceived })}>{o.okReceived ? 'OK received ✓' : 'Resident said OK'}</button>
+                  )}
+                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => setApproved({ ...approved, [o.id]: !approved[o.id] })}>
+                    {approved[o.id] ? 'Approved ✓' : 'Approve'}
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+        </>
+      )}
+
+      {tab === 'routes' && (
+        <>
+          <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>
+          {plan.techs.map(({ tech: t, plan: p, byHand }) => (
+            <section key={t.id} className="card">
+              <h2>{t.name} <span className="small">· {t.region} · {t.skills.join(', ')}</span></h2>
+              <p className="small">{p.stops.length} jobs · {Math.round(p.drive)} min driving (by hand: {Math.round(byHand.drive)}) · done around {fmt(p.finish)}</p>
+              <ol className="route">
+                {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
+                  <li key={job.id} className={tag(job.sev).color}>
+                    <span className={`pill ${tag(job.sev).color}`}>{job.sev}</span>
+                    <b>{fmt(arrive)}</b> Unit {job.resident?.unit || '?'} · {job.label}
+                    <div className="small">{job.community || 'Unknown community'} · {travel} min drive{wait > 1 ? ` + ${Math.round(wait)} min wait for resident window` : ''} · until {fmt(done)}</div>
+                    {late && <div className="small warn">Runs past end of shift: carry to tomorrow unless the manager says otherwise</div>}
+                    {job.vendor && <div className="small">Needs {job.vendor.vendor}: schedule the vendor, tech does the first look only</div>}
+                  </li>
+                ))}
+                {p.stops.length === 0 && <li className="small">No jobs assigned.</li>}
+              </ol>
+            </section>
+          ))}
+          {plan.held.length > 0 && (
+            <section className="card">
+              <h2>Waiting on resident OK ({plan.held.length})</h2>
+              <p className="small">Not on anyone's route until the resident gives permission or the notice period has passed.</p>
+              <ul>{plan.held.map((o) => <li key={o.id}>Unit {o.resident?.unit} · {o.label}</li>)}</ul>
+            </section>
+          )}
+        </>
+      )}
+      <footer className="small">Made-up technicians, vendors, travel times and requests. Entry-notice rules are assumptions to confirm with McKinley and the lease. This is not legal advice.</footer>
+    </main>
   )
 }
 
