@@ -11,25 +11,27 @@ export const SEVERITY = {
 
 // The three Ann Arbor sites. Each has its own maintenance team (see TECHS below).
 // Resident-to-site assignment in the sample data is made up.
-// Starting list of sites. Managers can add or edit these on the Teams screen.
-// Phone and email are made-up placeholders for each leasing office.
-export const DEFAULT_SITES = [
-  { name: 'Spruce Knob', city: 'Ann Arbor, MI', phone: '555-0111', email: 'leasing-spruceknob@example.com' },
-  { name: 'Glencoe Hills', city: 'Ann Arbor, MI', phone: '555-0112', email: 'leasing-glencoehills@example.com' },
-  { name: 'Evergreen', city: 'Ann Arbor, MI', phone: '555-0113', email: 'leasing-evergreen@example.com' },
-]
+// McKinley's 49 communities, compiled from mckinley.com (the list you uploaded).
+// Phones are the public leasing numbers. Blank = not found on the site.
+// Leasing office emails were not on the list, so they are blank until you add them on the Teams tab.
+import properties from './properties.json' with { type: 'json' }
 
-export const COMMUNITIES = {
-  'Spruce Knob': { region: 'Michigan', city: 'Ann Arbor' },
-  'Glencoe Hills': { region: 'Michigan', city: 'Ann Arbor' },
-  Evergreen: { region: 'Michigan', city: 'Ann Arbor' },
-}
+export const DEFAULT_SITES = properties.map((p) => ({
+  name: p.name, market: p.market, city: `${p.city}, ${p.state}`, state: p.state, address: p.address, zip: p.zip, beds: p.beds, phone: p.phone, email: '',
+}))
+
+const BY_NAME = Object.fromEntries(DEFAULT_SITES.map((s) => [s.name, s]))
 
 // Rough drive time in minutes (made up until we have the site maps).
-// Same site = 4 (walking between buildings). Between sites = 12.
+// Same property = 4 (walking between buildings). Same city/market = 12.
+// Same state, different market (e.g. Ann Arbor to Ypsilanti) = 25. Different state = not reachable in a day.
 export function travelMinutes(a, b) {
   if (!a || !b) return 0
-  return a === b ? 4 : 12
+  if (a === b) return 4
+  const A = BY_NAME[a], B = BY_NAME[b]
+  if (!A || !B) return 12
+  if (A.market === B.market) return 12
+  return A.state === B.state ? 25 : 999
 }
 
 // Made-up technicians. Skills are what each person is strongest at.
@@ -40,6 +42,12 @@ export const TECHS = [
   { id: 'GH2', name: 'Priya', sites: ['Glencoe Hills'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
   { id: 'EV1', name: 'Jonah', sites: ['Evergreen'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
   { id: 'EV2', name: 'Rosa', sites: ['Evergreen'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'BC1', name: 'Carlos', sites: ['Bella Casa'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
+  { id: 'BC2', name: 'Alicia', sites: ['Bella Casa'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'PO1', name: 'Terrence', sites: ['Portofino'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
+  { id: 'PO2', name: 'Mei', sites: ['Portofino'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'TP1', name: 'Andre', sites: ['The Pines'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
+  { id: 'TP2', name: 'Lena', sites: ['The Pines'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
 ]
 
 // Minutes a typical job takes, and what to bring. Edit freely.
@@ -87,6 +95,6 @@ export const REPEAT_THRESHOLD = 3
 // Michigan: no general state statute on entry notice; the lease and "reasonable notice" govern.
 //   Courts and most leases expect about 24 hours. We use 24 hours to be safe.
 export const ENTRY_RULES = {
-  Orlando: { hours: 12, source: 'Florida law (Fla. Stat. 83.53): 12 hours notice, reasonable times' },
+  Florida: { hours: 12, source: 'Florida law (Fla. Stat. 83.53): 12 hours notice, reasonable times' },
   Michigan: { hours: 24, source: 'Michigan has no set statute, so we use 24 hours notice and the lease terms' },
 }

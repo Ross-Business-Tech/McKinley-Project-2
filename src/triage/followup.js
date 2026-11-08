@@ -20,11 +20,9 @@ export function missingInfo(o) {
   return items
 }
 
-const OFFICE_DEFAULT = { phone: '555-0100', email: 'leasing@example.com' }
-
 export function officeFor(site, sites) {
   const s = sites.find((x) => x.name === site)
-  return { phone: s?.phone || OFFICE_DEFAULT.phone, email: s?.email || OFFICE_DEFAULT.email, name: s ? `${s.name} leasing office` : 'Leasing office' }
+  return { phone: s?.phone || '', email: s?.email || '', name: s ? `${s.name} leasing office` : 'Leasing office' }
 }
 
 // Best way to reach the requester, honoring what we know about them.
@@ -60,6 +58,8 @@ export function drafts(o, items, sites) {
   if (phone || email) {
     out.callScript = `Call ${r ? r.name : 'the requester'} (${phone || email}).${r?.noCallBefore ? ` Do NOT call before ${r.noCallBefore} AM, text first.` : ''} Ask for: ${asks}.${spanish ? ' Resident prefers Spanish.' : ''}`
   }
-  out.alert = `mailto:${office.email}?subject=${encodeURIComponent(`${urgent ? 'URGENT: ' : ''}Please contact requester: request ${o.id}`)}&body=${encodeURIComponent(officeMsg)}`
+  out.alertIsCall = !office.email && !!office.phone
+  out.alertMissing = !office.email && !office.phone
+  out.alert = out.alertIsCall ? `tel:${office.phone}` : !office.email ? null : `mailto:${office.email}?subject=${encodeURIComponent(`${urgent ? 'URGENT: ' : ''}Please contact requester: request ${o.id}`)}&body=${encodeURIComponent(officeMsg)}`
   return out
 }

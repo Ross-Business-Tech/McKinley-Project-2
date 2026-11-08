@@ -50,13 +50,13 @@ export function scoreSeverity(type, text, region, repeats = 0) {
     sev = 5
     reasons.push('No heat in Michigan is always an emergency')
   }
-  if (type === 'noac' && region === 'Orlando') {
+  if (type === 'noac' && region === 'Florida') {
     sev = Math.max(sev, 4)
-    reasons.push('No AC in Orlando heat is at least urgent')
+    reasons.push('No AC in Florida heat is at least urgent')
   }
-  if (type === 'noheat' && region === 'Orlando') {
+  if (type === 'noheat' && region === 'Florida') {
     sev = 3
-    reasons.push('No heat in Orlando: soon, but lower risk than Michigan')
+    reasons.push('No heat in Florida: soon, but lower risk than Michigan')
   }
 
   // "Reader" step: stands in for the AI step. Can only raise.

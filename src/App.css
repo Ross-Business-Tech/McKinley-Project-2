@@ -63,3 +63,4 @@ input{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(
 .tech{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:var(--soft)}
 .tech .name{font-weight:700;width:auto;flex:1;margin-right:8px}
 .card>button{margin-top:8px}
+.sitepick{margin:0 0 10px}.sitepick label{margin:0;font-weight:700}.sitepick p{margin:6px 2px 0}

@@ -37,11 +37,12 @@ function App() {
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
   const [site, setSite] = useState('all')
-  const [sites, setSites] = useState(() => load('mk-sites', DEFAULT_SITES))
-  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams', TECHS))
+  const [teamSite, setTeamSite] = useState('Evergreen')
+  const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
+  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v2', TECHS))
 
-  useEffect(() => save('mk-sites', sites), [sites])
-  useEffect(() => save('mk-teams', teamsRaw), [teamsRaw])
+  useEffect(() => save('mk-sites-v2', sites), [sites])
+  useEffect(() => save('mk-teams-v2', teamsRaw), [teamsRaw])
 
   const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
   const allOrders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
@@ -51,6 +52,7 @@ function App() {
   )
   const team = useMemo(() => allTeams.filter((t) => site === 'all' || t.sites.includes(site)), [allTeams, site])
   const plan = useMemo(() => buildPlan(orders, tech, team), [orders, tech, team])
+  const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
   const ranked = [...orders].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
 
@@ -106,7 +108,7 @@ function App() {
       <header className="hero">
         <span className="chip">Prototype · sample data</span>
         <h1>Maintenance Hub</h1>
-        <p>For McKinley communities: what to fix first, who should go, and the smartest route for the day.</p>
+        <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
         <section className="stats">
           <div><b>{stats.action}</b><span>Do today</span></div>
           <div><b>{stats.missing}</b><span>Need follow-up</span></div>
@@ -115,11 +117,12 @@ function App() {
         </section>
       </header>
 
-      <nav className="sites" aria-label="Site team">
-        {[['all', 'All sites', allOrders.length], ...sites.map((s) => [s.name, s.name, countFor(s.name)]), ['unassigned', 'Unit not found', countFor('unassigned')]].map(([k, l, n]) => (
-          <button key={k} className={site === k ? 'on' : ''} onClick={() => setSite(k)}>{l} <span>{n}</span></button>
-        ))}
-      </nav>
+      <div className="sitepick">
+        <label>Site team
+          <SitePicker value={site} onChange={setSite} sites={sites} countFor={countFor} extra={[['all', `All sites (${allOrders.length} requests)`], ['unassigned', `Unit not found (${countFor('unassigned')})`]]} />
+        </label>
+        {siteInfo && <p className="small">{siteInfo.address}, {siteInfo.city} {siteInfo.zip} · Leasing office {siteInfo.phone || 'phone not listed'}</p>}
+      </div>
       {site !== 'all' && site !== 'unassigned' && (
         <p className="small team">
           {site} team: {team.length ? team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ') || 'general'})`).join(' · ') : 'no technicians yet. Add them on the Teams tab.'}
@@ -187,7 +190,8 @@ function App() {
                   {d.text && <a className={`btn ${d.channel === 'text' ? 'primary' : ''}`} href={d.text}>Text{d.channel === 'text' ? ' (preferred)' : ''}</a>}
                   {d.email && <a className={`btn ${d.channel === 'email' ? 'primary' : ''}`} href={d.email}>Email{d.channel === 'email' ? ' (preferred)' : ''}</a>}
                   {d.call && <a className={`btn ${d.channel === 'call' ? 'primary' : ''}`} href={d.call}>Call{d.channel === 'call' ? ' (preferred)' : ''}</a>}
-                  <a className={`btn ${!d.text && !d.email ? 'primary' : ''}`} href={d.alert}>Alert {d.office.name}</a>
+                  {d.alert && <a className={`btn ${!d.text && !d.email ? 'primary' : ''}`} href={d.alert}>{d.alertIsCall ? `Call ${d.office.name} to alert them` : `Alert ${d.office.name}`}</a>}
+                  {d.alertMissing && <span className="small warn">No leasing office phone or email listed for this site. Add one on the Teams tab.</span>}
                 </div>
                 {d.callScript && <p className="small">Call notes: {d.callScript}</p>}
                 <button className={done ? 'done' : ''} onClick={() => setContacted({ ...contacted, [o.id]: !done })}>
@@ -305,23 +309,28 @@ function App() {
       {tab === 'teams' && (
         <>
           <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
-          {sites.map((s) => (
+          <label>Site
+            <SitePicker value={teamSite} onChange={setTeamSite} sites={sites} countFor={(k) => allTeams.filter((t) => t.sites.includes(k)).length} suffix="technicians" />
+          </label>
+          {sites.filter((s) => s.name === teamSite).map((s) => (
             <section key={s.name} className="card">
               <div className="row between">
                 <h2>{s.name} <span className="small">· {s.city}</span></h2>
                 {!DEFAULT_SITES.some((d) => d.name === s.name) && (
-                  <button className="link" onClick={() => { setSites(sites.filter((x) => x.name !== s.name)); setTeamsRaw(teamsRaw.map((t) => ({ ...t, sites: t.sites.filter((x) => x !== s.name) }))) }}>Remove site</button>
+                  <button className="link" onClick={() => { setSites(sites.filter((x) => x.name !== s.name)); setTeamsRaw(teamsRaw.map((t) => ({ ...t, sites: t.sites.filter((x) => x !== s.name) }))); setTeamSite('Evergreen') }}>Remove site</button>
                 )}
               </div>
+              {s.address && <p className="small">{s.address}, {s.city} {s.zip}{s.beds ? ` · ${s.beds}` : ''}</p>}
               <div className="two">
                 <label>Leasing office phone
                   <input value={s.phone || ''} onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, phone: e.target.value } : x)))} inputMode="tel" />
                 </label>
                 <label>Leasing office email
-                  <input value={s.email || ''} onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, email: e.target.value } : x)))} inputMode="email" />
+                  <input value={s.email || ''} placeholder="add when you have it" onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, email: e.target.value } : x)))} inputMode="email" />
                 </label>
               </div>
               <h3>Team</h3>
+              {allTeams.filter((t) => t.sites.includes(s.name)).length === 0 && <p className="small">No technicians yet for this site.</p>}
               {allTeams.filter((t) => t.sites.includes(s.name)).map((t) => (
                 <TechEditor key={t.id} t={teamsRaw.find((x) => x.id === t.id)} sites={sites} update={(p) => updateTech(t.id, p)} toggle={toggle}
                   remove={() => setTeamsRaw(teamsRaw.filter((x) => x.id !== t.id))} />
@@ -329,8 +338,8 @@ function App() {
               <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
             </section>
           ))}
-          <AddSite onAdd={(s) => setSites([...sites, s])} existing={sites} />
-          <button className="link" onClick={() => { setSites(DEFAULT_SITES); setTeamsRaw(TECHS) }}>Reset teams to the sample setup</button>
+          <AddSite onAdd={(s) => { setSites([...sites, s]); setTeamSite(s.name) }} existing={sites} />
+          <button className="link" onClick={() => { setSites(DEFAULT_SITES); setTeamsRaw(TECHS) }}>Reset sites and teams to the sample setup</button>
         </>
       )}
       <footer className="small">Made-up technicians, vendors, travel times and requests. Entry-notice rules are assumptions to confirm with McKinley and the lease. This is not legal advice.</footer>
@@ -353,10 +362,14 @@ function TechEditor({ t, sites, update, toggle, remove }) {
       </div>
       <p className="small">Works at</p>
       <div className="chips">
-        {sites.map((s) => (
-          <button key={s.name} className={`chip chipbtn ${t.sites.includes(s.name) ? 'sel' : ''}`} onClick={() => update({ sites: toggle(t.sites, s.name) })}>{s.name}</button>
+        {t.sites.map((n) => (
+          <button key={n} className="chip chipbtn sel" title="Tap to remove" onClick={() => update({ sites: t.sites.filter((x) => x !== n) })}>{n} ✕</button>
         ))}
       </div>
+      <select aria-label="Add a site" value="" onChange={(e) => e.target.value && update({ sites: [...t.sites, e.target.value] })}>
+        <option value="">+ Also covers another site…</option>
+        {sites.filter((x) => !t.sites.includes(x.name)).map((x) => <option key={x.name} value={x.name}>{x.name} ({x.city})</option>)}
+      </select>
       <div className="two">
         <label>Shift starts
           <select value={t.shift[0]} onChange={(e) => update({ shift: [Number(e.target.value), t.shift[1]] })}>
@@ -373,13 +386,27 @@ function TechEditor({ t, sites, update, toggle, remove }) {
   )
 }
 
+function SitePicker({ value, onChange, sites, countFor, extra = [], suffix = 'requests' }) {
+  const markets = [...new Set(sites.map((s) => s.market || s.city))]
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)}>
+      {extra.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+      {markets.map((m) => (
+        <optgroup key={m} label={m}>
+          {sites.filter((s) => (s.market || s.city) === m).map((s) => <option key={s.name} value={s.name}>{s.name} ({countFor(s.name)} {suffix})</option>)}
+        </optgroup>
+      ))}
+    </select>
+  )
+}
+
 function AddSite({ onAdd, existing }) {
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
   const dup = existing.some((s) => s.name.toLowerCase() === name.trim().toLowerCase())
   return (
-    <form className="card" onSubmit={(e) => { e.preventDefault(); if (name.trim() && !dup) { onAdd({ name: name.trim(), city: city.trim(), phone: '', email: '' }); setName(''); setCity('') } }}>
-      <h2>Add another McKinley property</h2>
+    <form className="card" onSubmit={(e) => { e.preventDefault(); if (name.trim() && !dup) { onAdd({ name: name.trim(), market: city.trim(), city: city.trim(), phone: '', email: '' }); setName(''); setCity('') } }}>
+      <h2>Add a property not on the list</h2>
       <div className="two">
         <label>Property name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Heron Lake" /></label>
         <label>City<input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Ann Arbor, MI" /></label>

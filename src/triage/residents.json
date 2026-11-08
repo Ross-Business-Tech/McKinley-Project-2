@@ -2,8 +2,8 @@
  {
   "id": "R001",
   "name": "Marisol Q.",
-  "community": "Spruce Knob",
-  "region": "Michigan",
+  "community": "Bella Casa",
+  "region": "Florida",
   "unit": "101",
   "type": "2BR",
   "pets": "dog - Biscuit",
@@ -19,7 +19,7 @@
  {
   "id": "R002",
   "name": "Theo B.",
-  "community": "Glencoe Hills",
+  "community": "Evergreen",
   "region": "Michigan",
   "unit": "108",
   "type": "1BR",
@@ -36,8 +36,8 @@
  {
   "id": "R003",
   "name": "Jordan P.",
-  "community": "Evergreen",
-  "region": "Michigan",
+  "community": "Portofino",
+  "region": "Florida",
   "unit": "115",
   "type": "1BR",
   "pets": null,
@@ -53,7 +53,7 @@
  {
   "id": "R004",
   "name": "Keiko A.",
-  "community": "Spruce Knob",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "122",
   "type": "2BR",
@@ -70,7 +70,7 @@
  {
   "id": "R005",
   "name": "Malik T.",
-  "community": "Glencoe Hills",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "129",
   "type": "2BR",
@@ -87,8 +87,8 @@
  {
   "id": "R006",
   "name": "Sofia M.",
-  "community": "Evergreen",
-  "region": "Michigan",
+  "community": "The Pines",
+  "region": "Florida",
   "unit": "136",
   "type": "1BR",
   "pets": null,
@@ -104,7 +104,7 @@
  {
   "id": "R007",
   "name": "Hana W.",
-  "community": "Spruce Knob",
+  "community": "Evergreen",
   "region": "Michigan",
   "unit": "143",
   "type": "studio",
@@ -121,8 +121,8 @@
  {
   "id": "R008",
   "name": "Desmond A.",
-  "community": "Glencoe Hills",
-  "region": "Michigan",
+  "community": "Bella Casa",
+  "region": "Florida",
   "unit": "150",
   "type": "3BR",
   "pets": "dog - Rosie",
@@ -138,7 +138,7 @@
  {
   "id": "R009",
   "name": "Owen C.",
-  "community": "Evergreen",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "157",
   "type": "2BR",
@@ -155,8 +155,8 @@
  {
   "id": "R010",
   "name": "Leah B.",
-  "community": "Spruce Knob",
-  "region": "Michigan",
+  "community": "Portofino",
+  "region": "Florida",
   "unit": "164",
   "type": "1BR",
   "pets": "cat - Pepper",
@@ -172,7 +172,7 @@
  {
   "id": "R011",
   "name": "Devon R.",
-  "community": "Glencoe Hills",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "210",
   "type": "1BR",
@@ -189,8 +189,8 @@
  {
   "id": "R012",
   "name": "Valeria M.",
-  "community": "Evergreen",
-  "region": "Michigan",
+  "community": "The Pines",
+  "region": "Florida",
   "unit": "216",
   "type": "2BR",
   "pets": null,
@@ -206,7 +206,7 @@
  {
   "id": "R013",
   "name": "Callum O.",
-  "community": "Spruce Knob",
+  "community": "Evergreen",
   "region": "Michigan",
   "unit": "222",
   "type": "1BR",
@@ -223,8 +223,8 @@
  {
   "id": "R014",
   "name": "Nadia K.",
-  "community": "Glencoe Hills",
-  "region": "Michigan",
+  "community": "Bella Casa",
+  "region": "Florida",
   "unit": "228",
   "type": "2BR",
   "pets": null,
@@ -240,8 +240,8 @@
  {
   "id": "R015",
   "name": "Rafael Q.",
-  "community": "Evergreen",
-  "region": "Michigan",
+  "community": "Portofino",
+  "region": "Florida",
   "unit": "234",
   "type": "1BR",
   "pets": null,
@@ -257,7 +257,7 @@
  {
   "id": "R016",
   "name": "Lena H.",
-  "community": "Spruce Knob",
+  "community": "Glencoe Hills",
   "region": "Michigan",
   "unit": "240",
   "type": "2BR",
@@ -274,7 +274,7 @@
  {
   "id": "R017",
   "name": "Imani F.",
-  "community": "Glencoe Hills",
+  "community": "Spruce Knob",
   "region": "Michigan",
   "unit": "246",
   "type": "3BR",
@@ -291,8 +291,8 @@
  {
   "id": "R018",
   "name": "Gabriel N.",
-  "community": "Evergreen",
-  "region": "Michigan",
+  "community": "The Pines",
+  "region": "Florida",
   "unit": "252",
   "type": "studio",
   "pets": null,
@@ -308,7 +308,7 @@
  {
   "id": "R019",
   "name": "Ezra W.",
-  "community": "Spruce Knob",
+  "community": "Evergreen",
   "region": "Michigan",
   "unit": "258",
   "type": "1BR",
@@ -325,8 +325,8 @@
  {
   "id": "R020",
   "name": "Simone H.",
-  "community": "Glencoe Hills",
-  "region": "Michigan",
+  "community": "Bella Casa",
+  "region": "Florida",
   "unit": "264",
   "type": "1BR",
   "pets": "cat - Juniper",
