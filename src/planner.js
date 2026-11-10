@@ -7,11 +7,10 @@ import { COMMUNITIES, JOBS, SHIFT_END, SHIFT_START, TECHS, travel } from './data
 //  3. Among those, pick the one who can start soonest while staying inside the entry window and the shift.
 //  4. Break ties by the shorter drive, then by whoever has fewer jobs. This groups jobs by community.
 //  5. Every stop carries the resident's notes.
-export function livePlan(jobs = JOBS) {
+export function livePlan(jobs = JOBS, { prioritize = true } = {}) {
   const state = Object.fromEntries(TECHS.map((t) => [t.id, { time: SHIFT_START, loc: t.base, list: [] }]))
-  const order = [...jobs].sort(
-    (a, b) => b.urgency - a.urgency || a.win[1] - a.win[0] - (b.win[1] - b.win[0]) || a.win[0] - b.win[0] || a.id.localeCompare(b.id),
-  )
+  const byRules = (a, b) => b.urgency - a.urgency || a.win[1] - a.win[0] - (b.win[1] - b.win[0]) || a.win[0] - b.win[0] || a.id.localeCompare(b.id)
+  const order = [...jobs].sort(prioritize ? byRules : (a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
   for (const job of order) {
     const options = TECHS.filter(
       (t) => t.skills.includes(job.skill) && COMMUNITIES[t.base].region === COMMUNITIES[job.comm].region,
