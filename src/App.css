@@ -104,3 +104,16 @@ label.ask{color:var(--red)}
 .chat-form textarea{border-radius:16px}
 .chat-form .send{width:100%;margin-top:6px;border-radius:99px;min-height:46px}
 .chat-form details{margin:6px 0 10px}.chat-form summary{cursor:pointer;color:var(--brand2);font-weight:600;font-size:.88rem;padding:4px 0}
+
+/* Photos */
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.bubble.thumbs{padding:6px}.bubble.thumbs img{border:0}
+.photobtn{position:relative;overflow:hidden;cursor:pointer}.photobtn input,.photolink input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.photolink{position:relative;display:inline-block;margin:0 14px 0 0;font-size:.88rem;color:var(--brand);font-weight:600}
+.photorow{margin:4px 0}
+/* Technician day */
+.iam{font-weight:700;margin:0 0 10px}.techhead{margin:4px 2px 8px}.techhead h2{font-size:1.3rem;margin:0}
+.stopnum{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700}
+.techlines{margin:10px 0 4px;font-size:.92rem}.techlines div{display:grid;grid-template-columns:7.5em 1fr;gap:8px;padding:4px 0;border-top:1px dashed var(--line)}
+.techlines dt{color:var(--mute);font-weight:600}.techlines dd{margin:0}
+.techbtns{margin-top:10px}.techbtns>*{flex:1 1 130px}

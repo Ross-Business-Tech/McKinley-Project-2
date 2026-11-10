@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import SiteMap from './SiteMap.jsx'
+import TechDay from './TechDay.jsx'
+import { readPhotos } from './photos.js'
 import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket } from './triage/translate.js'
@@ -41,6 +43,9 @@ function App() {
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
   const [handled, setHandled] = useState({})
+  const [photos, setPhotos] = useState({})
+  const [newPhotos, setNewPhotos] = useState([])
+  const [techDone, setTechDone] = useState({})
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
   const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
@@ -57,6 +62,8 @@ function App() {
   )
   const team = useMemo(() => allTeams.filter((t) => site === 'all' || t.sites.includes(site)), [allTeams, site])
   const plan = useMemo(() => buildPlan(orders, tech, team), [orders, tech, team])
+  const fullPlan = useMemo(() => buildPlan(allOrders, tech, allTeams), [allOrders, tech, allTeams])
+  const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
   const ranked = [...orders].sort((a, b) => (handled[a.id] ? 1 : 0) - (handled[b.id] ? 1 : 0) || b.sev - a.sev || a.received.localeCompare(b.received))
@@ -88,9 +95,12 @@ function App() {
     e.preventDefault()
     if (!msg.trim()) return
     const n = raw.length + 1
+    const newId = `W${String(n).padStart(2, '0')}`
+    if (newPhotos.length) setPhotos((p) => ({ ...p, [newId]: newPhotos }))
+    setNewPhotos([])
     setRaw([
       ...raw,
-      { id: `W${String(n).padStart(2, '0')}`, residentId: resId || null, received: '10:30', text: msg.trim(), phone: reqPhone.trim(), email: reqEmail.trim() },
+      { id: newId, residentId: resId || null, received: '10:30', text: msg.trim(), phone: reqPhone.trim(), email: reqEmail.trim() },
     ])
     setMsg('')
     setResId('')
@@ -109,6 +119,7 @@ function App() {
     ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
     ['routes', 'Routes'],
     ['map', 'Map'],
+    ['tech', 'My day'],
     ['teams', 'Teams'],
     ['new', 'Add'],
   ]
@@ -155,6 +166,9 @@ function App() {
           <div className="chat-body">
             <p className="bubble them">Hi there, thanks for reaching out. Tell us what's going on and where, and we'll take it from here.</p>
             {msg.trim() && <p className="bubble me">{msg.trim()}</p>}
+            {newPhotos.length > 0 && (
+              <div className="bubble me thumbs">{newPhotos.map((p, i) => <img key={i} src={p.src} alt={`Photo ${i + 1}`} />)}</div>
+            )}
             {msg.trim() && !resId && (() => {
               const l = parseLocation(msg)
               return (
@@ -185,6 +199,13 @@ function App() {
               <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} required
                 placeholder="e.g. Evergreen building eleven unit four: the toilet is overflowing" />
             </label>
+            <div className="row photorow">
+              <label className="btn photobtn">📷 Add photos (optional)
+                <input type="file" accept="image/*" multiple onChange={async (e) => { const list = await readPhotos(e.target.files); setNewPhotos((p) => [...p, ...list].slice(0, 6)); e.target.value = '' }} />
+              </label>
+              {newPhotos.length > 0 && <button type="button" className="link" onClick={() => setNewPhotos([])}>Remove {newPhotos.length} photo{newPhotos.length > 1 ? 's' : ''}</button>}
+            </div>
+            <p className="small">A photo helps us bring the right tools, and sometimes fix it without a visit.</p>
             <button className="primary send" type="submit">Send to our team</button>
           </div>
         </form>
@@ -247,7 +268,7 @@ function App() {
             const t = assignedTo(o.id)
             const miss = missingInfo(o)
             return (
-              <article key={o.id} className={`card order ${tag(o.sev).color} ${handled[o.id] ? 'faded' : ''}`}>
+              <article key={o.id} className={`card order ${tag(o.sev).color} ${handled[o.id] || techDone[o.id] ? 'faded' : ''}`}>
                 <div className="row">
                   <span className={`pill ${tag(o.sev).color}`}>{o.sev} · {tag(o.sev).label}</span>
                   {o.sev >= 5 && !handled[o.id] ? (
@@ -280,7 +301,15 @@ function App() {
                   {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
                   {t && <span className="chip c-tech">{t.name}</span>}
+                  {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}</span>}
+                  {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
                 </div>
+                {(photos[o.id] || []).length > 0 && (
+                  <div className="thumbs">{photos[o.id].map((p, i) => <a key={i} href={p.src} target="_blank" rel="noreferrer"><img src={p.src} alt={`Photo ${i + 1}`} /></a>)}</div>
+                )}
+                <label className="link photolink">📷 Add photo
+                  <input type="file" accept="image/*" multiple onChange={async (e) => { addPhotos(o.id, await readPhotos(e.target.files)); e.target.value = '' }} />
+                </label>
                 <button className="link" onClick={() => setOpen({ ...open, [o.id]: !open[o.id] })}>{open[o.id] ? 'Hide details' : 'Why this rank & details'}</button>
                 {open[o.id] && (
                   <div className="details">
@@ -353,6 +382,12 @@ function App() {
         </section>
       )}
       {tab === 'map' && site !== 'all' && site !== 'unassigned' && <SiteMap key={site} site={site} plan={plan} orders={orders} />}
+
+      {tab === 'tech' && (
+        <TechDay techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone}
+          setTechDone={(v) => { setTechDone(v); setHandled((h) => { const n = { ...h }; for (const [k, x] of Object.entries(v)) if (x) n[k] = true; return n }) }}
+          addressOf={addressOf} photos={photos} addPhotos={addPhotos} />
+      )}
 
       {tab === 'routes' && (
         <>

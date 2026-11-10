@@ -113,7 +113,87 @@ const JOBS = {
   ht: { gas: 'Sant gaz / fwit gaz', fire: 'Lafimen / dife / sant boule', flood: 'Inondasyon / tiyo pete', sewage: 'Dlo egou ap remonte', sparks: 'Etensèl / danje elektrik', noheat: 'Pa gen chofaj', noac: 'Pa gen èkondisyone / li pa fè frèt', lockout: 'Rezidan an bloke deyò / seri kase', nohotwater: 'Pa gen dlo cho', fridge: 'Frijidè a pa mache', leak: 'Fwit / dlo k ap degoute', toilet: 'Pwoblèm twalèt', appliance: 'Pwoblèm aparèy kay', pest: 'Ensèk / rat', electrical: 'Priz / limyè / disjonktè', door: 'Pòt / fenèt / kabinè', amenity: 'Zòn komen', cosmetic: 'Estetik', other: 'Lòt / pa klè' },
 }
 
-const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '')
+// Words on the technician's screen.
+const UI = {
+ "en": {
+  "myDay": "My day",
+  "stop": "Stop",
+  "arrive": "Arrive about",
+  "directions": "Directions",
+  "call": "Call resident",
+  "done": "Done",
+  "finished": "Finished",
+  "none": "No approved jobs for you yet.",
+  "waiting": "{n} more waiting for the manager to approve",
+  "photos": "Photos",
+  "addPhoto": "Add photo",
+  "translateMsg": "Translate message",
+  "iam": "I am"
+ },
+ "es": {
+  "myDay": "Mi día",
+  "stop": "Parada",
+  "arrive": "Llegar aprox.",
+  "directions": "Cómo llegar",
+  "call": "Llamar al residente",
+  "done": "Terminado",
+  "finished": "Terminado",
+  "none": "Todavía no tiene trabajos aprobados.",
+  "waiting": "{n} más esperando la aprobación del gerente",
+  "photos": "Fotos",
+  "addPhoto": "Agregar foto",
+  "translateMsg": "Traducir mensaje",
+  "iam": "Soy"
+ },
+ "pt": {
+  "myDay": "Meu dia",
+  "stop": "Parada",
+  "arrive": "Chegar por volta de",
+  "directions": "Rota",
+  "call": "Ligar para o morador",
+  "done": "Concluído",
+  "finished": "Concluído",
+  "none": "Você ainda não tem serviços aprovados.",
+  "waiting": "{n} aguardando a aprovação do gerente",
+  "photos": "Fotos",
+  "addPhoto": "Adicionar foto",
+  "translateMsg": "Traduzir mensagem",
+  "iam": "Eu sou"
+ },
+ "fr": {
+  "myDay": "Ma journée",
+  "stop": "Arrêt",
+  "arrive": "Arrivée vers",
+  "directions": "Itinéraire",
+  "call": "Appeler le résident",
+  "done": "Terminé",
+  "finished": "Terminé",
+  "none": "Vous n'avez pas encore de travaux approuvés.",
+  "waiting": "{n} en attente d'approbation du responsable",
+  "photos": "Photos",
+  "addPhoto": "Ajouter une photo",
+  "translateMsg": "Traduire le message",
+  "iam": "Je suis"
+ },
+ "ht": {
+  "myDay": "Jounen mwen",
+  "stop": "Arè",
+  "arrive": "Rive anviwon",
+  "directions": "Direksyon",
+  "call": "Rele rezidan an",
+  "done": "Fini",
+  "finished": "Fini",
+  "none": "Ou poko gen travay ki apwouve.",
+  "waiting": "{n} ap tann apwobasyon manadjè a",
+  "photos": "Foto",
+  "addPhoto": "Ajoute foto",
+  "translateMsg": "Tradui mesaj la",
+  "iam": "Mwen se"
+ }
+}
+export const uiText = (code) => UI[code] || UI.en
+
+export const fill = (s, v) => s.replace(/\{(\w+)\}/g, (_, k) => v[k] ?? '')
 
 // Builds the work order the technician sees. Returns lines for the screen and plain text for a text message.
 export function workTicket(o, tech, address) {
