@@ -78,3 +78,6 @@ select { font: inherit; font-size: 14px; padding: 8px; border-radius: 6px; borde
 .verdict.promising, .verdict.mostly { background: var(--warn-soft); color: var(--warn); }
 .verdict.weak, .verdict.unsafe { background: var(--crit-soft); color: var(--crit); }
 .field { font: inherit; font-size: 14px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-height: 40px; box-sizing: border-box; width: 100%; }
+.filebtn { font-size: 14px; padding: 9px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; min-height: 40px; box-sizing: border-box; display: inline-flex; align-items: center; }
+.filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }

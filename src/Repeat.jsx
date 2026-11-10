@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { PLANNERS, buildPrompt, parsePasted } from './planners.js'
 import { gradeSingle, jobName, runBatch } from './batch.js'
 import { Timelines } from './parts.jsx'
@@ -7,7 +7,8 @@ const pct = (x) => `${Math.round(x * 100)}%`
 const KIND = { deterministic: 'Fixed rules', simulated: 'Simulated model', pasted: 'Pasted plan' }
 const range = (s, f = (x) => x) => (s ? (s.min === s.max ? f(s.min) : `${f(s.min)}–${f(s.max)}`) : 'n/a')
 
-export default function Repeat() {
+export default function Repeat({ day }) {
+  const { ctx, loaded } = day
   const [picked, setPicked] = useState(() => new Set(PLANNERS.map((p) => p.id)))
   const [count, setCount] = useState(10)
   const [seed, setSeed] = useState(2026)
@@ -17,7 +18,14 @@ export default function Repeat() {
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
-  const prompt = buildPrompt()
+  const prompt = useMemo(() => buildPrompt(ctx), [ctx])
+  const fromFile = useMemo(
+    () =>
+      loaded
+        ? { ...gradeSingle(loaded.planner, ctx, loaded.plan, loaded.urgency), note: loaded.gaveUrgency ? '' : 'This file gave no urgency ratings for its plan, so the “no emergency played down” check could not be applied.' }
+        : null,
+    [loaded, ctx],
+  )
 
   const toggle = (id) =>
     setPicked((s) => {
@@ -28,7 +36,7 @@ export default function Repeat() {
     })
 
   function run() {
-    setBatches(PLANNERS.filter((p) => picked.has(p.id)).map((p) => runBatch(p, count, seed)))
+    setBatches(PLANNERS.filter((p) => picked.has(p.id)).map((p) => runBatch(p, ctx, count, seed)))
     setSeed((s) => s + 1)
   }
 
@@ -44,16 +52,16 @@ export default function Repeat() {
 
   function grade(e) {
     e.preventDefault()
-    const r = parsePasted(text)
+    const r = parsePasted(text, ctx)
     if (r.error) return setError(r.error)
     setError('')
     const label = name.trim() || `Pasted plan ${pasted.length + 1}`
-    setPasted((p) => [...p, { ...gradeSingle(label, r.plan, r.urgency), note: r.gaveUrgency ? '' : 'This answer gave no urgency ratings, so the “no emergency played down” check could not be applied.' }])
+    setPasted((p) => [...p, { ...gradeSingle(label, ctx, r.plan, r.urgency), note: r.gaveUrgency ? '' : 'This answer gave no urgency ratings, so the “no emergency played down” check could not be applied.' }])
     setText('')
     setName('')
   }
 
-  const results = [...batches, ...pasted]
+  const results = [...(fromFile ? [fromFile] : []), ...batches, ...pasted]
   return (
     <>
       <section className="panel stack" aria-label="Choose planners and how many runs">
@@ -184,7 +192,7 @@ function Card({ b }) {
               </li>
             ))}
           </ul>
-          {multi && b.problemJobs.length > 0 && <p className="note">Requests that went wrong most often: {b.problemJobs.map((j) => `${jobName(j.id)} (${j.runs})`).join(', ')}</p>}
+          {multi && b.problemJobs.length > 0 && <p className="note">Requests that went wrong most often: {b.problemJobs.map((j) => `${jobName(b.ctx, j.id)} (${j.runs})`).join(', ')}</p>}
         </div>
       ) : (
         <p className="note">No mistakes found in any run.</p>
@@ -192,7 +200,7 @@ function Card({ b }) {
       {b.worst && b.worst.issues.length > 0 && (
         <details>
           <summary>See the {multi ? 'worst run' : 'plan'}</summary>
-          <Timelines list={b.worst.result.planTl} urgency={b.worst.urgency} />
+          <Timelines list={b.worst.result.planTl} urgency={b.worst.urgency} comms={b.ctx.comms} />
         </details>
       )}
     </article>

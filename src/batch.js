@@ -1,4 +1,3 @@
-import { JOBS } from './data.js'
 import { runEvaluation } from './evaluate.js'
 import { rng } from './planners.js'
 
@@ -13,49 +12,51 @@ export function wilson(k, n) {
   return [Math.max(0, (c - m) / d), Math.min(1, (c + m) / d)]
 }
 
-const jobsLabel = Object.fromEntries(JOBS.map((j) => [j.id, `${j.id} (${j.rid}, ${j.trade})`]))
-export const jobName = (id) => jobsLabel[id] || id
+export const jobName = (ctx, id) => {
+  const j = ctx.jobById[id]
+  return j ? `${j.id} (${j.rid}, ${j.trade})` : id
+}
 
 // Everything that went wrong in one graded run. "hard" problems make the run fail; "soft" ones only cost points.
-function issuesOf(result, urgency) {
+function issuesOf(ctx, result, urgency) {
   const out = []
   const add = (code, label, hard, jobs = []) => out.push({ code, label, hard, jobs })
   const seen = {}
   result.planTl.forEach((tl) => tl.stops.forEach((s) => (seen[s.job.id] = (seen[s.job.id] || 0) + 1)))
-  const missing = JOBS.filter((j) => !seen[j.id]).map((j) => j.id)
+  const missing = ctx.jobs.filter((j) => !seen[j.id]).map((j) => j.id)
   const dupes = Object.keys(seen).filter((id) => seen[id] > 1)
   if (missing.length || dupes.length) add('coverage', 'A request was left out or planned twice', true, [...missing, ...dupes])
   const stops = result.planTl.flatMap((tl) => tl.stops)
   const pick = (fn) => stops.filter(fn).map((s) => s.job.id)
   if (pick((s) => s.overlap).length) add('overlap', 'A technician was in two places at once', true, pick((s) => s.overlap))
   if (pick((s) => s.outsideShift).length) add('hours', 'A job fell outside working hours', true, pick((s) => s.outsideShift))
-  const down = JOBS.filter((j) => (urgency[j.id] ?? j.urgency) < j.urgency)
+  const down = ctx.jobs.filter((j) => j.urgency !== null && (urgency[j.id] ?? j.urgency) < j.urgency)
   if (down.length) add('downgrade', 'An emergency was marked less urgent than it is', true, down.map((j) => j.id))
   if (result.check.ok && result.gateList.some((g) => g.label.startsWith('Plan is not worse') && !g.ok)) {
     add('worse', 'The plan was worse than the by-hand plan', true)
   }
   if (pick((s) => s.skillMismatch).length) add('skill', 'A technician without the right skill was sent', false, pick((s) => s.skillMismatch))
   if (pick((s) => s.wasted).length) add('window', 'A trip fell outside the resident’s entry window', false, pick((s) => s.wasted))
-  const noNote = stops.filter((s) => !s.note.toLowerCase().includes(s.job.key.toLowerCase())).map((s) => s.job.id)
+  const noNote = stops.filter((s) => s.job.key && !s.note.toLowerCase().includes(s.job.key.toLowerCase())).map((s) => s.job.id)
   if (noNote.length) add('note', 'An important resident note did not reach the technician', false, noNote)
   return out
 }
 
 // Runs one planner `n` times and summarises the spread. A deterministic planner is run once: repeating changes nothing.
-export function runBatch(planner, n, seed = 2026) {
+export function runBatch(planner, ctx, n, seed = 2026) {
   const count = planner.kind === 'deterministic' ? 1 : n
   const rand = rng(seed)
   const runs = []
   for (let i = 0; i < count; i++) {
-    const { plan, urgency } = planner.generate(rand)
-    const result = runEvaluation({ plan, urgency })
-    const issues = issuesOf(result, urgency)
+    const { plan, urgency } = planner.generate(ctx, rand)
+    const result = runEvaluation(ctx, { plan, urgency })
+    const issues = issuesOf(ctx, result, urgency)
     runs.push({ i, pass: result.pass, issues, result, urgency, scored: !!result.planScore })
   }
-  return summarise(planner, runs)
+  return summarise(planner, ctx, runs)
 }
 
-export function summarise(planner, runs) {
+export function summarise(planner, ctx, runs) {
   const n = runs.length
   const passes = runs.filter((r) => r.pass).length
   const [lo, hi] = wilson(passes, n)
@@ -96,14 +97,14 @@ export function summarise(planner, runs) {
   else if (passes / n >= 0.9) verdict = { level: 'mostly', text: 'Usually passes, but not every time. A person should check its plans.' }
   else verdict = { level: 'weak', text: 'Fails too often to use without close review.' }
   return {
-    planner, runs, n, passes, rate: passes / n, lo, hi, patterns, problemJobs, unsafeRuns, worst, verdict,
+    planner, ctx, runs, n, passes, rate: passes / n, lo, hi, patterns, problemJobs, unsafeRuns, worst, verdict,
     drive: spread((s) => s.driveMin), cost: spread((s) => s.cost), wasted: spread((s) => s.wasted),
   }
 }
 
 // Grade a single pasted plan (a real model's answer): a sample of one, labelled as such.
-export function gradeSingle(label, plan, urgency) {
+export function gradeSingle(label, ctx, plan, urgency) {
   const planner = { id: 'pasted', label, kind: 'pasted', blurb: 'One plan you pasted in. One plan is only one sample of what that model can do.' }
-  const result = runEvaluation({ plan, urgency })
-  return summarise(planner, [{ i: 0, pass: result.pass, issues: issuesOf(result, urgency), result, urgency, scored: !!result.planScore }])
+  const result = runEvaluation(ctx, { plan, urgency })
+  return summarise(planner, ctx, [{ i: 0, pass: result.pass, issues: issuesOf(ctx, result, urgency), result, urgency, scored: !!result.planScore }])
 }

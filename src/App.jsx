@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { COMMUNITIES, JOBS, SCENARIOS, SHEET_NAME, TECHS, URGENCY } from './data.js'
-import { runEvaluation } from './evaluate.js'
-import { LIVE_SCENARIO } from './planner.js'
+import { SCENARIOS } from './data.js'
+import { fmt, runEvaluation } from './evaluate.js'
+import { liveScenario } from './planner.js'
+import { sampleDay } from './casefile.js'
+import Day from './Day.jsx'
 import { Pill, Timelines } from './parts.jsx'
-import { urgClass } from './urg.js'
+import { URGENCY, urgClass } from './urg.js'
 import Repeat from './Repeat.jsx'
-
-const ALL_SCENARIOS = [LIVE_SCENARIO, ...SCENARIOS]
 
 const STEPS = [
   { n: 1, title: 'Write the test day', short: 'A day of requests from the sheet, plus an assumed crew and drive times' },
@@ -23,19 +23,37 @@ const STEPS = [
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 export default function App() {
+  const [day, setDay] = useState(() => ({ ctx: sampleDay(), loaded: null }))
   const [scenarioId, setScenarioId] = useState('live')
   const [mode, setMode] = useState('repeat') // repeat | single
   const [status, setStatus] = useState('idle') // idle | running | done
   const [step, setStep] = useState(0) // number of finished steps
   const timer = useRef(null)
-  const scenario = ALL_SCENARIOS.find((s) => s.id === scenarioId)
+  const { ctx, loaded } = day
+  const scenarios = useMemo(() => {
+    const list = [liveScenario(ctx)]
+    if (ctx.isSample) list.push(...SCENARIOS)
+    if (loaded) {
+      list.push({ id: 'file', label: loaded.planner, blurb: 'The plan that came in the case file you loaded.', selfReport: 'No self-reported score given', urgency: loaded.urgency, plan: loaded.plan })
+    }
+    return list
+  }, [ctx, loaded])
+  const scenario = scenarios.find((s) => s.id === scenarioId) || scenarios[0]
   const result = useMemo(() => {
     try {
-      return runEvaluation(scenario)
+      return runEvaluation(ctx, scenario)
     } catch {
       return null
     }
-  }, [scenario])
+  }, [ctx, scenario])
+
+  function changeDay(d) {
+    clearInterval(timer.current)
+    setStatus('idle')
+    setStep(0)
+    setScenarioId(d.loaded ? 'file' : 'live')
+    setDay(d)
+  }
 
   useEffect(() => () => clearInterval(timer.current), [])
 
@@ -82,13 +100,15 @@ export default function App() {
   return (
     <main className="wrap">
       <header className="stack">
-        <span className="tag">Evaluator demo · built from the sample spreadsheet</span>
+        <span className="tag">Evaluator demo · made-up sample data</span>
         <h1>Plan Evaluator</h1>
         <p className="sub">
           Tests a maintenance planner the way a teacher grades an exam: the planner hands in a plan, we check it, compare it with a
-          by-hand plan, score both, and apply must-pass gates. The people and requests come from the sprint's sample spreadsheet. The crew, job times and drive times are assumptions, so results are estimates.
+          by-hand plan, score both, and apply must-pass gates. It works on any day described in a case file, from any planner. The built-in sample day uses made-up data, so results are estimates.
         </p>
       </header>
+
+      <Day day={day} setDay={changeDay} />
 
       <div className="seg" role="radiogroup" aria-label="Evaluation mode">
         <button role="radio" aria-checked={mode === 'repeat'} className={mode === 'repeat' ? 'seg-on' : ''} onClick={() => setMode('repeat')}>
@@ -99,14 +119,14 @@ export default function App() {
         </button>
       </div>
 
-      {mode === 'repeat' && <Repeat />}
+      {mode === 'repeat' && <Repeat key={ctx.id} day={day} />}
 
       {mode === 'single' && (
         <>
       <section className="panel stack" aria-label="Choose a planner to test">
         <h2>1. Pick a planner to test</h2>
         <div className="seg" role="radiogroup" aria-label="Planner scenarios">
-          {ALL_SCENARIOS.map((s) => (
+          {scenarios.map((s) => (
             <button key={s.id} role="radio" aria-checked={s.id === scenarioId} className={s.id === scenarioId ? 'seg-on' : ''} onClick={() => pick(s.id)}>
               {s.label}
             </button>
@@ -142,7 +162,7 @@ export default function App() {
                     <p className="note">{s.short}</p>
                   </div>
                 </div>
-                {state === 'done' && <div className="step-body">{isSkipped ? <Skipped /> : <StepBody n={s.n} scenario={scenario} r={result} />}</div>}
+                {state === 'done' && <div className="step-body">{isSkipped ? <Skipped /> : <StepBody n={s.n} scenario={scenario} r={result} ctx={ctx} />}</div>}
               </li>
             )
           })}
@@ -150,7 +170,7 @@ export default function App() {
       )}
         </>
       )}
-      <footer className="note">Built from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
+      <footer className="note">The built-in sample day comes from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
     </main>
   )
 }
@@ -168,7 +188,7 @@ function Metrics({ plan, hand }) {
     ['Jobs finished', `${plan.finished} of ${plan.total}`, `${hand.finished} of ${hand.total}`, plan.finished >= hand.finished],
     ['Wasted trips', plan.wasted, hand.wasted, plan.wasted <= hand.wasted],
     ['Avg. wait for an urgent job', `${Math.round(plan.response)} min`, `${Math.round(hand.response)} min`, plan.response <= hand.response],
-    ['Important notes reached the tech', `${plan.notes} of ${plan.total}`, `${hand.notes} of ${hand.total}`, plan.notes >= hand.notes],
+    ['Important notes reached the tech', `${plan.notes} of ${plan.notesTotal}`, `${hand.notes} of ${hand.notesTotal}`, plan.notes >= hand.notes],
     ['Right skill for the job', `${plan.skill} of ${plan.total}`, `${hand.skill} of ${hand.total}`, plan.skill >= hand.skill],
     ['Estimated cost', `$${plan.cost}`, `$${hand.cost}`, plan.cost <= hand.cost],
   ]
@@ -192,23 +212,23 @@ function Metrics({ plan, hand }) {
   )
 }
 
-function StepBody({ n, scenario, r }) {
+function StepBody({ n, scenario, r, ctx }) {
   if (n === 1) {
     return (
       <div className="stack">
         <p className="note">
-          <b>From the spreadsheet:</b> who the resident is, their community, entry window, pets, language, contact preference and
-          staff note, plus each request's wording (the sheet's row IDs are shown). <b>Assumed by us:</b> urgency, skill needed, how
-          long each job takes, the crew and the drive times. Source: {SHEET_NAME}
+          <b>From the day's data:</b> each request, where it is, its entry window, the resident's notes, the crew and the drive times.
+          {ctx.isSample && <> The sample day's urgency, skills, job lengths, crew and drive times are assumptions.</>}
+          {ctx.source && <> Source: {ctx.source}</>}
         </p>
         <div className="scroll">
           <table>
-            <thead><tr><th>Request</th><th>Where</th><th>What the sheet says</th></tr></thead>
+            <thead><tr><th>Request</th><th>Where</th><th>What the request says</th></tr></thead>
             <tbody>
-              {JOBS.map((j) => (
+              {ctx.jobs.map((j) => (
                 <tr key={j.id}>
-                  <td><b>{j.rid}</b><br /><span className="note">{j.trade}<br />Row {j.iid}</span></td>
-                  <td>{COMMUNITIES[j.comm].name}</td>
+                  <td><b>{j.rid}</b><br /><span className="note">{j.trade}{j.iid && <><br />{j.iid}</>}</span></td>
+                  <td>{ctx.comms[j.comm].name}</td>
                   <td>{j.text}<span className="chips">{j.hidden.map((h) => <span key={h} className="chip">{h}</span>)}</span></td>
                 </tr>
               ))}
@@ -216,19 +236,19 @@ function StepBody({ n, scenario, r }) {
           </table>
         </div>
         <p className="note">
-          Crew: {TECHS.map((t) => `${t.name} (${t.trade})`).join(' · ')}. Shifts 8 AM–4 PM. About 20 min between Heron Lake and
-          Sandpiper Pointe, 15 min between Birchwood and Fernhill.
+          Crew: {ctx.crew.map((t) => `${t.name} (${t.trade})`).join(' · ')}. Shifts {fmt(ctx.shift[0])}–{fmt(ctx.shift[1])}. Drive times:{' '}
+          {ctx.travelPairs.map((p) => `${ctx.comms[p.a].name} to ${ctx.comms[p.b].name} ${p.minutes} min`).join('; ') || 'none listed'}.
         </p>
         <details>
-          <summary>Answer key (sealed from the planner; urgency and skill are our assumptions)</summary>
+          <summary>Answer key (sealed from the planner){ctx.isSample ? '; urgency and skill are our assumptions' : ''}</summary>
           <div className="scroll">
             <table>
               <thead><tr><th>Request</th><th>True urgency</th><th>Right skill</th><th>Must tell the tech</th></tr></thead>
               <tbody>
-                {JOBS.map((j) => (
+                {ctx.jobs.map((j) => (
                   <tr key={j.id}>
                     <td><b>{j.rid}</b></td>
-                    <td><span className={`pill ${urgClass(j.urgency)}`}>{URGENCY[j.urgency]}</span></td>
+                    <td>{j.urgency === null ? <span className="note">Not given</span> : <span className={`pill ${urgClass(j.urgency)}`}>{URGENCY[j.urgency]}</span>}</td>
                     <td>{j.trade}</td>
                     <td>{j.note}</td>
                   </tr>
@@ -257,7 +277,7 @@ function StepBody({ n, scenario, r }) {
   if (n === 3) {
     return (
       <div className="stack">
-        <Timelines list={r.planTl} urgency={scenario.urgency} />
+        <Timelines list={r.planTl} urgency={scenario.urgency} comms={ctx.comms} />
         <p className="note"><s>{scenario.selfReport}</s> We ignore anything the planner says about itself; only the plan counts.</p>
       </div>
     )
@@ -279,7 +299,7 @@ function StepBody({ n, scenario, r }) {
     return (
       <div className="stack">
         <p>The same day planned the simple way a busy manager would: urgent jobs first, first free technician, no grouping.</p>
-        <Timelines list={r.handTl} compact />
+        <Timelines list={r.handTl} compact comms={ctx.comms} />
       </div>
     )
   }

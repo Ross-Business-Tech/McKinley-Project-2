@@ -1,6 +1,6 @@
-import { COMMUNITIES, JOBS, SHIFT_START, TECHS, URGENCY, travel } from './data.js'
 import { fmt } from './evaluate.js'
 import { livePlan } from './planner.js'
+import { normalizePlan } from './casefile.js'
 
 // ---------- A tiny seeded random generator, so a batch of runs can be repeated exactly ----------
 export function rng(seed) {
@@ -26,11 +26,12 @@ const PROFILES = {
 
 const clonePlan = (plan) => Object.fromEntries(Object.entries(plan).map(([k, v]) => [k, v.map((s) => ({ ...s }))]))
 
-function mutate(base, p, rand) {
+function mutate(ctx, base, p, rand) {
   const plan = clonePlan(base)
   const urgency = {}
-  for (const job of JOBS) {
+  for (const job of ctx.jobs) {
     const owner = Object.keys(plan).find((t) => plan[t].some((s) => s.id === job.id))
+    if (!owner) continue // the rule-based plan could not cover it either
     const idx = plan[owner].findIndex((s) => s.id === job.id)
     if (rand() < p.drop) {
       plan[owner].splice(idx, 1)
@@ -38,12 +39,11 @@ function mutate(base, p, rand) {
     }
     const stop = plan[owner][idx]
     if (rand() < p.noNote) stop.note = ''
-    if (rand() < p.ignoreWindow) stop.at = Math.max(SHIFT_START, job.win[0] - 90)
+    if (rand() < p.ignoreWindow) stop.at = Math.max(ctx.shift[0], job.win[0] - 90)
     if (job.urgency === 3 && rand() < p.downgrade) urgency[job.id] = 1
     if (rand() < p.wrongSkill) {
-      const others = TECHS.filter(
-        (t) => t.id !== owner && !t.skills.includes(job.skill) && COMMUNITIES[t.base].region === COMMUNITIES[job.comm].region,
-      )
+      const region = ctx.comms[job.comm].region
+      const others = ctx.crew.filter((t) => t.id !== owner && !t.skills.includes(job.skill) && ctx.comms[t.base].region === region)
       if (others.length) {
         plan[owner].splice(idx, 1)
         plan[others[Math.floor(rand() * others.length)].id].push(stop)
@@ -60,7 +60,7 @@ export const PLANNERS = [
     label: 'Rule-based planner',
     kind: 'deterministic',
     blurb: 'Fixed rules, so it gives the same plan every time. One run is enough.',
-    generate: () => ({ plan: livePlan(), urgency: {} }),
+    generate: (ctx) => ({ plan: livePlan(ctx), urgency: {} }),
   },
   ...Object.entries(PROFILES).map(([key, profile]) => ({
     id: `sim-${key}`,
@@ -71,25 +71,29 @@ export const PLANNERS = [
       rushed: 'Slips now and then: forgets notes, ignores some entry windows, sometimes plays an emergency down.',
       erratic: 'Slips often. Stands in for a model that is not well suited to this job.',
     }[key],
-    generate: (rand) => mutate(livePlan(), profile, rand),
+    generate: (ctx, rand) => mutate(ctx, livePlan(ctx), profile, rand),
   })),
 ]
 
-// ---------- Any real model: copy the day out as a prompt, paste the answer back ----------
-export function buildPrompt() {
-  const jobs = JOBS.map(
-    (j) =>
-      `- ${j.id}: ${j.trade} job at ${COMMUNITIES[j.comm].name}. Takes ${j.dur} min. Resident may only be visited ${fmt(j.win[0])}-${fmt(j.win[1])}.\n  Request: "${j.text}"\n  Staff note to pass on to the technician: ${j.note}`,
-  ).join('\n')
-  const crew = TECHS.map(
-    (t) => `- ${t.id}: ${t.name}, ${t.trade}, starts at ${COMMUNITIES[t.base].name}${t.vendor ? ` (outside vendor, $${t.flat} per visit)` : ''}`,
-  ).join('\n')
+// ---------- Any real planner: copy the day out as a prompt, paste the answer back ----------
+export function buildPrompt(ctx) {
+  const jobs = ctx.jobs
+    .map(
+      (j) =>
+        `- ${j.id}: ${j.trade} job at ${ctx.comms[j.comm].name}. Takes ${j.dur} min. Resident may only be visited ${fmt(j.win[0])}-${fmt(j.win[1])}.\n  Request: "${j.text}"\n  Staff note to pass on to the technician: ${j.note}`,
+    )
+    .join('\n')
+  const crew = ctx.crew
+    .map((t) => `- ${t.id}: ${t.name}, ${t.trade}, starts at ${ctx.comms[t.base].name}${t.vendor ? ` (outside vendor, $${t.flat} per visit)` : ''}`)
+    .join('\n')
+  const drives = ctx.travelPairs.map((p) => `${ctx.comms[p.a].name} to ${ctx.comms[p.b].name} ${p.minutes} min`).join('; ')
+  const first = ctx.jobs[0]
   return `You are planning one day of maintenance visits for an apartment company. Everything below is made-up sample data.
 
-Crew (shift 8:00 AM to 4:00 PM):
+Crew (shift ${fmt(ctx.shift[0])} to ${fmt(ctx.shift[1])}):
 ${crew}
 
-Drive times: Heron Lake to Sandpiper Pointe 20 min; Birchwood to Fernhill 15 min; within one community 5 min. Nobody drives between Orlando and Michigan.
+Drive times: ${drives || 'none listed'}; within one community ${ctx.within} min. Any pair not listed cannot be driven in a day.
 
 Requests:
 ${jobs}
@@ -97,17 +101,13 @@ ${jobs}
 Rules: cover every request exactly once, only use a technician with the right skill, no one can be in two places at once, stay inside shift hours and each resident's entry window, group jobs by community to save driving, and never treat an emergency as less urgent than it is. Pass each staff note to the technician on that stop.
 
 Answer with JSON only, in this shape:
-{"plan": {"A": [{"id": "W1", "note": "<the staff note for W1>"}], "B": [], "C": [], "V": []},
- "urgency": {"W1": 3}}
+{"plan": {"${ctx.crew[0].id}": [{"id": "${first.id}", "note": "<the staff note for ${first.id}>"}]${ctx.crew.slice(1).map((t) => `, "${t.id}": []`).join('')}},
+ "urgency": {"${first.id}": 3}}
 Use the technician ids above as plan keys, listed in visiting order. In "urgency", give your own rating for every request: 3 = Urgent, 2 = Soon, 1 = Routine.`
 }
 
-const jobIds = new Set(JOBS.map((j) => j.id))
-const techIds = new Set(TECHS.map((t) => t.id))
-const NAMED = { urgent: 3, soon: 2, routine: 1 }
-
 // Turns whatever a model sent back into a plan the evaluator can grade, or says in plain words what is wrong.
-export function parsePasted(text) {
+export function parsePasted(text, ctx) {
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   if (start < 0 || end < start) return { error: 'I could not find any JSON in that text. Paste the model’s whole answer.' }
@@ -117,27 +117,5 @@ export function parsePasted(text) {
   } catch {
     return { error: 'That looks like JSON, but it is cut off or has a typo. Ask the model to answer with JSON only.' }
   }
-  const raw = data && typeof data === 'object' && data.plan && typeof data.plan === 'object' ? data.plan : data
-  const plan = {}
-  for (const t of TECHS) plan[t.id] = []
-  for (const [tid, list] of Object.entries(raw || {})) {
-    if (tid === 'urgency') continue
-    if (!techIds.has(tid)) return { error: `The plan names a technician "${tid}" who is not on the crew (use ${[...techIds].join(', ')}).` }
-    if (!Array.isArray(list)) return { error: `Technician ${tid} should have a list of requests.` }
-    for (const item of list) {
-      const id = typeof item === 'string' ? item : item?.id
-      if (!jobIds.has(id)) return { error: `The plan includes a request "${id}" that does not exist (use ${[...jobIds].join(', ')}).` }
-      plan[tid].push({ id, note: typeof item?.note === 'string' ? item.note : '', ...(Number.isFinite(item?.at) ? { at: item.at } : {}) })
-    }
-  }
-  const urgency = {}
-  for (const [id, v] of Object.entries(data?.urgency || {})) {
-    if (!jobIds.has(id)) continue
-    const n = typeof v === 'string' ? NAMED[v.toLowerCase()] : Number(v)
-    if (n >= 1 && n <= 3) urgency[id] = n
-  }
-  const gaveUrgency = Object.keys(urgency).length > 0
-  return { plan, urgency, gaveUrgency }
+  return normalizePlan(data, ctx)
 }
-
-export { URGENCY, travel }
