@@ -166,27 +166,24 @@ function App() {
             })()}
           </div>
           <div className="chat-form">
+            <label>Your name and apartment
+              <select value={resId} onChange={(e) => setResId(e.target.value)} required>
+                <option value="">Choose your name and apartment</option>
+                {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
+              </select>
+            </label>
+            <div className="two">
+              <label>Best phone number
+                <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value)} placeholder="555-0100" inputMode="tel" required />
+              </label>
+              <label>Email
+                <input type="email" value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" required />
+              </label>
+            </div>
             <label>What can we help you with?
-              <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3}
+              <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} required
                 placeholder="e.g. Evergreen building eleven unit four: the toilet is overflowing" />
             </label>
-            <details>
-              <summary>Add your details (optional)</summary>
-              <label>Your name and apartment
-                <select value={resId} onChange={(e) => setResId(e.target.value)}>
-                  <option value="">We'll find it from your message</option>
-                  {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
-                </select>
-              </label>
-              <div className="two">
-                <label>Best phone number
-                  <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value)} placeholder="555-0100" inputMode="tel" />
-                </label>
-                <label>Email
-                  <input value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" />
-                </label>
-              </div>
-            </details>
             <button className="primary send" type="submit">Send to our team</button>
           </div>
         </form>
