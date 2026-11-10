@@ -1,0 +1,106 @@
+<title>Evaluator Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: narrow reading column; video first, then the script table, voiceover, assets, and open items. */
+:root{--bg:#f4f6f6;--surface:#ffffff;--fg:#14232a;--muted:#55666e;--line:#d6dfe2;--accent:#0f6b73;--accent-soft:#dcefef;--crit:#b3261e;--warn:#8a5a00;--warn-soft:#fbefd2;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;--mono:ui-monospace,'DejaVu Sans Mono',monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e171b;--surface:#162228;--fg:#e5eef1;--muted:#98adb6;--line:#29393f;--accent:#58c4cd;--accent-soft:#17353a;--crit:#ff8a80;--warn:#f2c26b;--warn-soft:#3a2d12;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e171b;--surface:#162228;--fg:#e5eef1;--muted:#98adb6;--line:#29393f;--accent:#58c4cd;--accent-soft:#17353a;--crit:#ff8a80;--warn:#f2c26b;--warn-soft:#3a2d12;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.02em}
+h1{font-size:clamp(30px,6vw,46px);line-height:1.1}
+h2{font-size:24px;margin-bottom:14px}
+p{margin:0}.sub{color:var(--muted);max-width:62ch;margin-top:10px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+video{width:100%;max-width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:20px}
+.fact{border-top:2px solid var(--accent);padding-top:8px;min-width:0}
+.fact b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:820px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-top:1px solid var(--line)}
+th{border-top:0;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.t{font-family:var(--mono);white-space:nowrap;color:var(--accent);font-weight:600}
+td.t small{display:block;color:var(--muted);font-weight:500;font-size:11px}
+.vo{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;gap:12px;font-size:19px}
+.vo span{display:block}.vo .g{border-top:1px solid var(--line);padding-top:12px}.vo .g:first-child{border-top:0;padding-top:0}
+ol,ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
+.thumb{font-family:var(--display);font-size:clamp(24px,4.4vw,34px);line-height:1.2;font-weight:700;padding:26px 28px;border-radius:10px;background:var(--accent);color:#fff;text-wrap:balance}
+.note{background:var(--warn-soft);color:var(--fg);border-left:4px solid var(--warn);padding:14px 18px;border-radius:6px;font-size:15px}
+.note b{color:var(--warn)}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<div class="wrap">
+<header>
+ <span class="eyebrow">60-second demo · companion to the Triage Board video · sample data</span>
+ <h1 style="margin-top:10px">Evaluator: Prove the plan is safe</h1>
+ <p class="sub">Keynote-minimal demo video for maintenance managers deciding whether to trust an AI-made plan. Built from the sprint deck and the Evaluator doc.</p>
+</header>
+<section>
+ <video controls playsinline preload="metadata" src="evaluator-demo.mp4"></video>
+ <div class="facts">
+  <div class="fact"><b>Audience</b>Maintenance managers</div>
+  <div class="fact"><b>Pain</b>Not knowing whether an AI-made plan is safe to follow.</div>
+  <div class="fact"><b>Outcome shown</b>Two must-pass gates first, then the tool's plan beside the hand-made one.</div>
+  <div class="fact"><b>Call to action</b>See it live Nov 17</div>
+ </div>
+ <p class="note" style="margin-top:20px"><b>Draft.</b> Picture and music only; the voiceover is still to be recorded (cues below). The screens are mockups rebuilt from the Evaluator doc, because the evaluator screen is not built yet. The proof number is a placeholder, and the URL and logo are placeholders. “Evaluator” is a working name to confirm.</p>
+</section>
+<section>
+ <h2>Scene by scene</h2>
+ <div class="scroll"><table>
+ <thead><tr><th>Time</th><th>Visual</th><th>Voiceover</th><th>Sound</th></tr></thead><tbody>
+ <tr><td class="t">0–5<small>Hook</small></td><td>Black. Today's plan lines stack in type with a slow push-in; a faint “?” appears beside each. Text: “Would you trust this plan?”</td><td>An AI built today's plan. Would you trust it?</td><td>Low pad swells in.</td></tr>
+ <tr><td class="t">5–10<small>Reveal</small></td><td>White. “Meet Evaluator.” holds 2.5s, then fades to “Prove the plan is safe.”</td><td>Meet Evaluator. Prove the plan is safe.</td><td>Pad resolves warm. Soft piano note on “safe”.</td></tr>
+ <tr><td class="t">10–23<small>Demo 1 · run the test day</small></td><td>Crop to the “Run the test day” button. One click. Two cards appear: the made-up test day (with hidden traps tagged cat and Spanish) and a blurred Answer key that locks: “Tool can't see this”. Caption: “Answers stay hidden.”</td><td>Run a made-up day. The answer key stays hidden.</td><td>Soft arpeggio, quiet. Subtle click.</td></tr>
+ <tr><td class="t">23–36<small>Demo 2 · compare</small></td><td>Crop to “Compare with by-hand plan”. One click. Tool plan and By-hand plan sit side by side; “Every job covered” and “No one double-booked” tick on each. Caption: “Same day. Two plans.”</td><td>Plan the same day by hand. Then check both.</td><td>Arpeggio adds one layer. Subtle click.</td></tr>
+ <tr><td class="t">36–50<small>Demo 3 · score</small></td><td>Crop to “Score the plan”. One click. Gate rows turn to PASS one after the other, then four score rows (drive time, urgent response, notes delivered, cost) draw Tool vs By hand bars. Caption: “Gates first. Then the score.”</td><td>Pass the gates first. Then see the score.</td><td>Holds, lifts a half-step at the first “PASS”.</td></tr>
+ <tr><td class="t">50–55<small>Proof</small></td><td>White. “[N of N]” huge, then “checks pass.” Footnote: “Sample test set.” Placeholder until a real run exists.</td><td>[N] of [N] checks pass.</td><td>Drops to one sustained note.</td></tr>
+ <tr><td class="t">55–60<small>Close</small></td><td>Brand color. Check-mark logo mark alone, then “Prove the plan is safe.” Last 2s: “See it live Nov 17.” and [URL].</td><td>Prove the plan is safe. See it live November 17.</td><td>Pad resolves, fades out by 0:60.</td></tr>
+ </tbody></table></div>
+</section>
+<section>
+ <h2>Voiceover script</h2>
+ <div class="vo">
+  <span class="g">An AI built today's plan. Would you trust it?</span>
+  <span class="g">Meet Evaluator. Prove the plan is safe.</span>
+  <span class="g">Run a made-up day. The answer key stays hidden.</span>
+  <span class="g">Plan the same day by hand. Then check both.</span>
+  <span class="g">Pass the gates first. Then see the score.</span>
+  <span class="g">[N] of [N] checks pass.</span>
+  <span class="g">Prove the plan is safe. See it live November 17.</span>
+ </div>
+ <p class="sub">Cue times: 0:00.4, 0:05.3, 0:11.4, 0:24.2, 0:40.2, 0:51, 0:57. Calm read. Fill in the proof line only after a real run.</p>
+</section>
+<section class="cols">
+ <div><h2>Assets to capture</h2><ol>
+  <li>Test-day plan list for the hook, made-up, as type.</li>
+  <li>“Run the test day” button, then the test day card showing the cat and language traps.</li>
+  <li>Answer key card with its lock state: the tool never sees it.</li>
+  <li>“Compare with by-hand plan” click and the side-by-side plans with the two check ticks.</li>
+  <li>Gate rows flipping to PASS, then the four-row scorecard with Tool vs By hand bars. This screen still has to be built.</li>
+  <li>A real run result for the proof beat, replacing [N of N].</li>
+  <li>Logo mark, brand color, final URL, music bed, voiceover.</li>
+ </ol></div>
+ <div><h2>Cut for focus</h2><ul>
+  <li>The 8-step flow diagram. Three moments carry the story.</li>
+  <li>The “fail the whole test” rule on screen. The gates scene already implies it; showing a FAIL state would add a second idea.</li>
+  <li>The “estimate” explanation as speech. It stays on screen as a small label.</li>
+  <li>“0 of 4 gas leaks”, which belongs to the Triage Board video.</li></ul>
+  <h2 style="margin-top:28px">Thumbnail</h2>
+  <div class="thumb">Would you trust an AI-made plan? Prove it.</div>
+ </div>
+</section>
+<section>
+ <h2>Open items</h2>
+ <ul>
+  <li>Record the voiceover and lay it over the video.</li>
+  <li>Replace [URL] and the placeholder logo; confirm the name “Evaluator”.</li>
+  <li>Replace [N of N] with a real scorecard result after the Nov 15 retest, then record the proof line.</li>
+  <li>Build the evaluator screen, then re-record the three demo moments from it at the same timing. The bars are illustrative and carry no values.</li>
+ </ul>
+ <p class="sub">Sources: the sprint deck (Evaluator and Demo slides), the Evaluator, Architecture and AI Sprint Architecture docs.</p>
+</section>
+</div>
