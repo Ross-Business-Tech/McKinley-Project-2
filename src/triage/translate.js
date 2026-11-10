@@ -116,6 +116,9 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "map": "Map",
+  "jobsToday": "Jobs today",
+  "emergencies": "Emergencies",
   "myDay": "My day",
   "stop": "Stop",
   "arrive": "Arrive about",
@@ -131,6 +134,9 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "map": "Mapa",
+  "jobsToday": "Trabajos hoy",
+  "emergencies": "Emergencias",
   "myDay": "Mi día",
   "stop": "Parada",
   "arrive": "Llegar aprox.",
@@ -146,6 +152,9 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "map": "Mapa",
+  "jobsToday": "Serviços hoje",
+  "emergencies": "Emergências",
   "myDay": "Meu dia",
   "stop": "Parada",
   "arrive": "Chegar por volta de",
@@ -161,6 +170,9 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "map": "Plan",
+  "jobsToday": "Travaux du jour",
+  "emergencies": "Urgences",
   "myDay": "Ma journée",
   "stop": "Arrêt",
   "arrive": "Arrivée vers",
@@ -176,6 +188,9 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "map": "Kat",
+  "jobsToday": "Travay jodi a",
+  "emergencies": "Ijans",
   "myDay": "Jounen mwen",
   "stop": "Arè",
   "arrive": "Rive anviwon",

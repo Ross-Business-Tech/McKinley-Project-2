@@ -5,13 +5,18 @@ import TechDay from './TechDay.jsx'
 import { readPhotos } from './photos.js'
 import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
-import { LANGS, langInfo, workTicket } from './triage/translate.js'
+import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
+// Phone numbers: digits only, 10 of them, dashes added as you type (123-456-7890).
+const formatPhone = (v) => {
+  const d = v.replace(/\D/g, '').slice(0, 10)
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).join('-')
+}
 
 function load(key, fallback) {
   try {
@@ -46,13 +51,19 @@ function App() {
   const [photos, setPhotos] = useState({})
   const [newPhotos, setNewPhotos] = useState([])
   const [techDone, setTechDone] = useState({})
+  const [role, setRole] = useState(() => load('mk-role', null))
+  const [techId, setTechId] = useState(() => load('mk-tech', null))
+  const [techTab, setTechTab] = useState('day')
+  const [techSite, setTechSite] = useState(null)
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
   const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
-  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v3', TECHS))
+  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v4', TECHS))
 
   useEffect(() => save('mk-sites-v2', sites), [sites])
-  useEffect(() => save('mk-teams-v3', teamsRaw), [teamsRaw])
+  useEffect(() => save('mk-teams-v4', teamsRaw), [teamsRaw])
+  useEffect(() => save('mk-role', role), [role])
+  useEffect(() => save('mk-tech', techId), [techId])
 
   const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
   const allOrders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
@@ -119,16 +130,79 @@ function App() {
     ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
     ['routes', 'Routes'],
     ['map', 'Map'],
-    ['tech', 'My day'],
     ['teams', 'Teams'],
     ['new', 'Add'],
   ]
 
+  const markTechDone = (v) => {
+    setTechDone(v)
+    setHandled((h) => {
+      const n = { ...h }
+      for (const [k, x] of Object.entries(v)) if (x) n[k] = true
+      return n
+    })
+  }
+
+  // ---------- Who is using the app? ----------
+  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId))) {
+    return <RoleChooser techs={allTeams} initialRole={role} onPick={(r, id) => { setRole(r); setTechId(id || null); setTab('queue'); setTechTab('day') }} />
+  }
+
+  // ---------- Technician layer: only their own approved jobs ----------
+  if (role === 'tech') {
+    const me = allTeams.find((t) => t.id === techId)
+    const L = uiText(me.lang)
+    const mine = fullPlan.techs.find((x) => x.tech.id === me.id)
+    const myStops = mine ? mine.plan.stops.filter((st) => approved[st.job.id]) : []
+    const mySite = techSite && me.sites.includes(techSite) ? techSite : me.sites[0]
+    const myPlan = mine ? { techs: [{ ...mine, plan: { ...mine.plan, stops: myStops } }] } : { techs: [] }
+    return (
+      <main className="app">
+        <header className="hero hero-tech">
+          <div className="row between">
+            <span className="wordmark">mckinley</span>
+            <button className="switch" onClick={() => setRole(null)}>Switch user</button>
+          </div>
+          <h1>{L.myDay} · {me.name}</h1>
+          <p>{me.sites.join(', ')} · {langInfo(me.lang)?.native || 'English'} · {fmt(me.shift[0])}–{fmt(me.shift[1])}</p>
+          <section className="stats stats3">
+            <div><b>{myStops.length}</b><span>{L.jobsToday}</span></div>
+            <div><b>{myStops.filter((st) => st.job.sev >= 5).length}</b><span>{L.emergencies}</span></div>
+            <div><b>{myStops.filter((st) => techDone[st.job.id]).length}</b><span>{L.done}</span></div>
+          </section>
+        </header>
+        <nav className="tabs">
+          {[['day', L.myDay], ['map', L.map]].map(([k, l]) => (
+            <button key={k} className={techTab === k ? 'on' : ''} onClick={() => setTechTab(k)}>{l}</button>
+          ))}
+        </nav>
+        {techTab === 'day' && (
+          <TechDay me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
+            addressOf={addressOf} photos={photos} addPhotos={addPhotos} />
+        )}
+        {techTab === 'map' && (
+          <>
+            {me.sites.length > 1 && (
+              <div className="chips">
+                {me.sites.map((x) => <button key={x} className={`chip chipbtn ${x === mySite ? 'sel' : ''}`} onClick={() => setTechSite(x)}>{x}</button>)}
+              </div>
+            )}
+            <SiteMap key={mySite} site={mySite} plan={myPlan} orders={myStops.map((st) => st.job)} />
+          </>
+        )}
+      </main>
+    )
+  }
+
+  // ---------- Supervisor layer: everything ----------
   return (
     <main className="app">
       <header className="hero">
-        <span className="wordmark">mckinley</span>
-        <span className="chip">Prototype · sample data</span>
+        <div className="row between">
+          <span className="wordmark">mckinley</span>
+          <button className="switch" onClick={() => setRole(null)}>Switch user</button>
+        </div>
+        <span className="chip">Supervisor view · sample data</span>
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
         <section className="stats">
@@ -189,7 +263,7 @@ function App() {
             </label>
             <div className="two">
               <label>Best phone number
-                <input value={reqPhone} onChange={(e) => { const d = e.target.value.replace(/\D/g, '').slice(0, 10); setReqPhone([d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).join('-')) }} placeholder="067-550-2161" inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" required />
+                <input value={reqPhone} onChange={(e) => setReqPhone(formatPhone(e.target.value))} placeholder="067-550-2161" inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" required />
               </label>
               <label>Email
                 <input type="email" value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" required />
@@ -383,12 +457,6 @@ function App() {
       )}
       {tab === 'map' && site !== 'all' && site !== 'unassigned' && <SiteMap key={site} site={site} plan={plan} orders={orders} />}
 
-      {tab === 'tech' && (
-        <TechDay techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone}
-          setTechDone={(v) => { setTechDone(v); setHandled((h) => { const n = { ...h }; for (const [k, x] of Object.entries(v)) if (x) n[k] = true; return n }) }}
-          addressOf={addressOf} photos={photos} addPhotos={addPhotos} />
-      )}
-
       {tab === 'routes' && (
         <>
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
@@ -483,7 +551,9 @@ function TechEditor({ t, sites, update, toggle, remove }) {
           </select>
         </label>
         <label>Mobile number (to text work orders)
-          <input value={t.phone || ''} onChange={(e) => update({ phone: e.target.value })} inputMode="tel" placeholder="555-0100" />
+          <input value={t.phone || ''} onChange={(e) => update({ phone: formatPhone(e.target.value) })} placeholder="067-550-2161"
+            inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
+          {t.phone && t.phone.replace(/\D/g, '').length < 10 && <span className="small warn">Enter all 10 digits</span>}
         </label>
       </div>
       <p className="small">Strengths</p>
@@ -515,6 +585,41 @@ function TechEditor({ t, sites, update, toggle, remove }) {
         </label>
       </div>
     </div>
+  )
+}
+
+function RoleChooser({ techs, initialRole, onPick }) {
+  const [pick, setPick] = useState(initialRole === 'tech' ? 'tech' : null)
+  const [who, setWho] = useState(techs[0]?.id || '')
+  return (
+    <main className="app">
+      <header className="hero">
+        <span className="wordmark">mckinley</span>
+        <h1>Maintenance Hub</h1>
+        <p>Who's using the app?</p>
+      </header>
+      <button className="card rolecard" onClick={() => onPick('supervisor')}>
+        <b>🗂️ Maintenance supervisor</b>
+        <span>Every request across your sites: priorities, follow-ups, routes, site maps, approvals and teams.</span>
+      </button>
+      <div className={`card rolecard ${pick === 'tech' ? 'sel' : ''}`}>
+        <button className="rolebtn" onClick={() => setPick('tech')}>
+          <b>🔧 Maintenance technician</b>
+          <span>Just your approved jobs for today, in order and in your language.</span>
+        </button>
+        {pick === 'tech' && (
+          <div className="rolepick">
+            <label>Your name
+              <select value={who} onChange={(e) => setWho(e.target.value)}>
+                {techs.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.sites.join(', ')}</option>)}
+              </select>
+            </label>
+            <button className="primary" onClick={() => onPick('tech', who)}>Start my day</button>
+          </div>
+        )}
+      </div>
+      <p className="small notice">Prototype: anyone can pick either view. A real version would have each person sign in, so technicians only ever see their own work.</p>
+    </main>
   )
 }
 

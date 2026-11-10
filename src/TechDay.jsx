@@ -1,36 +1,20 @@
-import { useState } from 'react'
 import { SEVERITY } from './triage/config.js'
 import { fmt } from './triage/engine.js'
-import { workTicket, uiText, langInfo, fill } from './triage/translate.js'
+import { workTicket, uiText, fill } from './triage/translate.js'
 import { readPhotos } from './photos.js'
 
 // What one technician sees on their phone: only work orders the manager has approved
 // for them, in route order and in their own language.
-export default function TechDay({ techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos }) {
-  const [me, setMe] = useState(techs.find((t) => t.lang && t.lang !== 'en')?.id || techs[0]?.id || '')
+export default function TechDay({ me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos }) {
   const t = techs.find((x) => x.id === me)
   const mine = plan.techs.find((x) => x.tech.id === me)
   const stops = mine ? mine.plan.stops : []
   const ready = stops.filter((s) => approved[s.job.id])
   const waiting = stops.length - ready.length
   const L = uiText(t?.lang)
-  const lang = langInfo(t?.lang)
 
   return (
     <>
-      <label className="iam">{L.iam}
-        <select value={me} onChange={(e) => setMe(e.target.value)}>
-          {techs.map((x) => (
-            <option key={x.id} value={x.id}>{x.name} · {x.sites.join(', ')} · {langInfo(x.lang)?.native || 'language not set'}</option>
-          ))}
-        </select>
-      </label>
-      {t && (
-        <section className="techhead">
-          <h2>{L.myDay} · {t.name}</h2>
-          <p className="small">{lang?.native || 'English'}{lang && !lang.full ? ' (English shown, tap Translate)' : ''} · {fmt(t.shift[0])}–{fmt(t.shift[1])}</p>
-        </section>
-      )}
       {ready.length === 0 && <section className="card"><p>{L.none}</p></section>}
       {ready.map(({ job: o, arrive }, i) => {
         const wt = workTicket(o, t, addressOf(o))

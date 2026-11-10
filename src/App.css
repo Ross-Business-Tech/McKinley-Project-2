@@ -117,3 +117,13 @@ label.ask{color:var(--red)}
 .techlines{margin:10px 0 4px;font-size:.92rem}.techlines div{display:grid;grid-template-columns:7.5em 1fr;gap:8px;padding:4px 0;border-top:1px dashed var(--line)}
 .techlines dt{color:var(--mute);font-weight:600}.techlines dd{margin:0}
 .techbtns{margin-top:10px}.techbtns>*{flex:1 1 130px}
+
+/* Two layers: supervisor and technician */
+.switch{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:99px;min-height:32px;padding:4px 12px;font-size:.8rem;font-weight:600}
+.hero .row.between{align-items:center}
+.stats3{grid-template-columns:repeat(3,1fr)!important}
+.rolecard{display:block;width:100%;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.rolecard b{display:block;font-size:1.1rem;margin-bottom:4px}.rolecard span{color:var(--mute);font-size:.92rem}
+.rolecard.sel{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand)}
+.rolebtn{all:unset;display:block;width:100%;cursor:pointer}
+.rolepick{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}.rolepick .primary{width:100%;margin-top:4px}
