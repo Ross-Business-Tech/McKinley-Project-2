@@ -4,7 +4,7 @@ import { JOBS } from '../data.js'
 import { checkPlan, handPlan, runEvaluation, simulate } from '../evaluate.js'
 import { livePlan } from '../planner.js'
 import { mulberry32 } from './stats.js'
-import { sha } from './runner.js'
+import { hashOf as sha } from './hash.js'
 
 export function makeDays(count, seed = 1) {
   return Array.from({ length: count }, (_, i) => {

@@ -3,6 +3,7 @@ import './App.css'
 import { COMMUNITIES, JOBS, SCENARIOS, SHEET_NAME, TECHS, URGENCY } from './data.js'
 import { fmt, runEvaluation } from './evaluate.js'
 import { LIVE_SCENARIO } from './planner.js'
+import Compare from './Compare.jsx'
 
 const ALL_SCENARIOS = [LIVE_SCENARIO, ...SCENARIOS]
 
@@ -132,6 +133,7 @@ export default function App() {
           })}
         </ol>
       )}
+      <Compare />
       <footer className="note">Built from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
     </main>
   )

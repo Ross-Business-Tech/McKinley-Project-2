@@ -130,7 +130,7 @@ test('concurrency is bounded', async () => {
 test('pairwise judge removes position bias', async () => {
   const alwaysA = async () => 'A'
   assert.deepEqual(await pairwiseJudge({ judge: alwaysA, prompt: 'p', model: 'fake-1', baseline: 'x', candidate: 'y' }).then((r) => [r.score, r.orderBias]), [0.5, true])
-  const prefersY = async (_p, { a, b }) => (b === 'y' ? 'B' : 'A')
+  const prefersY = async (_p, { b }) => (b === 'y' ? 'B' : 'A')
   assert.equal((await pairwiseJudge({ judge: prefersY, prompt: 'p', model: 'fake-1', baseline: 'x', candidate: 'y' })).score, 1)
 })
 test('two identical variants are rarely flagged (false-positive rate near alpha)', () => {
