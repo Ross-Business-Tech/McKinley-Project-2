@@ -1,0 +1,112 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Triage Board Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: narrow reading column; video first, then the script table, voiceover, assets, and open items. */
+:root{--bg:#f4f6f6;--surface:#ffffff;--fg:#14232a;--muted:#55666e;--line:#d6dfe2;--accent:#0f6b73;--accent-soft:#dcefef;--crit:#b3261e;--warn:#8a5a00;--warn-soft:#fbefd2;--display:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;--mono:ui-monospace,'DejaVu Sans Mono',monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e171b;--surface:#162228;--fg:#e5eef1;--muted:#98adb6;--line:#29393f;--accent:#58c4cd;--accent-soft:#17353a;--crit:#ff8a80;--warn:#f2c26b;--warn-soft:#3a2d12;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e171b;--surface:#162228;--fg:#e5eef1;--muted:#98adb6;--line:#29393f;--accent:#58c4cd;--accent-soft:#17353a;--crit:#ff8a80;--warn:#f2c26b;--warn-soft:#3a2d12;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.02em}
+h1{font-size:clamp(30px,6vw,46px);line-height:1.1}
+h2{font-size:24px;margin-bottom:14px}
+p{margin:0}.sub{color:var(--muted);max-width:62ch;margin-top:10px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+video{width:100%;max-width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:20px}
+.fact{border-top:2px solid var(--accent);padding-top:8px;min-width:0}
+.fact b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:820px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-top:1px solid var(--line)}
+th{border-top:0;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.t{font-family:var(--mono);white-space:nowrap;color:var(--accent);font-weight:600}
+td.t small{display:block;color:var(--muted);font-weight:500;font-size:11px}
+.vo{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;gap:12px;font-size:19px}
+.vo span{display:block}.vo .g{border-top:1px solid var(--line);padding-top:12px}.vo .g:first-child{border-top:0;padding-top:0}
+ol,ul{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
+.thumb{font-family:var(--display);font-size:clamp(24px,4.4vw,34px);line-height:1.2;font-weight:700;padding:26px 28px;border-radius:10px;background:var(--accent);color:#fff;text-wrap:balance}
+.note{background:var(--warn-soft);color:var(--fg);border-left:4px solid var(--warn);padding:14px 18px;border-radius:6px;font-size:15px}
+.note b{color:var(--warn)}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+</head><body><div class="wrap">
+<header>
+ <span class="eyebrow">60-second demo · Business+Tech AI Sprint · sample data</span>
+ <h1 style="margin-top:10px">Triage Board: Know what to fix first</h1>
+ <p class="sub">Keynote-minimal demo video for maintenance managers, built from the sprint deck, architecture notes and evaluator plan.</p>
+</header>
+
+<section>
+ <video controls playsinline preload="metadata" src="triage-board-demo.mp4"></video>
+ <div class="facts">
+  <div class="fact"><b>Audience</b>Maintenance managers</div>
+  <div class="fact"><b>Pain</b>About 40 overnight messages, about 90 minutes of sorting, an emergency that waits until 9 a.m.</div>
+  <div class="fact"><b>Outcome shown</b>You know what to fix first, and the plan is proven safe.</div>
+  <div class="fact"><b>Call to action</b>See it live Nov 17</div>
+ </div>
+ <p class="note" style="margin-top:20px"><b>Draft.</b> Picture and music only; the voiceover is still to be recorded (cues below). The screens are mockups rebuilt from the design file, because the app itself is not built yet. The URL and logo are placeholders.</p>
+</section>
+
+<section>
+ <h2>Scene by scene</h2>
+ <div class="scroll"><table>
+ <thead><tr><th>Time</th><th>Visual</th><th>Voiceover</th><th>Sound</th></tr></thead><tbody>
+ <tr><td class="t">0–5<small>Hook</small></td><td>Black. Overnight message lines stack in type with a slow push-in. The gas line turns red. Text: “Which one is urgent?”</td><td>Forty messages came in overnight. One is an emergency.</td><td>Low pad swells in.</td></tr>
+ <tr><td class="t">5–10<small>Reveal</small></td><td>White. “Meet Triage Board.” holds 2.5s, then fades to “Know what to fix first.”</td><td>Meet Triage Board. Know what to fix first.</td><td>Pad resolves warm. Soft piano note on “first”.</td></tr>
+ <tr><td class="t">10–23<small>Demo 1 · open the board</small></td><td>Full-bleed crop of the sink card: red edge, Urgent pill. 8% push-in. “Why first” line highlights, then chips: 4th repeat, Callback owed. Caption: “Ranked, with the reason.”</td><td>Open the board. Every request is ranked, with the reason.</td><td>Soft arpeggio, quiet.</td></tr>
+ <tr><td class="t">23–36<small>Demo 2 · approve</small></td><td>Crop to “Approve and assign”. One click. Crew split fills: Tech A plumbing 9:00, Tech B HVAC 8:30. Crate-dog chip glows once. Caption: “One click. Crew assigned.”</td><td>Approve in one click. Your crew has their day.</td><td>Arpeggio adds one layer. Subtle click.</td></tr>
+ <tr><td class="t">36–50<small>Demo 3 · test it</small></td><td>Evaluator scorecard. Two gate rows turn green, then Tool vs By hand bars slide in. Caption: “Proof before you trust it.”</td><td>Then test the plan. Against one you'd make by hand.</td><td>Holds, lifts a half-step at “Pass”.</td></tr>
+ <tr><td class="t">50–55<small>Proof</small></td><td>White. “0 of 4” huge, then “gas leaks ranked low.” Footnote: “Sample test set.”</td><td>Zero gas leaks ranked low.</td><td>Drops to one sustained note.</td></tr>
+ <tr><td class="t">55–60<small>Close</small></td><td>Brand color. Logo mark alone, then “Know what to fix first.” Last 2s: “See it live Nov 17.” and [URL].</td><td>Know what to fix first. See it live November 17.</td><td>Pad resolves, fades out by 0:60.</td></tr>
+ </tbody></table></div>
+</section>
+
+<section>
+ <h2>Voiceover script</h2>
+ <div class="vo">
+  <span class="g">Forty messages came in overnight. One is an emergency.</span>
+  <span class="g">Meet Triage Board. Know what to fix first.</span>
+  <span class="g">Open the board. Every request is ranked, with the reason.</span>
+  <span class="g">Approve in one click. Your crew has their day.</span>
+  <span class="g">Then test the plan. Against one you'd make by hand.</span>
+  <span class="g">Zero gas leaks ranked low.</span>
+  <span class="g">Know what to fix first. See it live November 17.</span>
+ </div>
+ <p class="sub">Cue times: 0:00.4, 0:05.3, 0:11, 0:24, 0:37, 0:51, 0:57. Calm read, with a beat of silence after “emergency” and after “Pass”.</p>
+</section>
+
+<section class="cols">
+ <div><h2>Assets to capture</h2><ol>
+  <li>Overnight message stack, made-up, with one “gas smell” line that turns red.</li>
+  <li>Queue top card (R008 sink) with red edge, Urgent pill, Why first line and chips, plus a recording of the queue re-sorting.</li>
+  <li>Approve and assign click, and the crew split panel filling.</li>
+  <li>Crate-dog and entry-window chips, tight crop.</li>
+  <li>Evaluator scorecard: gates first, then Tool vs By hand. This screen still has to be built.</li>
+  <li>The “0 of 4” gas-leak result from a fresh run.</li>
+  <li>Logo mark, brand color, final URL, music bed, voiceover.</li>
+ </ol></div>
+ <div><h2>Cut for focus</h2><ul>
+  <li>Chat box, repeat-problems chart, data-needed table, architecture diagram, Yardi and Databricks.</li>
+  <li>The “14 of 20 tagged correctly” stat. It weakens the proof.</li>
+  <li>The “90 minutes” figure on screen, to keep the hook to one idea.</li>
+  <li>Any “minutes, not hours” claim, since no measured before/after time exists yet.</li></ul>
+  <h2 style="margin-top:28px">Thumbnail</h2>
+  <div class="thumb">40 messages. 1 emergency. Know what to fix first.</div>
+ </div>
+</section>
+
+<section>
+ <h2>Open items</h2>
+ <ul>
+  <li>Replace [URL] with the real link, and the placeholder logo with the real one.</li>
+  <li>Re-verify “0 of 4” after the Nov 15 retest. The deck calls it an early result.</li>
+  <li>Build the evaluator scorecard screen, then re-record the three demo moments from the real app at the same timing.</li>
+  <li>Record the voiceover and lay it over the video.</li>
+ </ul>
+ <p class="sub">Sources: the sprint deck, Architecture, Evaluator and AI Sprint Architecture docs, and the triage board design file in the shared project folder.</p>
+</section>
+</div>
+</body></html>

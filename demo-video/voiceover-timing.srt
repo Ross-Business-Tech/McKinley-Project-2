@@ -1,0 +1,51 @@
+1
+00:00:00,400 --> 00:00:02,600
+Forty messages came in overnight.
+
+2
+00:00:03,000 --> 00:00:04,800
+One is an emergency.
+
+3
+00:00:05,300 --> 00:00:07,000
+Meet Triage Board.
+
+4
+00:00:07,600 --> 00:00:09,600
+Know what to fix first.
+
+5
+00:00:11,000 --> 00:00:12,200
+Open the board.
+
+6
+00:00:13,000 --> 00:00:16,500
+Every request is ranked, with the reason.
+
+7
+00:00:24,200 --> 00:00:26,200
+Approve in one click.
+
+8
+00:00:28,500 --> 00:00:30,800
+Your crew has their day.
+
+9
+00:00:37,000 --> 00:00:38,600
+Then test the plan.
+
+10
+00:00:41,500 --> 00:00:44,500
+Against one you'd make by hand.
+
+11
+00:00:51,000 --> 00:00:53,200
+Zero gas leaks ranked low.
+
+12
+00:00:57,000 --> 00:00:58,300
+Know what to fix first.
+
+13
+00:00:58,500 --> 00:00:59,900
+See it live November 17.

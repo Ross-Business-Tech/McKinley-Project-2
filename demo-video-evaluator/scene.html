@@ -1,0 +1,133 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--teal:#0f6b73;--crit:#b3261e;--critsoft:#fbe4e2;--warn:#8a5a00;--warnsoft:#fbefd2;--ok:#2f6b3a;--oksoft:#e1f1e3;--fg:#17232b;--muted:#5b6b75;--line:#d9e0e4}
+*{box-sizing:border-box;margin:0}
+html,body{width:1280px;height:720px;overflow:hidden;background:#000;font-family:'Inter',system-ui,sans-serif;color:var(--fg)}
+.scene{position:absolute;inset:0;overflow:hidden;opacity:0}
+.center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.big{font-size:84px;font-weight:700;letter-spacing:-2px;text-align:center}
+.cap{position:absolute;left:0;right:0;bottom:56px;text-align:center;font-size:40px;font-weight:600;letter-spacing:-.5px}
+#s1{background:#000;color:#fff}
+#s1 .msgs{position:absolute;left:190px;right:190px;top:40px}
+.msg{padding:10px 0;border-bottom:1px solid #222;color:#8a949a;font-family:'DejaVu Sans Mono',monospace;font-size:24px}
+.msg.gas{transition:none}
+#s1 .q{position:absolute;inset:0;display:flex;align-items:flex-end;padding-bottom:80px;justify-content:center;font-size:92px;font-weight:700;letter-spacing:-2px;text-align:center;text-shadow:0 0 60px #000,0 0 30px #000}
+#s2{background:#fff}
+#s3,#s4,#s5{background:#f3f5f6}
+.card{background:#fff;border:2px solid var(--line);border-left:14px solid var(--crit);border-radius:16px;width:1020px;padding:40px 48px}
+.head{display:flex;justify-content:space-between;align-items:center}
+.title{font-size:38px;font-weight:700;letter-spacing:-.8px}
+.pill{font-family:'DejaVu Sans Mono',monospace;font-size:22px;letter-spacing:2px;padding:6px 18px;border-radius:99px;background:var(--critsoft);color:var(--crit);font-weight:700}
+.why{font-size:30px;line-height:1.4;margin-top:26px}
+.why span{background:linear-gradient(#fde9a8,#fde9a8) no-repeat 0 90%/0% 55%}
+.chips{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+.chip{font-size:26px;padding:8px 20px;border-radius:8px;background:var(--warnsoft);color:var(--warn);font-weight:600;opacity:0}
+.chip.n{background:#dff0f1;color:var(--fg)}
+.btn{background:var(--teal);color:#fff;font-size:44px;font-weight:700;padding:30px 64px;border-radius:18px;letter-spacing:-.5px;display:inline-block}
+.panel{background:#fff;border:2px solid var(--line);border-radius:16px;width:900px;padding:28px 40px}
+.row{display:flex;justify-content:space-between;font-size:34px;padding:18px 0;border-top:2px solid var(--line)}
+.row:first-child{border-top:0}.row b{font-weight:700}.row i{font-style:normal;color:var(--muted);font-family:'DejaVu Sans Mono',monospace;font-size:30px}
+.ph{font-family:'DejaVu Sans Mono',monospace;font-size:20px;letter-spacing:2px;color:var(--muted);margin-bottom:10px}
+.gate{display:flex;justify-content:space-between;align-items:center;font-size:34px;font-weight:600;padding:20px 0;border-top:2px solid var(--line)}
+.gate:first-of-type{border-top:0}
+.tag{font-family:'DejaVu Sans Mono',monospace;font-size:26px;font-weight:700;padding:6px 20px;border-radius:99px;background:#e9edef;color:#8a949a;letter-spacing:2px}
+.barrow{margin-top:22px;font-size:26px}
+.bar{height:22px;border-radius:11px;background:#e5eaed;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%}
+#s6{background:#fff}
+#s7{background:var(--teal);color:#fff}
+.cursor{position:absolute;width:44px;height:44px}
+
+.two{display:flex;gap:28px;align-items:stretch}
+.pn{background:#fff;border:2px solid var(--line);border-radius:16px;padding:28px 32px;width:520px}
+.pn h3{font-family:'DejaVu Sans Mono',monospace;font-size:20px;letter-spacing:2px;color:var(--muted);font-weight:500;margin-bottom:12px}
+.ln{font-size:30px;padding:12px 0;border-top:2px solid var(--line);display:flex;justify-content:space-between;gap:14px}
+.ln:first-of-type{border-top:0}.ln i{font-style:normal;font-family:'DejaVu Sans Mono',monospace;font-size:26px;color:var(--muted)}
+.trap{font-size:22px;padding:4px 14px;border-radius:8px;background:var(--warnsoft);color:var(--warn);font-weight:600}
+.blur{filter:blur(7px);opacity:.7}
+.ck{font-size:28px;font-weight:600;padding:9px 0;color:var(--ok)}
+.sr{display:flex;align-items:center;gap:20px;font-size:28px;padding:9px 0;border-top:2px solid var(--line)}
+.sr span{width:280px}.sr .bars{flex:1}.bars .bar{height:14px;margin:4px 0}
+#pan5 .gate{padding:12px 0}#pan5 .sr{padding:4px 0;font-size:26px}#pan5{padding:22px 40px}</style></head><body>
+<div class="scene" id="s1"><div class="msgs" id="msgs"></div><div class="q" id="q1">Would you trust this plan?</div></div>
+<div class="scene" id="s2"><div class="center"><div class="big" id="t2a" style="position:absolute">Meet Evaluator.</div><div class="big" id="t2b" style="position:absolute;color:var(--teal)">Prove the plan is safe.</div></div></div>
+<div class="scene" id="s3"><div class="center" id="c3" style="justify-content:flex-start;padding-top:70px">
+ <div class="btn" id="btn3" style="position:absolute;top:250px">Run the test day</div>
+ <div class="two" id="two3" style="opacity:0;margin-top:30px">
+  <div class="pn"><h3>TEST DAY · MADE UP</h3>
+   <div class="ln" id="a1"><span>Leaking sink</span><i>4B</i></div>
+   <div class="ln" id="a2"><span>Heater out <span class="trap" id="tp1" style="opacity:0">cat</span></span><i>9</i></div>
+   <div class="ln" id="a3"><span>Lockout <span class="trap" id="tp2" style="opacity:0">Spanish</span></span><i>12</i></div></div>
+  <div class="pn" style="position:relative"><h3>ANSWER KEY</h3><div class="blur"><div class="ln"><span>Urgency: urgent</span><i>4B</i></div><div class="ln"><span>Skill: plumbing</span><i>9</i></div><div class="ln"><span>Tell tech: cat</span><i>12</i></div></div>
+   <div id="lock" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;opacity:0"><svg width="90" height="90" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="#14232a"/><path d="M8 11V8a4 4 0 018 0v3" fill="none" stroke="#14232a" stroke-width="2"/></svg><div style="font-size:26px;font-weight:700">Tool can't see this</div></div></div>
+ </div>
+ <svg class="cursor" id="cur3" viewBox="0 0 24 24"><path d="M3 2l7 19 3-8 8-3z" fill="#111" stroke="#fff" stroke-width="1.5"/></svg></div>
+ <div class="cap" id="cap3">Answers stay hidden.</div></div>
+<div class="scene" id="s4"><div class="center" id="c4" style="justify-content:flex-start;padding-top:120px">
+ <div class="btn" id="btn4" style="position:absolute;top:240px;font-size:40px">Compare with by-hand plan</div>
+ <div class="two" id="two4" style="opacity:0;margin-top:20px">
+  <div class="pn"><h3>TOOL PLAN</h3><div class="ln"><span>Tech A · plumbing</span><i>9:00</i></div><div class="ln"><span>Tech B · HVAC</span><i>8:30</i></div><div class="ln"><span>Vendor · lockout</span><i>10:15</i></div>
+   <div class="ck" id="k1" style="opacity:0;margin-top:10px">✓ Every job covered</div><div class="ck" id="k2" style="opacity:0">✓ No one double-booked</div></div>
+  <div class="pn"><h3>BY-HAND PLAN</h3><div class="ln"><span>Tech A · plumbing</span><i>9:30</i></div><div class="ln"><span>Tech B · HVAC</span><i>9:00</i></div><div class="ln"><span>Tech A · lockout</span><i>11:00</i></div>
+   <div class="ck" id="k3" style="opacity:0;margin-top:10px">✓ Every job covered</div><div class="ck" id="k4" style="opacity:0">✓ No one double-booked</div></div></div>
+ <svg class="cursor" id="cur4" viewBox="0 0 24 24"><path d="M3 2l7 19 3-8 8-3z" fill="#111" stroke="#fff" stroke-width="1.5"/></svg></div>
+ <div class="cap" id="cap4">Same day. Two plans.</div></div>
+<div class="scene" id="s5"><div class="center" id="c5" style="justify-content:flex-start;padding-top:36px">
+ <div class="btn" id="btn5" style="position:absolute;top:260px">Score the plan</div>
+ <div class="panel" id="pan5" style="width:1040px;opacity:0"><div class="ph">GATES FIRST · MUST PASS</div>
+  <div class="gate"><span>No emergency ranked too low</span><span class="tag" id="g1">···</span></div>
+  <div class="gate"><span>Never worse than by hand</span><span class="tag" id="g2">···</span></div>
+  <div id="sc" style="opacity:0;margin-top:14px"><div class="ph" style="margin-top:8px">THEN THE SCORE · ESTIMATE · MADE-UP DAY &nbsp; <b style="color:var(--teal)">■</b> TOOL <b style="color:#b8c4ca">■</b> BY HAND</div>
+   <div class="sr"><span>Drive time</span><div class="bars"><div class="bar"><i id="x1" style="background:var(--teal);width:0"></i></div><div class="bar"><i id="y1" style="background:#b8c4ca;width:0"></i></div></div></div>
+   <div class="sr"><span>Urgent response</span><div class="bars"><div class="bar"><i id="x2" style="background:var(--teal);width:0"></i></div><div class="bar"><i id="y2" style="background:#b8c4ca;width:0"></i></div></div></div>
+   <div class="sr"><span>Notes delivered</span><div class="bars"><div class="bar"><i id="x3" style="background:var(--teal);width:0"></i></div><div class="bar"><i id="y3" style="background:#b8c4ca;width:0"></i></div></div></div>
+   <div class="sr"><span>Cost</span><div class="bars"><div class="bar"><i id="x4" style="background:var(--teal);width:0"></i></div><div class="bar"><i id="y4" style="background:#b8c4ca;width:0"></i></div></div></div></div></div>
+ <svg class="cursor" id="cur5" viewBox="0 0 24 24"><path d="M3 2l7 19 3-8 8-3z" fill="#111" stroke="#fff" stroke-width="1.5"/></svg></div>
+ <div class="cap" id="cap5">Gates first. Then the score.</div></div>
+<div class="scene" id="s6"><div class="center"><div class="big" style="font-size:210px;letter-spacing:-7px;color:var(--teal)" id="p1">[N of N]</div><div class="big" style="font-size:64px;margin-top:6px" id="p2">checks pass.</div></div>
+ <div style="position:absolute;bottom:36px;left:0;right:0;text-align:center;font-size:22px;color:var(--muted)" id="p3">Sample test set</div></div>
+<div class="scene" id="s7"><div class="center">
+ <svg id="logo" width="150" height="150" viewBox="0 0 100 100" style="position:absolute;margin-top:-60px"><rect x="10" y="10" width="80" height="80" rx="22" fill="none" stroke="#fff" stroke-width="8"/><path d="M30 52l14 14 28-30" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+ <div class="big" id="l1" style="position:absolute;margin-top:140px;font-size:74px">Prove the plan is safe.</div>
+ <div class="big" id="l2" style="position:absolute;font-size:70px">See it live Nov 17.<div style="font-size:44px;font-weight:500;margin-top:14px;opacity:.85">[URL]</div></div></div></div>
+<script>
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),ease=x=>x*x*(3-2*x),pr=(t,a,b)=>ease(clamp((t-a)/(b-a)));
+const $=id=>document.getElementById(id);
+const msgs=["8:30 · Tech B · Unit 9 · Heater","9:00 · Tech A · Unit 4B · Sink","10:15 · Vendor · Unit 12 · Lockout","11:00 · Tech A · Unit 15 · Pest","1:30 · Tech B · Unit 7 · Light"];
+$('msgs').innerHTML=msgs.map((m,i)=>`<div class="msg" id="m${i}">${m}<span id="qm${i}" style="float:right;opacity:0;color:#e0b252">?</span></div>`).join('');
+function cursor(id,t,a,b,x0,y0,x1,y1,fade){const e=pr(t,a,b),c=$(id);c.style.left=(x0+(x1-x0)*e)+'px';c.style.top=(y0+(y1-y0)*e)+'px';c.style.opacity=1-pr(t,fade,fade+.5)}
+function btn(id,t,click){const p=t>click&&t<click+.35;$(id).style.transform=`scale(${p?.95:1})`;$(id).style.background=t>click?'#0b565c':'#0f6b73'}
+function render(t){
+ const S=(id,a,b,fi=.5,fo=.5)=>{$(id).style.opacity=clamp(Math.min((t-a)/fi,(b-t)/fo),0,1)};
+ S('s1',0,5.4,.01,.6);S('s2',5,10.4,.6,.5);S('s3',10,23.4,.5,.5);S('s4',23,36.4,.5,.5);S('s5',36,50.4,.5,.5);S('s6',50,55.4,.5,.5);S('s7',55,60.01,.5,.01);
+ for(let i=0;i<5;i++){const e=pr(t,.3+i*.35,.8+i*.35);const m=$('m'+i);m.style.opacity=e*.55;m.style.transform=`translateY(${(1-e)*30}px)`;$('qm'+i).style.opacity=pr(t,2.6+i*.25,3+i*.25)}
+ $('q1').style.opacity=pr(t,1.9,2.6);$('s1').style.transform=`scale(${1+t*.012})`;
+ $('t2a').style.opacity=Math.min(pr(t,5.3,6),1-pr(t,7.2,7.7));$('t2b').style.opacity=pr(t,7.6,8.3);
+ $('t2a').style.transform=`scale(${1+(t-5)*.012})`;$('t2b').style.transform=`scale(${1+(t-7.5)*.012})`;
+ // s3
+ $('c3').style.transform=`scale(${1+(t-10)*.005})`;
+ cursor('cur3',t,11,12.8,900,560,560,330,14);btn('btn3',t,12.9);
+ $('btn3').style.opacity=1-pr(t,14,14.6);$('two3').style.opacity=pr(t,14.2,15);
+ ['a1','a2','a3'].forEach((a,i)=>{const e=pr(t,14.6+i*.4,15.2+i*.4);$(a).style.opacity=e});
+ $('lock').style.opacity=pr(t,16.2,17);$('tp1').style.opacity=pr(t,18,18.6);$('tp2').style.opacity=pr(t,19,19.6);
+ $('cap3').style.opacity=pr(t,11,11.8);
+ // s4
+ $('c4').style.transform=`scale(${1+(t-23)*.005})`;
+ cursor('cur4',t,24,25.6,900,580,560,340,26.6);btn('btn4',t,25.7);
+ $('btn4').style.opacity=1-pr(t,26.8,27.4);$('two4').style.opacity=pr(t,27,27.8);
+ [['k1',29],['k3',29.2],['k2',30.6],['k4',30.8]].forEach(([k,a])=>{$(k).style.opacity=pr(t,a,a+.5)});
+ $('cap4').style.opacity=pr(t,24.5,25.3);
+ // s5
+ $('c5').style.transform=`scale(${1+(t-36)*.004})`;
+ cursor('cur5',t,36.6,38,900,580,560,350,40);btn('btn5',t,38.1);
+ $('btn5').style.opacity=1-pr(t,39,39.6);$('pan5').style.opacity=pr(t,39.2,40);
+ [['g1',40.8],['g2',42.2]].forEach(([id,a])=>{const e=pr(t,a,a+.5),el=$(id);el.style.background=e>.5?'var(--oksoft)':'#e9edef';el.style.color=e>.5?'var(--ok)':'#8a949a';el.style.transform=`scale(${1+Math.sin(e*Math.PI)*.15})`;el.textContent=e>.5?'✓ PASS':'···'});
+ $('sc').style.opacity=pr(t,44,44.8);
+ const W=[[62,84],[48,80],[70,64],[55,75]];[1,2,3,4].forEach(i=>{const s=44.4+i*.35;$('x'+i).style.width=pr(t,s,s+1.6)*W[i-1][0]+'%';$('y'+i).style.width=pr(t,s+.2,s+1.8)*W[i-1][1]+'%'});
+ $('cap5').style.opacity=pr(t,36.8,37.6);
+ // s6
+ $('p1').style.opacity=pr(t,50.4,51.4);$('p1').style.transform=`scale(${.96+pr(t,50.4,55)*.06})`;$('p2').style.opacity=pr(t,52,52.8);$('p3').style.opacity=pr(t,52.5,53.2);
+ // s7
+ $('logo').style.opacity=pr(t,55.2,55.8)*(1-pr(t,57,57.4));$('logo').style.transform=`scale(${1+(t-55)*.03})`;
+ $('l1').style.opacity=pr(t,57,57.6)*(1-pr(t,58.2,58.6));$('l2').style.opacity=pr(t,58.4,59);
+}
+window.render=render;render(0);
+</script></body></html>

@@ -1,0 +1,51 @@
+1
+00:00:00,400 --> 00:00:02,400
+An AI built today's plan.
+
+2
+00:00:03,000 --> 00:00:04,600
+Would you trust it?
+
+3
+00:00:05,300 --> 00:00:06,800
+Meet Evaluator.
+
+4
+00:00:07,600 --> 00:00:09,600
+Prove the plan is safe.
+
+5
+00:00:11,400 --> 00:00:13,200
+Run a made-up day.
+
+6
+00:00:16,300 --> 00:00:19,000
+The answer key stays hidden.
+
+7
+00:00:24,200 --> 00:00:26,800
+Plan the same day by hand.
+
+8
+00:00:29,000 --> 00:00:30,600
+Then check both.
+
+9
+00:00:40,200 --> 00:00:42,000
+Pass the gates first.
+
+10
+00:00:44,200 --> 00:00:46,000
+Then see the score.
+
+11
+00:00:51,000 --> 00:00:53,400
+[N] of [N] checks pass.
+
+12
+00:00:57,000 --> 00:00:58,400
+Prove the plan is safe.
+
+13
+00:00:58,500 --> 00:00:59,900
+See it live November 17.
