@@ -92,6 +92,7 @@ export function score(ctx, timelines, urgencyMap) {
   const notes = keyed.filter((s) => s.note.toLowerCase().includes(s.job.key.toLowerCase())).length
   const notesTotal = ctx.jobs.filter((j) => j.key).length
   const skill = stops.filter((s) => !s.skillMismatch).length
+  const work = stops.reduce((n, s) => n + s.job.dur, 0)
   let cost = wasted * 25
   for (const tl of timelines) {
     const mine = tl.stops
@@ -99,7 +100,7 @@ export function score(ctx, timelines, urgencyMap) {
     else cost += ((tl.tech.rate ?? 38) * mine.reduce((n, s) => n + s.job.dur + (Number.isFinite(s.drive) ? s.drive : 0), 0)) / 60
   }
   const downgraded = ctx.jobs.filter((j) => j.urgency !== null && (urgencyMap[j.id] ?? j.urgency) < j.urgency)
-  return { driveMin, wasted, finished, response, notes, notesTotal, skill, cost: Math.round(cost), total: ctx.jobs.length, downgraded }
+  return { driveMin, work, urgentCount: urgent.length, wasted, finished, response, notes, notesTotal, skill, cost: Math.round(cost), total: ctx.jobs.length, downgraded }
 }
 
 export function gates(ctx, planScore, handScore) {
@@ -125,6 +126,29 @@ export function gates(ctx, planScore, handScore) {
   ]
 }
 
+// ---------- The 0-100 score. Plan and by-hand plan are scored on the same rubric. ----------
+export const GATE_CAP = 40
+const clamp = (x) => Math.max(0, Math.min(1, x))
+
+export function points(s) {
+  const pct = (a, b) => (b ? a / b : 0)
+  const parts = [
+    { key: 'done', label: 'Jobs done on time, inside entry windows and hours', weight: 35, frac: pct(s.finished, s.total), detail: `${s.finished} of ${s.total}` },
+    { key: 'skill', label: 'Right skill sent to each job', weight: 15, frac: pct(s.skill, s.total), detail: `${s.skill} of ${s.total}` },
+    { key: 'urgent', label: 'Urgent jobs reached quickly', weight: 20, frac: clamp(1 - (s.response - 60) / 300), detail: `${Math.round(s.response)} min average wait`, na: s.urgentCount === 0 },
+    { key: 'notes', label: 'Resident notes reached the technician', weight: 15, frac: pct(s.notes, s.notesTotal), detail: `${s.notes} of ${s.notesTotal}`, na: s.notesTotal === 0 },
+    { key: 'drive', label: 'Time spent working, not driving', weight: 15, frac: s.work + s.driveMin ? s.work / (s.work + s.driveMin) : 0, detail: `${Math.round((s.work / Math.max(1, s.work + s.driveMin)) * 100)}% of on-the-clock time` },
+  ]
+  const live = parts.filter((p) => !p.na)
+  const total = Math.round((live.reduce((n, p) => n + p.weight * p.frac, 0) / live.reduce((n, p) => n + p.weight, 0)) * 100)
+  const wsum = live.reduce((n, p) => n + p.weight, 0)
+  return { parts: parts.map((p) => ({ ...p, max: p.na ? 0 : Math.round((p.weight / wsum) * 100), got: p.na ? 0 : Math.round(((p.weight * p.frac) / wsum) * 100 * 10) / 10 })), total }
+}
+
+export function verdictFor(score) {
+  return score >= 85 ? 'Strong' : score >= 70 ? 'Good' : score >= 50 ? 'Fair' : 'Weak'
+}
+
 // Grades one plan on one day. `entry` is {plan, urgency}: the planner's plan and its own urgency ratings.
 export function runEvaluation(ctx, entry) {
   const planTl = simulate(ctx, entry.plan)
@@ -134,5 +158,9 @@ export function runEvaluation(ctx, entry) {
   const handScore = score(ctx, handTl, {})
   const gateList = check.ok ? gates(ctx, planScore, handScore) : []
   const pass = check.ok && gateList.every((g) => g.ok)
-  return { planTl, handTl, check, planScore, handScore, gateList, pass }
+  const planPts = planScore ? points(planScore) : null
+  const handPts = points(handScore)
+  const capped = !!planPts && !pass
+  const final = planPts ? (capped ? Math.min(planPts.total, GATE_CAP) : planPts.total) : null
+  return { planTl, handTl, check, planScore, handScore, gateList, pass, planPts, handPts, capped, final }
 }

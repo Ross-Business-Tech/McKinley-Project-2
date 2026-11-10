@@ -84,6 +84,8 @@ export function summarise(planner, ctx, runs) {
     const v = scored.map((r) => fn(r.result.planScore))
     return v.length ? { min: Math.min(...v), max: Math.max(...v), mean: v.reduce((a, b) => a + b, 0) / v.length } : null
   }
+  const finals = runs.map((r) => r.result.final).filter((x) => x !== null)
+  const scoreSpread = finals.length ? { min: Math.min(...finals), max: Math.max(...finals), mean: finals.reduce((x, y) => x + y, 0) / finals.length, unscored: runs.length - finals.length } : null
   const unsafeRuns = runs.filter((r) => r.issues.some((x) => x.code === 'downgrade')).length
   const worst =
     runs.filter((r) => !r.pass).sort((a, b) => b.issues.filter((x) => x.hard).length - a.issues.filter((x) => x.hard).length || b.issues.length - a.issues.length)[0] ||
@@ -98,7 +100,7 @@ export function summarise(planner, ctx, runs) {
   else verdict = { level: 'weak', text: 'Fails too often to use without close review.' }
   return {
     planner, ctx, runs, n, passes, rate: passes / n, lo, hi, patterns, problemJobs, unsafeRuns, worst, verdict,
-    drive: spread((s) => s.driveMin), cost: spread((s) => s.cost), wasted: spread((s) => s.wasted),
+    drive: spread((s) => s.driveMin), score: scoreSpread, cost: spread((s) => s.cost), wasted: spread((s) => s.wasted),
   }
 }
 

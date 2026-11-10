@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SCENARIOS } from './data.js'
-import { fmt, runEvaluation } from './evaluate.js'
+import { GATE_CAP, fmt, runEvaluation, verdictFor } from './evaluate.js'
 import { liveScenario } from './planner.js'
 import { sampleDay } from './casefile.js'
 import Day from './Day.jsx'
@@ -25,7 +25,7 @@ const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.(
 export default function App() {
   const [day, setDay] = useState(() => ({ ctx: sampleDay(), loaded: null }))
   const [scenarioId, setScenarioId] = useState('live')
-  const [mode, setMode] = useState('repeat') // repeat | single
+  const [mode, setMode] = useState('single') // single | repeat
   const [status, setStatus] = useState('idle') // idle | running | done
   const [step, setStep] = useState(0) // number of finished steps
   const timer = useRef(null)
@@ -77,6 +77,12 @@ export default function App() {
     }, 650)
   }
 
+  function showNow() {
+    clearInterval(timer.current)
+    setStep(8)
+    setStatus('done')
+  }
+
   function reset() {
     clearInterval(timer.current)
     setStatus('idle')
@@ -111,11 +117,11 @@ export default function App() {
       <Day day={day} setDay={changeDay} />
 
       <div className="seg" role="radiogroup" aria-label="Evaluation mode">
-        <button role="radio" aria-checked={mode === 'repeat'} className={mode === 'repeat' ? 'seg-on' : ''} onClick={() => setMode('repeat')}>
-          Repeat runs (for AI models)
-        </button>
         <button role="radio" aria-checked={mode === 'single'} className={mode === 'single' ? 'seg-on' : ''} onClick={() => setMode('single')}>
-          One plan, step by step
+          Grade a plan
+        </button>
+        <button role="radio" aria-checked={mode === 'repeat'} className={mode === 'repeat' ? 'seg-on' : ''} onClick={() => setMode('repeat')}>
+          Advanced: repeated runs (AI models)
         </button>
       </div>
 
@@ -137,6 +143,7 @@ export default function App() {
           <button className="primary" onClick={run} disabled={status === 'running'}>
             {status === 'running' ? `Running step ${Math.min(step + 1, 8)} of 8…` : status === 'done' ? 'Run again' : 'Run the evaluation'}
           </button>
+          {status !== 'running' && status !== 'done' && <button onClick={showNow}>Show the score now</button>}
           {status !== 'idle' && status !== 'running' && <button onClick={reset}>Clear</button>}
         </div>
       </section>
@@ -322,26 +329,58 @@ function StepBody({ n, scenario, r, ctx }) {
 function Scorecard({ r }) {
   const p = r.planScore
   const h = r.handScore
+  const delta = r.final === null ? null : r.final - r.handPts.total
   return (
     <div className="stack">
-      <p className={`banner ${r.pass ? 'pass' : 'fail'}`} role="status">
-        {r.pass ? 'PASS: all gates cleared' : 'FAIL: a must-pass check failed, whatever the other numbers say'}
-      </p>
+      {r.final !== null ? (
+        <div className={`scorebox ${r.pass ? 'pass' : 'fail'}`} role="status">
+          <div className="score-main">
+            <span className="score-num">{r.final}</span>
+            <span className="score-of">/ 100</span>
+          </div>
+          <div>
+            <b>{r.pass ? verdictFor(r.final) : 'Fails a must-pass check'}</b>
+            <p>By hand: {r.handPts.total} / 100 · {delta >= 0 ? '+' : '−'}{Math.abs(delta)} {delta >= 0 ? 'better' : 'worse'} than by hand</p>
+            {r.capped && <p>The plan earned {r.planPts.total} on the rubric, but a must-pass gate failed, so the score is capped at {GATE_CAP}.</p>}
+          </div>
+        </div>
+      ) : (
+        <p className="banner fail" role="status">NOT SCORED: this plan could not work in real life. By hand scores {r.handPts.total} / 100.</p>
+      )}
+      {r.planPts && (
+        <div className="scroll">
+          <table>
+            <thead><tr><th>What the score is made of</th><th>Plan</th><th>By hand</th></tr></thead>
+            <tbody>
+              {r.planPts.parts.map((part, i) => {
+                const hp = r.handPts.parts[i]
+                return (
+                  <tr key={part.key} className={part.na ? 'na' : ''}>
+                    <td>{part.label}<br /><span className="note">{part.na ? 'Not counted: the case file gave nothing to check it against' : `Worth ${part.max} points`}</span></td>
+                    <td className={!part.na && part.got >= hp.got ? 'have' : ''}>{part.na ? '–' : `${part.got}`}<br /><span className="note">{part.detail}</span></td>
+                    <td>{part.na ? '–' : `${hp.got}`}<br /><span className="note">{hp.detail}</span></td>
+                  </tr>
+                )
+              })}
+              <tr><td><b>Total</b></td><td><b>{r.planPts.total}</b></td><td><b>{r.handPts.total}</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+      )}
       <div className="stack">
         <b>Must-pass checks</b>
         {[...r.check.checks, ...r.gateList].map((g) => (
-          <div key={g.label} className="row"><span>{g.label}</span><Pill ok={g.ok} /></div>
+          <div key={g.label} className="row"><span>{g.label}{g.skipped && <span className="note"><br />{g.detail}</span>}</span><Pill ok={g.ok} /></div>
         ))}
       </div>
       {p && (
         <section className={`strip ${r.pass ? '' : 'dim'}`} aria-label="Planner compared with by hand">
           <div className="stat"><b>{h.driveMin - p.driveMin >= 0 ? '−' : '+'}{Math.abs(h.driveMin - p.driveMin)} min</b><span>Drive time vs. by hand</span></div>
           <div className="stat"><b>{h.wasted - p.wasted >= 0 ? '−' : '+'}{Math.abs(h.wasted - p.wasted)}</b><span>Wasted trips vs. by hand</span></div>
-          <div className="stat"><b>${Math.abs(h.cost - p.cost)}</b><span>{p.cost <= h.cost ? 'Estimated saving' : 'Estimated extra cost'}</span></div>
+          <div className="stat"><b>${Math.abs(h.cost - p.cost)}</b><span>{p.cost <= h.cost ? 'Estimated saving' : 'Estimated extra cost'} (not part of the score)</span></div>
         </section>
       )}
-      {p && !r.pass && <p className="note">These numbers do not count: a must-pass check failed.</p>}
-      <p className="note">Estimate only: the test day uses synthetic data and assumed times, not a real day.</p>
+      <p className="note">The “by hand” plan is a simple, naive plan made by code: urgent jobs first, the first free technician, no grouping, no waiting for entry windows. Estimate only: the test day uses made-up data.</p>
     </div>
   )
 }

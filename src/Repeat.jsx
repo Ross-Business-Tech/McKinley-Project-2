@@ -175,6 +175,12 @@ function Card({ b }) {
           ))}
         </div>
       )}
+      {b.score && (
+        <p>
+          <b>Score {multi ? `${Math.round(b.score.mean)} on average (${b.score.min}–${b.score.max})` : `${b.score.mean} / 100`}</b>
+          {b.score.unscored > 0 && <span className="note"> · {b.score.unscored} {b.score.unscored === 1 ? 'run' : 'runs'} not scored (plan could not work)</span>}
+        </p>
+      )}
       {b.note && <p className="note">{b.note}</p>}
       {b.cost && (
         <p className="note">
