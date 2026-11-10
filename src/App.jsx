@@ -174,7 +174,7 @@ function App() {
             </label>
             <div className="two">
               <label>Best phone number
-                <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value)} placeholder="555-0100" inputMode="tel" required />
+                <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10 digits, e.g. 5550100123" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} title="Enter a 10-digit phone number" required />
               </label>
               <label>Email
                 <input type="email" value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" required />
