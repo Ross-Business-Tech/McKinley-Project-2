@@ -116,6 +116,7 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "supervisor": "Supervisor",
   "onCall": "📟 On call today, 5 PM to midnight",
   "offToday": "Not scheduled today",
   "map": "Map",
@@ -136,6 +137,7 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "supervisor": "Supervisor",
   "onCall": "📟 De guardia hoy, de 5 PM a medianoche",
   "offToday": "Hoy no tiene turno",
   "map": "Mapa",
@@ -156,6 +158,7 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "supervisor": "Supervisor",
   "onCall": "📟 De plantão hoje, das 17h à meia-noite",
   "offToday": "Sem escala hoje",
   "map": "Mapa",
@@ -176,6 +179,7 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "supervisor": "Superviseur",
   "onCall": "📟 D'astreinte aujourd'hui, de 17 h à minuit",
   "offToday": "Pas de service aujourd'hui",
   "map": "Plan",
@@ -196,6 +200,7 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "supervisor": "Sipèvizè",
   "onCall": "📟 Ou de gad jodi a, 5 PM rive minwi",
   "offToday": "Ou pa sou orè jodi a",
   "map": "Kat",

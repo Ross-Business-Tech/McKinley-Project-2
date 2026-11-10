@@ -8,7 +8,7 @@ import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
-import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
+import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
@@ -53,6 +53,8 @@ function App() {
   const [techDone, setTechDone] = useState({})
   const [role, setRole] = useState(() => load('mk-role', null))
   const [techId, setTechId] = useState(() => load('mk-tech', null))
+  const [supId, setSupId] = useState(() => load('mk-sup', null))
+  const [sups, setSups] = useState(() => load('mk-sups-v1', DEFAULT_SUPERVISORS))
   const [techTab, setTechTab] = useState('day')
   const [techSite, setTechSite] = useState(null)
   // Which day and shift we're planning for. Starts from the real clock: evenings and weekends are on-call time.
@@ -71,16 +73,28 @@ function App() {
   useEffect(() => save('mk-teams-v5', teamsRaw), [teamsRaw])
   useEffect(() => save('mk-role', role), [role])
   useEffect(() => save('mk-tech', techId), [techId])
+  useEffect(() => save('mk-sup', supId), [supId])
+  useEffect(() => save('mk-sups-v1', sups), [sups])
 
   const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
-  const allOrders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
+  const everyOrder = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
+  // Each supervisor sees only their own properties. "Regional view" sees all of them.
+  // Requests we couldn't match to a property show for everyone, so none get lost.
+  const sup = sups.find((x) => x.id === supId) || null
+  const mySiteNames = useMemo(() => (sup ? sup.sites : sites.map((x) => x.name)), [sup, sites])
+  const mySites = sites.filter((x) => mySiteNames.includes(x.name))
+  const allOrders = useMemo(() => everyOrder.filter((o) => !o.community || mySiteNames.includes(o.community)), [everyOrder, mySiteNames])
+  // Teams tab opens on: the site you picked, else the one you last edited, else your first site that has a team.
+  const teamSiteEff = mySiteNames.includes(teamSite) ? teamSite
+    : (mySiteNames.find((n) => teamsRaw.some((t) => t.sites.includes(n))) || mySiteNames[0])
+  const supervisorOf = (siteName) => sups.find((x) => x.sites.includes(siteName))
   const orders = useMemo(
     () => allOrders.filter((o) => site === 'all' || (site === 'unassigned' ? !o.community : o.community === site)),
     [allOrders, site],
   )
-  const team = useMemo(() => allTeams.filter((t) => site === 'all' || t.sites.includes(site)), [allTeams, site])
+  const team = useMemo(() => allTeams.filter((t) => (site === 'all' ? t.sites.some((x) => mySiteNames.includes(x)) : t.sites.includes(site))), [allTeams, site, mySiteNames])
   const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule])
-  const fullPlan = useMemo(() => buildPlan(allOrders, tech, allTeams, schedule), [allOrders, tech, allTeams, schedule])
+  const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule])
   const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
@@ -151,8 +165,18 @@ function App() {
   }
 
   // ---------- Who is using the app? ----------
-  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId))) {
-    return <RoleChooser techs={allTeams} initialRole={role} onPick={(r, id) => { setRole(r); setTechId(id || null); setTab('queue'); setTechTab('day') }} />
+  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup)) {
+    return (
+      <RoleChooser techs={allTeams} sups={sups} initialRole={role}
+        onPick={(r, id) => {
+          setRole(r)
+          if (r === 'tech') setTechId(id)
+          else setSupId(id)
+          setSite('all')
+          setTab('queue')
+          setTechTab('day')
+        }} />
+    )
   }
 
   // ---------- Technician layer: only their own approved jobs ----------
@@ -172,6 +196,9 @@ function App() {
           </div>
           <h1>{L.myDay} · {me.name}</h1>
           <p>{me.sites.join(', ')} · {langInfo(me.lang)?.native || 'English'} · {fmt(me.shift[0])}–{fmt(me.shift[1])}</p>
+          {supervisorOf(me.home) && (
+            <p className="supline">{L.supervisor}: <b>{supervisorOf(me.home).name}</b>{supervisorOf(me.home).phone && <> · <a href={`tel:${supervisorOf(me.home).phone}`}>📞 {supervisorOf(me.home).phone}</a></>}</p>
+          )}
           <section className="stats stats3">
             <div><b>{myStops.length}</b><span>{L.jobsToday}</span></div>
             <div><b>{myStops.filter((st) => st.job.sev >= 5).length}</b><span>{L.emergencies}</span></div>
@@ -211,7 +238,7 @@ function App() {
           <span className="wordmark">mckinley</span>
           <button className="switch" onClick={() => setRole(null)}>Switch user</button>
         </div>
-        <span className="chip">Supervisor view · sample data</span>
+        <span className="chip">Supervisor · {sup ? `${sup.name} · ${mySites.length} properties` : 'Regional view · all properties'} · sample data</span>
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
         <section className="stats">
@@ -222,9 +249,11 @@ function App() {
         </section>
       </header>
 
+      <div className="layout">
+      <aside className="side">
       <div className="sitepick">
         <label>Site team
-          <SitePicker value={site} onChange={setSite} sites={sites} countFor={countFor} extra={[['all', `All sites (${allOrders.length} requests)`], ['unassigned', `Unit not found (${countFor('unassigned')})`]]} />
+          <SitePicker value={site} onChange={(v) => { setSite(v); if (v !== "all" && v !== "unassigned") setTeamSite(v) }} sites={mySites} countFor={countFor} extra={[['all', `All sites (${allOrders.length} requests)`], ['unassigned', `Unit not found (${countFor('unassigned')})`]]} />
         </label>
         {siteInfo && <p className="small">{siteInfo.address}, {siteInfo.city} {siteInfo.zip} · Leasing office {siteInfo.phone || 'phone not listed'}</p>}
       </div>
@@ -257,6 +286,8 @@ function App() {
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
         ))}
       </nav>
+      </aside>
+      <div className="content">
 
       {tab === 'new' && (
         <form className="card chat" onSubmit={addOrder}>
@@ -318,6 +349,7 @@ function App() {
             When a request is missing something, it shows up here with a message already written. Tap Text, Email or Call and it opens that app on your phone with the words filled in. Nothing is sent automatically. Sending on its own would need a texting/email service set up by McKinley IT.
           </p>
           {followups.length === 0 && <section className="card"><p>Nothing missing. Every request has what we need.</p></section>}
+          <div className="cardgrid">
           {followups.map(({ o, items }) => {
             const d = drafts(o, items, sites)
             const done = contacted[o.id]
@@ -352,6 +384,7 @@ function App() {
               </article>
             )
           })}
+          </div>
         </>
       )}
 
@@ -365,6 +398,7 @@ function App() {
               ))}
             </ul>
           )}
+          <div className="cardgrid">
           {ranked.map((o) => {
             const t = assignedTo(o.id)
             const miss = missingInfo(o)
@@ -404,7 +438,7 @@ function App() {
                   {t && <span className="chip c-tech">{t.name}</span>}
                   {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}</span>}
                   {plan.deferred.some((x) => x.id === o.id) && <span className="chip">Waits for regular hours</span>}
-                  {plan.unstaffed.some((x) => x.id === o.id) && <span className="chip e-emergency">No one scheduled{o.sev >= 4 ? ': call the supervisor' : ''}</span>}
+                  {plan.unstaffed.some((x) => x.id === o.id) && <span className="chip e-emergency">No one scheduled{o.sev >= 4 && supervisorOf(o.community) ? `: ${supervisorOf(o.community).name} decides` : ''}</span>}
                   {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
                 </div>
                 {(photos[o.id] || []).length > 0 && (
@@ -470,6 +504,7 @@ function App() {
               </article>
             )
           })}
+          </div>
         </>
       )}
 
@@ -478,7 +513,7 @@ function App() {
           <h2>Pick a site to see its map</h2>
           <p className="small">Sites with open requests:</p>
           <div className="chips">
-            {sites.filter((x) => countFor(x.name) > 0).map((x) => (
+            {mySites.filter((x) => countFor(x.name) > 0).map((x) => (
               <button key={x.name} className="chip chipbtn" onClick={() => setSite(x.name)}>{x.name} ({countFor(x.name)}){mapFor(x.name) ? '' : ' · no map'}</button>
             ))}
           </div>
@@ -490,6 +525,7 @@ function App() {
         <>
           {plan.afterHours && <p className="notice small">📟 After-hours plan for {schedule.day}: on-call technicians only, from 5 PM.</p>}
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
+          <div className="cardgrid">
           {(site === 'unassigned' ? [] : plan.techs).map(({ tech: t, plan: p, byHand }) => (
             <section key={t.id} className="card">
               <h2>{t.name} <span className="small">· {langInfo(t.lang)?.native || 'language not set'} · {t.sites.join(', ')} · {t.skills.join(', ')}</span></h2>
@@ -508,6 +544,7 @@ function App() {
               </ol>
             </section>
           ))}
+          </div>
           {plan.unstaffed.length > 0 && (
             <section className="card">
               <h2 className="warn">No one scheduled ({plan.unstaffed.length})</h2>
@@ -541,11 +578,12 @@ function App() {
 
       {tab === 'teams' && (
         <>
+          <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} />
           <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
           <label>Site
-            <SitePicker value={teamSite} onChange={setTeamSite} sites={sites} countFor={(k) => allTeams.filter((t) => t.sites.includes(k)).length} suffix="technicians" />
+            <SitePicker value={teamSiteEff} onChange={setTeamSite} sites={mySites} countFor={(k) => allTeams.filter((t) => t.sites.includes(k)).length} suffix="technicians" />
           </label>
-          {sites.filter((s) => s.name === teamSite).map((s) => (
+          {sites.filter((s) => s.name === teamSiteEff).map((s) => (
             <section key={s.name} className="card">
               <div className="row between">
                 <h2>{s.name} <span className="small">· {s.city}</span></h2>
@@ -576,6 +614,8 @@ function App() {
         </>
       )}
       <footer className="small">Made-up technicians, vendors, travel times and requests. Entry-notice rules are assumptions to confirm with McKinley and the lease. This is not legal advice.</footer>
+      </div>
+      </div>
     </main>
   )
 }
@@ -644,9 +684,10 @@ function TechEditor({ t, sites, update, toggle, remove }) {
   )
 }
 
-function RoleChooser({ techs, initialRole, onPick }) {
-  const [pick, setPick] = useState(initialRole === 'tech' ? 'tech' : null)
+function RoleChooser({ techs, sups, initialRole, onPick }) {
+  const [pick, setPick] = useState(initialRole)
   const [who, setWho] = useState(techs[0]?.id || '')
+  const [boss, setBoss] = useState(sups[0]?.id || 'all')
   return (
     <main className="app">
       <header className="hero">
@@ -654,10 +695,23 @@ function RoleChooser({ techs, initialRole, onPick }) {
         <h1>Maintenance Hub</h1>
         <p>Who's using the app?</p>
       </header>
-      <button className="card rolecard" onClick={() => onPick('supervisor')}>
-        <b>🗂️ Maintenance supervisor</b>
-        <span>Every request across your sites: priorities, follow-ups, routes, site maps, approvals and teams.</span>
-      </button>
+      <div className={`card rolecard ${pick === 'supervisor' ? 'sel' : ''}`}>
+        <button className="rolebtn" onClick={() => setPick('supervisor')}>
+          <b>🗂️ Maintenance supervisor</b>
+          <span>Every request at the properties you oversee: priorities, follow-ups, routes, site maps, approvals and teams.</span>
+        </button>
+        {pick === 'supervisor' && (
+          <div className="rolepick">
+            <label>Your name
+              <select value={boss} onChange={(e) => setBoss(e.target.value)}>
+                {sups.map((x) => <option key={x.id} value={x.id}>{x.name} · {x.sites.length} properties</option>)}
+                <option value="all">Regional view (all properties)</option>
+              </select>
+            </label>
+            <button className="primary" onClick={() => onPick('supervisor', boss)}>Open my sites</button>
+          </div>
+        )}
+      </div>
       <div className={`card rolecard ${pick === 'tech' ? 'sel' : ''}`}>
         <button className="rolebtn" onClick={() => setPick('tech')}>
           <b>🔧 Maintenance technician</b>
@@ -676,6 +730,59 @@ function RoleChooser({ techs, initialRole, onPick }) {
       </div>
       <p className="small notice">Prototype: anyone can pick either view. A real version would have each person sign in, so technicians only ever see their own work.</p>
     </main>
+  )
+}
+
+function SupervisorsEditor({ sups, setSups, sites }) {
+  const [open, setOpen] = useState(null)
+  const markets = [...new Set(sites.map((x) => x.market || x.city))]
+  const upd = (id, p) => setSups(sups.map((x) => (x.id === id ? { ...x, ...p } : x)))
+  return (
+    <section className="card">
+      <h2>Supervisors</h2>
+      <p className="small">Each supervisor sees only the properties they oversee. Technicians see their supervisor's name and number.</p>
+      {sups.map((x) => (
+        <div key={x.id} className="tech">
+          <div className="row between">
+            <b>{x.name}</b>
+            <span className="small">{x.sites.length} properties</span>
+            <button className="link" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Close' : 'Edit'}</button>
+          </div>
+          {open === x.id && (
+            <>
+              <div className="two">
+                <label>Name<input value={x.name} onChange={(e) => upd(x.id, { name: e.target.value })} /></label>
+                <label>Phone
+                  <input value={x.phone || ''} onChange={(e) => upd(x.id, { phone: formatPhone(e.target.value) })} inputMode="numeric" placeholder="067-550-2161" maxLength={12} />
+                </label>
+              </div>
+              <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
+              <p className="small">Oversees (tap ✕ to remove)</p>
+              <div className="chips">
+                {x.sites.map((n) => <button key={n} className="chip chipbtn sel" onClick={() => upd(x.id, { sites: x.sites.filter((y) => y !== n) })}>{n} ✕</button>)}
+              </div>
+              <div className="two">
+                <select aria-label="Add a property" value="" onChange={(e) => e.target.value && upd(x.id, { sites: [...x.sites, e.target.value] })}>
+                  <option value="">+ Add one property…</option>
+                  {sites.filter((y) => !x.sites.includes(y.name)).map((y) => <option key={y.name} value={y.name}>{y.name} ({y.city})</option>)}
+                </select>
+                <select aria-label="Add a whole area" value="" onChange={(e) => e.target.value && upd(x.id, { sites: [...new Set([...x.sites, ...sites.filter((y) => (y.market || y.city) === e.target.value).map((y) => y.name)])] })}>
+                  <option value="">+ Add a whole area…</option>
+                  {markets.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <button className="link" onClick={() => setSups(sups.filter((y) => y.id !== x.id))}>Remove supervisor</button>
+            </>
+          )}
+        </div>
+      ))}
+      <button onClick={() => { const id = `SUP-${Date.now()}`; setSups([...sups, { id, name: 'New supervisor', phone: '', email: '', sites: [] }]); setOpen(id) }}>+ Add supervisor</button>
+      {(() => {
+        const covered = new Set(sups.flatMap((x) => x.sites))
+        const gap = sites.filter((y) => !covered.has(y.name))
+        return gap.length ? <p className="small warn">No supervisor yet for: {gap.map((y) => y.name).join(', ')}</p> : null
+      })()}
+    </section>
   )
 }
 

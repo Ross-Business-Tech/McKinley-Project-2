@@ -20,6 +20,15 @@ export const DEFAULT_SITES = properties.map((p) => ({
   name: p.name, market: p.market, city: `${p.city}, ${p.state}`, state: p.state, address: p.address, zip: p.zip, beds: p.beds, phone: p.phone, email: '',
 }))
 
+// Made-up maintenance supervisors, one per area. Each one oversees the properties listed.
+const inMarket = (...m) => DEFAULT_SITES.filter((x) => m.includes(x.market)).map((x) => x.name)
+export const DEFAULT_SUPERVISORS = [
+  { id: 'SUP-AA', name: 'Karen W.', phone: '734-555-0181', email: 'supervisor-annarbor@example.com', sites: inMarket('Ann Arbor') },
+  { id: 'SUP-YP', name: 'Devon R.', phone: '734-555-0182', email: 'supervisor-ypsilanti@example.com', sites: inMarket('Ypsilanti') },
+  { id: 'SUP-OR', name: 'Luis M.', phone: '407-555-0183', email: 'supervisor-orlando@example.com', sites: inMarket('Orlando') },
+  { id: 'SUP-WP', name: 'Monique T.', phone: '407-555-0184', email: 'supervisor-winterpark@example.com', sites: inMarket('Winter Park', 'Brevard') },
+]
+
 const BY_NAME = Object.fromEntries(DEFAULT_SITES.map((s) => [s.name, s]))
 
 // Rough drive time in minutes (made up until we have the site maps).
