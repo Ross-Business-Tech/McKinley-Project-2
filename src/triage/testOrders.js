@@ -20,4 +20,6 @@ export const TEST_ORDERS = [
   { id: 'W18', residentId: null, received: '09:40', text: 'Water is leaking through the ceiling in the bathroom, my baby sleeps in the next room.', expect: { notFound: true, sevMin: 4 } },
   { id: 'W19', residentId: 'R016', received: '09:50', text: 'Mold on the bathroom ceiling, getting bigger.', expect: { vendor: true } },
   { id: 'W20', residentId: null, received: '10:00', text: 'Apartment 222 here, thermostat is dead and heater will not run, it is freezing inside.', expect: { sev: 5 } },
+  { id: 'W21', residentId: null, received: '10:05', text: 'Evergreen building eleven, unit one forty three. Water is pouring through the ceiling light!', expect: { sev: 5, resident: 'R007' } },
+  { id: 'W22', residentId: null, received: '10:10', text: 'Building eleven unit four, the toilet is overflowing and will not stop.', expect: { notFound: true, readAs: 'Building 11, Unit 4' } },
 ]

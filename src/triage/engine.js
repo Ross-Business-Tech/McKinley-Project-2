@@ -1,15 +1,19 @@
 import residents from './residents.json' with { type: 'json' }
 import { JOB_TYPES, VENDOR_RULES, REPEAT_THRESHOLD, ENTRY_RULES, TECHS } from './config.js'
 import { travel, placeOf, startPlace } from './geo.js'
+import { parseLocation, sameCode } from './location.js'
 
 export const RESIDENTS = residents
 
 // ---------- 1. Find the unit ----------
-export function findResident(text, chosenId) {
+// Understands "building eleven unit four" as Building 11, Unit 4 (see location.js).
+export function findResident(text, chosenId, loc = parseLocation(text)) {
   if (chosenId) return RESIDENTS.find((r) => r.id === chosenId) || null
-  const m = text.match(/(?:unit|apt\.?|apartment|#)\s*(\d{3})\b/i)
-  if (m) return RESIDENTS.find((r) => r.unit === m[1]) || null
-  return null
+  if (!loc.unit) return null
+  const matches = RESIDENTS.filter(
+    (r) => sameCode(r.unit, loc.unit) && (!loc.building || sameCode(r.building, loc.building)) && (!loc.site || r.community === loc.site),
+  )
+  return matches.length === 1 ? matches[0] : null
 }
 
 // ---------- 2. Classify the problem (fixed keyword rules) ----------
@@ -132,7 +136,8 @@ export function entryInfo(resident, sev, noEntry, okReceived, type) {
 
 // ---------- 6. Build one finished work order ----------
 export function buildOrder(raw, state = {}) {
-  const resident = findResident(raw.text, raw.residentId)
+  const loc = parseLocation(raw.text)
+  const resident = findResident(raw.text, raw.residentId, loc)
   const type = classify(raw.text)
   const jt = JOB_TYPES[type]
   const repeats = raw.repeats || 0
@@ -143,7 +148,9 @@ export function buildOrder(raw, state = {}) {
   const entry = entryInfo(resident, sev, jt.noEntry, state.okReceived, type)
 
   const flags = []
-  if (!resident) flags.push('Unit NOT FOUND: call or message the resident to confirm the unit')
+  if (!resident && (loc.building || loc.unit)) {
+    flags.push(`Read from the message as ${[loc.site, loc.building && `Building ${loc.building}`, loc.unit && `Unit ${loc.unit}`].filter(Boolean).join(', ')}, but it doesn't match our records: confirm with the resident`)
+  } else if (!resident) flags.push('Unit NOT FOUND: call or message the resident to confirm the unit')
   if (repeats >= REPEAT_THRESHOLD) flags.push(`Repeat issue (${repeats}x)`)
   if (resident?.pets && entry.status !== 'none') flags.push(`Pet: ${resident.pets}. Ask resident to secure before entry`)
   if (resident?.lang && resident.lang !== 'English') flags.push(`Speaks ${resident.lang}`)
@@ -165,7 +172,8 @@ export function buildOrder(raw, state = {}) {
     flags,
     okReceived: !!state.okReceived,
     window: type === 'lockout' ? [0, 24] : resident ? parseWindow(resident.window) : [8, 17],
-    community: resident?.community || null,
+    community: resident?.community || loc.site || null,
+    loc,
   }
 }
 

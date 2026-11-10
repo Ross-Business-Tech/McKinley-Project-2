@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import SiteMap from './SiteMap.jsx'
-import { mapFor } from './triage/geo.js'
+import { mapFor, buildingPos } from './triage/geo.js'
+import { parseLocation } from './triage/location.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
@@ -38,6 +39,8 @@ function App() {
   const [reqEmail, setReqEmail] = useState('')
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
+  const [handled, setHandled] = useState({})
+  const [allSos, setAllSos] = useState(false)
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
   const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
@@ -66,6 +69,7 @@ function App() {
         .sort((a, b) => b.o.sev - a.o.sev),
     [orders],
   )
+  const emergencies = allOrders.filter((o) => o.sev >= 5 && !handled[o.id])
   const openFollowups = followups.filter((f) => !contacted[f.o.id])
 
   const stats = {
@@ -120,6 +124,38 @@ function App() {
         </section>
       </header>
 
+      {emergencies.length > 0 && (
+        <section className="sos" aria-label="Open emergencies">
+          <h2>🚨 {emergencies.length} emergenc{emergencies.length === 1 ? 'y' : 'ies'} right now</h2>
+          {(allSos ? emergencies : emergencies.slice(0, 2)).map((o) => {
+            const st = sites.find((x) => x.name === o.community)
+            const address = st?.address ? `${st.name}, ${st.address}, ${st.city} ${st.zip || ''}`.trim() : null
+            const bld = o.resident?.building || o.loc?.building
+            const unit = o.resident?.unit || o.loc?.unit
+            const where = bld ? buildingPos(o.community, bld) : null
+            const phone = o.resident?.phone || o.phone
+            return (
+              <div key={o.id} className="sos-item">
+                <p className="sos-what"><b>{o.label}</b> · {[o.community || 'Property unknown', bld && `Bldg ${bld}`, unit && `Unit ${unit}`].filter(Boolean).join(' · ')}</p>
+                {address && <p className="sos-addr">{address}</p>}
+                {where?.note && <p className="sos-note">On site: {where.note.split(';')[0]}</p>}
+                <div className="sos-actions">
+                  {address
+                    ? <a className="btn sos-go" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=driving`} target="_blank" rel="noreferrer">📍 Directions</a>
+                    : <span className="sos-missing">Address unknown: call the requester</span>}
+                  {o.community && mapFor(o.community) && <button className="btn" onClick={() => { setSite(o.community); setTab('map') }}>Map</button>}
+                  {phone && <a className="btn" href={`tel:${phone}`}>Call</a>}
+                  <button className="btn" onClick={() => setHandled({ ...handled, [o.id]: true })}>✓ Done</button>
+                </div>
+              </div>
+            )
+          })}
+          {emergencies.length > 2 && (
+            <button className="link" onClick={() => setAllSos(!allSos)}>{allSos ? 'Show fewer' : `Show all ${emergencies.length} emergencies`}</button>
+          )}
+        </section>
+      )}
+
       <div className="sitepick">
         <label>Site team
           <SitePicker value={site} onChange={setSite} sites={sites} countFor={countFor} extra={[['all', `All sites (${allOrders.length} requests)`], ['unassigned', `Unit not found (${countFor('unassigned')})`]]} />
@@ -143,8 +179,18 @@ function App() {
           <h2>Add a maintenance request</h2>
           <label>Paste the message
             <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={4}
-              placeholder="e.g. Unit 143: the toilet is overflowing and water is on the floor" />
+              placeholder="e.g. Evergreen building eleven unit four: the toilet is overflowing" />
           </label>
+          {msg.trim() && !resId && (() => {
+            const l = parseLocation(msg)
+            return (
+              <p className="small readas">
+                {l.building || l.unit || l.site
+                  ? <>We read this as: <b>{[l.site, l.building && `Building ${l.building}`, l.unit && `Unit ${l.unit}`].filter(Boolean).join(', ')}</b></>
+                  : 'No building or unit found yet. Try "building eleven unit four" or "Bldg 11 Unit 4".'}
+              </p>
+            )
+          })()}
           <label>Resident (optional; if blank we look for a unit number in the message)
             <select value={resId} onChange={(e) => setResId(e.target.value)}>
               <option value="">Find it from the message</option>
@@ -227,7 +273,9 @@ function App() {
                 </div>
                 <p className="text">“{o.text}”</p>
                 <p className="unit">
-                  {o.resident ? <>{o.resident.building && <>Bldg <b>{o.resident.building}</b> · </>}Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : <b className="warn">Unit NOT FOUND</b>}
+                  {o.resident ? <>{o.resident.building && <>Bldg <b>{o.resident.building}</b> · </>}Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : o.loc?.building || o.loc?.unit
+                    ? <><b className="warn">Not in our records</b> · read as {[o.loc.site, o.loc.building && `Building ${o.loc.building}`, o.loc.unit && `Unit ${o.loc.unit}`].filter(Boolean).join(', ')}</>
+                    : <b className="warn">Unit NOT FOUND</b>}
                 </p>
                 <div className="chips">
                   <span className={`chip e-${o.entry.status}`}>

@@ -97,7 +97,7 @@ export default function SiteMap({ site, plan, orders }) {
             <span className="small">{pick.o.label}</span>
           </div>
           <p className="text">“{pick.o.text}”</p>
-          <p className="unit">Building {pick.o.resident.building} · Unit {pick.o.resident.unit} · {pick.o.resident.name}</p>
+          <p className="unit">Building {pick.o.resident?.building || pick.o.loc?.building} · Unit {pick.o.resident?.unit || pick.o.loc?.unit || '?'}{pick.o.resident ? ` · ${pick.o.resident.name}` : ' · not in our records'}</p>
           <p className="small">
             {stopInfo[pick.o.id]
               ? `Stop ${stopInfo[pick.o.id].n} for ${stopInfo[pick.o.id].tech}, arriving about ${fmt(stopInfo[pick.o.id].arrive)}`

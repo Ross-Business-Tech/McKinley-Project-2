@@ -21,7 +21,8 @@ export function buildingsFor(siteName) {
 
 export function buildingPos(siteName, buildingId) {
   if (!buildingId) return null
-  const b = buildingsFor(siteName).find((x) => x.id === String(buildingId))
+  const id = String(buildingId).replace(/^0+(?=.)/, '')
+  const b = buildingsFor(siteName).find((x) => x.id.replace(/^0+(?=.)/, '') === id)
   return b ? { x: b.x, y: b.y, zone: b.z, low: b.c === 'l', note: b.note } : null
 }
 
@@ -33,7 +34,7 @@ export function startPlace(siteName) {
 }
 
 export function placeOf(job) {
-  return { site: job.community, ...(buildingPos(job.community, job.resident?.building) || {}) }
+  return { site: job.community, ...(buildingPos(job.community, job.resident?.building || job.loc?.building) || {}) }
 }
 
 function km(a, b) {
