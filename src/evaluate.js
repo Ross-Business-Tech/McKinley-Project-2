@@ -1,11 +1,11 @@
 import { JOBS, TECHS, COMMUNITIES, SHIFT_START, SHIFT_END, URGENCY, travel } from './data.js'
 
-const jobById = Object.fromEntries(JOBS.map((j) => [j.id, j]))
 const regionOf = (comm) => COMMUNITIES[comm].region
 const techRegion = (t) => regionOf(t.base)
 
 // Turn a plan ({techId: [{id, at?, note}]}) into timelines with real times.
-export function simulate(plan, { ignoreWindows = false } = {}) {
+export function simulate(plan, { ignoreWindows = false, jobs = JOBS } = {}) {
+  const jobById = Object.fromEntries(jobs.map((j) => [j.id, j]))
   return TECHS.map((tech) => {
     let time = SHIFT_START
     let loc = tech.base
@@ -37,9 +37,9 @@ export function simulate(plan, { ignoreWindows = false } = {}) {
 }
 
 // The "by hand" plan: urgent first, first eligible tech, no grouping, no waiting for windows.
-export function handPlan() {
+export function handPlan(jobs = JOBS) {
   const state = Object.fromEntries(TECHS.map((t) => [t.id, { time: SHIFT_START, loc: t.base, list: [] }]))
-  const order = [...JOBS].sort((a, b) => b.urgency - a.urgency || a.id.localeCompare(b.id))
+  const order = [...jobs].sort((a, b) => b.urgency - a.urgency || a.id.localeCompare(b.id))
   for (const job of order) {
     const options = TECHS.filter((t) => t.skills.includes(job.skill) && techRegion(t) === regionOf(job.comm))
     let best = null
@@ -48,6 +48,7 @@ export function handPlan() {
       const finish = s.time + travel(s.loc, job.comm) + job.dur
       if (!best || finish < best.finish) best = { t, finish }
     }
+    if (!best) continue // nobody can do this job; checkPlan will report it as missing
     const s = state[best.t.id]
     s.time = best.finish
     s.loc = job.comm
@@ -56,10 +57,10 @@ export function handPlan() {
   return Object.fromEntries(TECHS.map((t) => [t.id, state[t.id].list]))
 }
 
-export function checkPlan(timelines) {
+export function checkPlan(timelines, jobs = JOBS) {
   const seen = {}
   timelines.forEach((tl) => tl.stops.forEach((s) => (seen[s.job.id] = (seen[s.job.id] || 0) + 1)))
-  const missing = JOBS.filter((j) => !seen[j.id]).map((j) => j.id)
+  const missing = jobs.filter((j) => !seen[j.id]).map((j) => j.id)
   const dupes = Object.keys(seen).filter((id) => seen[id] > 1)
   const overlaps = timelines.flatMap((tl) => tl.stops.filter((s) => s.overlap).map((s) => `${tl.tech.name} is in two places at ${fmt(s.start)} (${s.job.id})`))
   const outside = timelines.flatMap((tl) => tl.stops.filter((s) => s.outsideShift).map((s) => `${s.job.id} falls outside ${tl.tech.name}'s hours`))
@@ -72,7 +73,7 @@ export function checkPlan(timelines) {
   return { ok: checks.every((c) => c.ok), checks }
 }
 
-export function score(timelines, urgencyMap) {
+export function score(timelines, urgencyMap, jobs = JOBS) {
   const stops = timelines.flatMap((tl) => tl.stops.map((s) => ({ ...s, tech: tl.tech })))
   const driveMin = stops.reduce((n, s) => n + (Number.isFinite(s.drive) ? s.drive : 0), 0)
   const wasted = stops.filter((s) => s.wasted).length
@@ -89,8 +90,8 @@ export function score(timelines, urgencyMap) {
     if (tl.tech.vendor) cost += mine.length * tl.tech.flat
     else cost += (tl.tech.rate * (mine.reduce((n, s) => n + s.job.dur + s.drive, 0))) / 60
   }
-  const downgraded = JOBS.filter((j) => (urgencyMap[j.id] ?? j.urgency) < j.urgency)
-  return { driveMin, wasted, finished, response, notes, skill, cost: Math.round(cost), total: JOBS.length, downgraded }
+  const downgraded = jobs.filter((j) => (urgencyMap[j.id] ?? j.urgency) < j.urgency)
+  return { driveMin, wasted, finished, response, notes, skill, cost: Math.round(cost), total: jobs.length, downgraded }
 }
 
 export function gates(planScore, handScore) {
@@ -119,12 +120,12 @@ export function fmt(m) {
   return `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}`
 }
 
-export function runEvaluation(scenario) {
-  const planTl = simulate(scenario.plan)
-  const check = checkPlan(planTl)
-  const handTl = simulate(handPlan(), { ignoreWindows: true })
-  const planScore = check.ok ? score(planTl, scenario.urgency) : null
-  const handScore = score(handTl, {})
+export function runEvaluation(scenario, jobs = JOBS) {
+  const planTl = simulate(scenario.plan, { jobs })
+  const check = checkPlan(planTl, jobs)
+  const handTl = simulate(handPlan(jobs), { ignoreWindows: true, jobs })
+  const planScore = check.ok ? score(planTl, scenario.urgency, jobs) : null
+  const handScore = score(handTl, {}, jobs)
   const gateList = check.ok ? gates(planScore, handScore) : []
   const pass = check.ok && gateList.every((g) => g.ok)
   return { planTl, handTl, check, planScore, handScore, gateList, pass }
