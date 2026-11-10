@@ -288,7 +288,7 @@ function StepBody({ n, scenario, r, ctx }) {
   if (n === 5) {
     return (
       <div className="stack">
-        <p>The same day planned the simple way a busy manager would: urgent jobs first, first free technician, no grouping.</p>
+        <p>The same day planned the naive way: requests in the order they came in, each to the first technician with the right skill at that site, no grouping and no waiting for entry windows.</p>
         <Timelines list={r.handTl} compact comms={ctx.comms} />
       </div>
     )
@@ -375,7 +375,7 @@ function Scorecard({ r, ctx }) {
           <div className="stat"><b>${Math.abs(h.cost - p.cost)}</b><span>{p.cost <= h.cost ? 'Estimated saving' : 'Estimated extra cost'} (not part of the score)</span></div>
         </section>
       )}
-      <p className="note">The “by hand” plan is a simple, naive plan made by code: urgent jobs first, the first free technician, no grouping, no waiting for entry windows. Estimate only: the test day uses made-up data.</p>
+      <p className="note">The “by hand” plan is a naive plan made by code: requests in the order they came in, each to the first technician with the right skill at that site, no grouping, no reordering by urgency and no waiting for entry windows. Estimate only: the test day uses made-up data.</p>
     </div>
   )
 }

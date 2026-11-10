@@ -40,21 +40,16 @@ export function simulate(ctx, plan, { ignoreWindows = false } = {}) {
   })
 }
 
-// The "by hand" plan: urgent first, first eligible tech, no grouping, no waiting for windows.
+// The "by hand" plan: a naive manager. Requests are worked in the order they came in (the order in the file),
+// each goes to the first technician who has the right skill and works that site, with no balancing,
+// no grouping and no waiting for entry windows. Urgency is not used to reorder anything.
 export function handPlan(ctx) {
   const state = Object.fromEntries(ctx.crew.map((t) => [t.id, { time: ctx.shift[0], loc: t.base, list: [] }]))
-  const order = [...ctx.jobs].sort((a, b) => (b.urgency ?? 0) - (a.urgency ?? 0) || a.id.localeCompare(b.id))
-  for (const job of order) {
-    const options = ctx.crew.filter((t) => t.skills.includes(job.skill) && ctx.canServe(t, job))
-    let best = null
-    for (const t of options) {
-      const s = state[t.id]
-      const finish = s.time + ctx.travel(s.loc, job.comm) + job.dur
-      if (!best || finish < best.finish) best = { t, finish }
-    }
-    if (!best) continue // nobody could do it by hand either
-    const s = state[best.t.id]
-    s.time = best.finish
+  for (const job of ctx.jobs) {
+    const tech = ctx.crew.find((t) => t.skills.includes(job.skill) && ctx.canServe(t, job))
+    if (!tech) continue // nobody could do it by hand either
+    const s = state[tech.id]
+    s.time += ctx.travel(s.loc, job.comm) + job.dur
     s.loc = job.comm
     s.list.push({ id: job.id, note: job.urgency === 3 ? job.note : '' })
   }

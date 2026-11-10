@@ -76,7 +76,7 @@ You can see a complete example any time: in the evaluator, open **Test day** and
 ## What the evaluator does with it
 
 1. **Checks** the plan could work in real life: every request covered once, nobody in two places at once, nothing outside working hours.
-2. **Compares** it with a simple by-hand plan for the same day.
+2. **Compares** it with a naive by-hand plan for the same day: requests worked in the order they are listed in the file (so list them in the order they came in), each to the first technician with the right skill who covers that site, with no reordering by urgency and no waiting for entry windows.
 3. **Scores** both: drive time, wasted trips, jobs finished, cost, wrong-skill visits, resident notes passed on.
 4. **Gates** (must pass): no emergency treated as less urgent than it is, and the plan is not worse than by hand.
 
