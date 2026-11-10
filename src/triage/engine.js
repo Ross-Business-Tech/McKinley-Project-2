@@ -1,5 +1,6 @@
 import residents from './residents.json' with { type: 'json' }
-import { JOB_TYPES, VENDOR_RULES, REPEAT_THRESHOLD, ENTRY_RULES, TECHS, travelMinutes } from './config.js'
+import { JOB_TYPES, VENDOR_RULES, REPEAT_THRESHOLD, ENTRY_RULES, TECHS } from './config.js'
+import { travel, placeOf, startPlace } from './geo.js'
 
 export const RESIDENTS = residents
 
@@ -163,7 +164,7 @@ export function buildOrder(raw, state = {}) {
     entry,
     flags,
     okReceived: !!state.okReceived,
-    window: resident ? parseWindow(resident.window) : [8, 17],
+    window: type === 'lockout' ? [0, 24] : resident ? parseWindow(resident.window) : [8, 17],
     community: resident?.community || null,
   }
 }
@@ -208,47 +209,47 @@ function assign(jobs, overrides, techs) {
 
 function simulate(tech, sequence) {
   let t = tech.shift[0]
-  let place = tech.home
+  let place = startPlace(tech.home)
   let drive = 0
   const stops = []
   for (const job of sequence) {
-    const travel = job.community ? travelMinutes(place, job.community) : 10
-    drive += travel
-    let arrive = t + travel / 60
+    const tm = travel(place, placeOf(job))
+    drive += tm
+    let arrive = t + tm / 60
     const wStart = job.entry.status === 'emergency' || job.entry.status === 'none' ? tech.shift[0] : job.window[0]
     const wait = Math.max(0, wStart - arrive)
     arrive += wait
     const done = arrive + job.mins / 60
-    stops.push({ job, arrive, done, travel, wait: wait * 60, late: done > tech.shift[1] })
+    stops.push({ job, arrive, done, travel: tm, wait: wait * 60, late: done > tech.shift[1] })
     t = done
-    if (job.community) place = job.community
+    place = placeOf(job)
   }
   return { stops, drive, finish: t }
 }
 
-// Smart order: emergencies and urgent first, then group by community and fit entry windows.
+// Smart order: emergencies and urgent first, then group nearby buildings and fit entry windows.
 function smartOrder(tech, jobs) {
   const remaining = [...jobs]
   const seq = []
   let t = tech.shift[0]
-  let place = tech.home
+  let place = startPlace(tech.home)
   while (remaining.length) {
     const topTier = Math.max(...remaining.map((j) => j.sev))
     const pool = topTier >= 4 ? remaining.filter((j) => j.sev >= 4) : remaining
     let best = null
     for (const j of pool) {
-      const travel = j.community ? travelMinutes(place, j.community) : 10
-      const arrive = t + travel / 60
+      const tm = travel(place, placeOf(j))
+      const arrive = t + tm / 60
       const w0 = ['emergency', 'none'].includes(j.entry.status) ? 0 : j.window[0]
       const wait = Math.max(0, w0 - arrive) * 60
       const pastWindow = !['emergency', 'none'].includes(j.entry.status) && arrive > j.window[1] ? 200 : 0
-      const cost = travel + wait * 0.6 + pastWindow - j.sev * 25
-      if (!best || cost < best.cost) best = { j, cost, travel, wait }
+      const cost = tm + wait * 0.6 + pastWindow - j.sev * 25
+      if (!best || cost < best.cost) best = { j, cost, travel: tm, wait }
     }
     remaining.splice(remaining.indexOf(best.j), 1)
     seq.push(best.j)
     t += best.travel / 60 + best.wait / 60 + best.j.mins / 60
-    if (best.j.community) place = best.j.community
+    place = placeOf(best.j)
   }
   return seq
 }

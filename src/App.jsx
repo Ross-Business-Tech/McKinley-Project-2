@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import SiteMap from './SiteMap.jsx'
+import { mapFor } from './triage/geo.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
@@ -99,6 +101,7 @@ function App() {
     ['queue', 'Priority'],
     ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
     ['routes', 'Routes'],
+    ['map', 'Map'],
     ['teams', 'Teams'],
     ['new', 'Add'],
   ]
@@ -224,7 +227,7 @@ function App() {
                 </div>
                 <p className="text">“{o.text}”</p>
                 <p className="unit">
-                  {o.resident ? <>Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : <b className="warn">Unit NOT FOUND</b>}
+                  {o.resident ? <>{o.resident.building && <>Bldg <b>{o.resident.building}</b> · </>}Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : <b className="warn">Unit NOT FOUND</b>}
                 </p>
                 <div className="chips">
                   <span className={`chip e-${o.entry.status}`}>
@@ -268,6 +271,19 @@ function App() {
         </>
       )}
 
+      {tab === 'map' && (site === 'all' || site === 'unassigned') && (
+        <section className="card">
+          <h2>Pick a site to see its map</h2>
+          <p className="small">Sites with open requests:</p>
+          <div className="chips">
+            {sites.filter((x) => countFor(x.name) > 0).map((x) => (
+              <button key={x.name} className="chip chipbtn" onClick={() => setSite(x.name)}>{x.name} ({countFor(x.name)}){mapFor(x.name) ? '' : ' · no map'}</button>
+            ))}
+          </div>
+        </section>
+      )}
+      {tab === 'map' && site !== 'all' && site !== 'unassigned' && <SiteMap key={site} site={site} plan={plan} orders={orders} />}
+
       {tab === 'routes' && (
         <>
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
@@ -279,8 +295,8 @@ function App() {
                 {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
                   <li key={job.id} className={tag(job.sev).color}>
                     <span className={`pill ${tag(job.sev).color}`}>{job.sev}</span>
-                    <b>{fmt(arrive)}</b> Unit {job.resident?.unit || '?'} · {job.label}
-                    <div className="small">{job.community || 'Unknown community'} · {travel} min drive{wait > 1 ? ` + ${Math.round(wait)} min wait for resident window` : ''} · until {fmt(done)}</div>
+                    <b>{fmt(arrive)}</b> {job.resident?.building ? `Bldg ${job.resident.building} · ` : ''}Unit {job.resident?.unit || '?'} · {job.label}
+                    <div className="small">{job.community || 'Unknown community'} · {travel} min {travel <= 12 ? 'walk' : 'drive'}{wait > 1 ? ` + ${Math.round(wait)} min wait for resident window` : ''} · until {fmt(done)}</div>
                     {late && <div className="small warn">Runs past end of shift: carry to tomorrow unless the manager says otherwise</div>}
                     {job.vendor && <div className="small">Needs {job.vendor.vendor}: schedule the vendor, tech does the first look only</div>}
                   </li>

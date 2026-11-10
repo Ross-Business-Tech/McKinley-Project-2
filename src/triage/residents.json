@@ -14,7 +14,8 @@
   "contact": "text",
   "phone": "555-0101",
   "email": "marisol.quenby@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "5531"
  },
  {
   "id": "R002",
@@ -31,7 +32,8 @@
   "contact": "portal",
   "phone": "555-0102",
   "email": "theo.brannigan@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "004"
  },
  {
   "id": "R003",
@@ -48,7 +50,8 @@
   "contact": "text",
   "phone": "555-0103",
   "email": "jordan.pellingham@example.com",
-  "noCallBefore": 10
+  "noCallBefore": 10,
+  "building": "6012"
  },
  {
   "id": "R004",
@@ -65,7 +68,8 @@
   "contact": "email",
   "phone": "555-0104",
   "email": "keiko.ashdown@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "2107"
  },
  {
   "id": "R005",
@@ -82,7 +86,8 @@
   "contact": "call",
   "phone": "555-0105",
   "email": "malik.thornbury@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "2908"
  },
  {
   "id": "R006",
@@ -99,7 +104,8 @@
   "contact": "chat",
   "phone": "555-0106",
   "email": "sofia.marchetti@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "4409"
  },
  {
   "id": "R007",
@@ -116,7 +122,8 @@
   "contact": "chat",
   "phone": "555-0107",
   "email": "hana.whitlock@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "011"
  },
  {
   "id": "R008",
@@ -133,7 +140,8 @@
   "contact": "call",
   "phone": "555-0108",
   "email": "desmond.achterberg@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "5545"
  },
  {
   "id": "R009",
@@ -150,7 +158,8 @@
   "contact": "email",
   "phone": "555-0109",
   "email": "owen.castellucci@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "2108"
  },
  {
   "id": "R010",
@@ -167,7 +176,8 @@
   "contact": "portal",
   "phone": "555-0110",
   "email": "leah.brightwater@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "5946"
  },
  {
   "id": "R011",
@@ -184,7 +194,8 @@
   "contact": "chat",
   "phone": "555-0111",
   "email": "devon.rushworth@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "2924"
  },
  {
   "id": "R012",
@@ -201,7 +212,8 @@
   "contact": "text",
   "phone": "555-0112",
   "email": "valeria.montesinos@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "4423"
  },
  {
   "id": "R013",
@@ -218,7 +230,8 @@
   "contact": "email",
   "phone": "555-0113",
   "email": "callum.ostrander@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "004"
  },
  {
   "id": "R014",
@@ -235,7 +248,8 @@
   "contact": "email",
   "phone": "555-0114",
   "email": "nadia.kellerman@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "5513"
  },
  {
   "id": "R015",
@@ -252,7 +266,8 @@
   "contact": "portal",
   "phone": "555-0115",
   "email": "rafael.quintanilla@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "5798"
  },
  {
   "id": "R016",
@@ -269,7 +284,8 @@
   "contact": "email",
   "phone": "555-0116",
   "email": "lena.haverford@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "2129"
  },
  {
   "id": "R017",
@@ -286,7 +302,8 @@
   "contact": "portal",
   "phone": "555-0117",
   "email": "imani.fairbanks@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "2942"
  },
  {
   "id": "R018",
@@ -303,7 +320,8 @@
   "contact": "chat",
   "phone": "555-0118",
   "email": "gabriel.northcott@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "4411"
  },
  {
   "id": "R019",
@@ -320,7 +338,8 @@
   "contact": "email",
   "phone": "555-0119",
   "email": "ezra.whitcombe@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "011"
  },
  {
   "id": "R020",
@@ -337,6 +356,7 @@
   "contact": "email",
   "phone": "555-0120",
   "email": "simone.halloway@example.com",
-  "noCallBefore": null
+  "noCallBefore": null,
+  "building": "5525"
  }
 ]

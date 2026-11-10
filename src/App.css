@@ -64,3 +64,10 @@ input{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(
 .tech .name{font-weight:700;width:auto;flex:1;margin-right:8px}
 .card>button{margin-top:8px}
 .sitepick{margin:0 0 10px}.sitepick label{margin:0;font-weight:700}.sitepick p{margin:6px 2px 0}
+
+.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:1 0 auto;padding:10px 12px}
+.mapcard{padding:8px}.mapwrap{border-radius:12px;overflow:hidden;background:#eef2ef;touch-action:pan-x pan-y pinch-zoom}
+.mapwrap svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 4px 4px;font-size:.82rem;color:var(--mute)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.legend i.sq{border-radius:3px;background:#0f2742}.legend i.hollow{border:2px dashed var(--mute);background:#fff}
