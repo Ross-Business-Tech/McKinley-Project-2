@@ -1,0 +1,744 @@
+{
+  "format": "plan-case/v1",
+  "title": "Maintenance Hub day (22 requests)",
+  "source": "Exported from the Maintenance Hub triage board. Made-up sample data.",
+  "shift": {
+    "start": "08:00",
+    "end": "17:00"
+  },
+  "communities": {
+    "Spruce Knob": {
+      "name": "Spruce Knob",
+      "region": "Ann Arbor"
+    },
+    "Glencoe Hills": {
+      "name": "Glencoe Hills",
+      "region": "Ann Arbor"
+    },
+    "Evergreen": {
+      "name": "Evergreen",
+      "region": "Ann Arbor"
+    },
+    "Bella Casa": {
+      "name": "Bella Casa",
+      "region": "Orlando"
+    },
+    "Portofino": {
+      "name": "Portofino",
+      "region": "Orlando"
+    },
+    "The Pines": {
+      "name": "The Pines",
+      "region": "Orlando"
+    }
+  },
+  "travel": {
+    "within": 4,
+    "pairs": [
+      {
+        "a": "Spruce Knob",
+        "b": "Glencoe Hills",
+        "minutes": 12
+      },
+      {
+        "a": "Spruce Knob",
+        "b": "Evergreen",
+        "minutes": 12
+      },
+      {
+        "a": "Glencoe Hills",
+        "b": "Evergreen",
+        "minutes": 12
+      },
+      {
+        "a": "Bella Casa",
+        "b": "Portofino",
+        "minutes": 12
+      },
+      {
+        "a": "Bella Casa",
+        "b": "The Pines",
+        "minutes": 12
+      },
+      {
+        "a": "Portofino",
+        "b": "The Pines",
+        "minutes": 12
+      }
+    ]
+  },
+  "crew": [
+    {
+      "id": "SK1",
+      "name": "Dale",
+      "trade": "hvac + plumbing + general",
+      "skills": [
+        "hvac",
+        "plumbing",
+        "general"
+      ],
+      "base": "Spruce Knob",
+      "serves": [
+        "Spruce Knob"
+      ]
+    },
+    {
+      "id": "SK2",
+      "name": "Tasha",
+      "trade": "electrical + appliance + locks + general",
+      "skills": [
+        "electrical",
+        "appliance",
+        "locks",
+        "general"
+      ],
+      "base": "Spruce Knob",
+      "serves": [
+        "Spruce Knob"
+      ]
+    },
+    {
+      "id": "GH1",
+      "name": "Marcus",
+      "trade": "hvac + electrical + general",
+      "skills": [
+        "hvac",
+        "electrical",
+        "general"
+      ],
+      "base": "Glencoe Hills",
+      "serves": [
+        "Glencoe Hills"
+      ]
+    },
+    {
+      "id": "GH2",
+      "name": "Priya",
+      "trade": "plumbing + appliance + locks + general",
+      "skills": [
+        "plumbing",
+        "appliance",
+        "locks",
+        "general"
+      ],
+      "base": "Glencoe Hills",
+      "serves": [
+        "Glencoe Hills"
+      ]
+    },
+    {
+      "id": "EV1",
+      "name": "Jonah",
+      "trade": "hvac + plumbing + general",
+      "skills": [
+        "hvac",
+        "plumbing",
+        "general"
+      ],
+      "base": "Evergreen",
+      "serves": [
+        "Evergreen"
+      ]
+    },
+    {
+      "id": "EV2",
+      "name": "Rosa",
+      "trade": "electrical + appliance + locks + general",
+      "skills": [
+        "electrical",
+        "appliance",
+        "locks",
+        "general"
+      ],
+      "base": "Evergreen",
+      "serves": [
+        "Evergreen"
+      ]
+    },
+    {
+      "id": "BC1",
+      "name": "Carlos",
+      "trade": "hvac + electrical + general",
+      "skills": [
+        "hvac",
+        "electrical",
+        "general"
+      ],
+      "base": "Bella Casa",
+      "serves": [
+        "Bella Casa"
+      ]
+    },
+    {
+      "id": "BC2",
+      "name": "Alicia",
+      "trade": "plumbing + appliance + locks + general",
+      "skills": [
+        "plumbing",
+        "appliance",
+        "locks",
+        "general"
+      ],
+      "base": "Bella Casa",
+      "serves": [
+        "Bella Casa"
+      ]
+    },
+    {
+      "id": "PO1",
+      "name": "Terrence",
+      "trade": "hvac + plumbing + general",
+      "skills": [
+        "hvac",
+        "plumbing",
+        "general"
+      ],
+      "base": "Portofino",
+      "serves": [
+        "Portofino"
+      ]
+    },
+    {
+      "id": "PO2",
+      "name": "Mei",
+      "trade": "electrical + appliance + locks + general",
+      "skills": [
+        "electrical",
+        "appliance",
+        "locks",
+        "general"
+      ],
+      "base": "Portofino",
+      "serves": [
+        "Portofino"
+      ]
+    },
+    {
+      "id": "TP1",
+      "name": "Andre",
+      "trade": "hvac + electrical + general",
+      "skills": [
+        "hvac",
+        "electrical",
+        "general"
+      ],
+      "base": "The Pines",
+      "serves": [
+        "The Pines"
+      ]
+    },
+    {
+      "id": "TP2",
+      "name": "Lena",
+      "trade": "plumbing + appliance + locks + general",
+      "skills": [
+        "plumbing",
+        "appliance",
+        "locks",
+        "general"
+      ],
+      "base": "The Pines",
+      "serves": [
+        "The Pines"
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "id": "W01",
+      "resident": "R001",
+      "community": "Bella Casa",
+      "trade": "No AC / not cooling",
+      "skill": "hvac",
+      "durationMin": 75,
+      "window": [
+        "08:00",
+        "11:00"
+      ],
+      "urgency": 3,
+      "text": "AC is blowing warm air again, 82 inside. Third time this year. Mornings please, Biscuit will be crated.",
+      "note": "Repeat issue (3x). Pet: dog - Biscuit. Ask resident to secure before entry. Bring: Capacitor, Drain-line vac, Gauges",
+      "facts": [
+        "Repeat issue (3x)",
+        "Pet: dog - Biscuit. Ask resident to secure before entry"
+      ]
+    },
+    {
+      "id": "W02",
+      "resident": "R008",
+      "community": "Bella Casa",
+      "trade": "Leak / dripping",
+      "skill": "plumbing",
+      "durationMin": 45,
+      "window": [
+        "09:00",
+        "15:00"
+      ],
+      "urgency": 3,
+      "text": "Kitchen sink leaking under the cabinet AGAIN. 4th time. Please send someone who can fix it for good.",
+      "note": "Repeat issue (4x). Pet: dog - Rosie. Ask resident to secure before entry. Bring: Supply lines, Wrench set, Plumber tape",
+      "facts": [
+        "Repeat issue (4x)",
+        "Pet: dog - Rosie. Ask resident to secure before entry"
+      ],
+      "hold": "Waiting on the resident’s OK to enter"
+    },
+    {
+      "id": "W03",
+      "resident": "R010",
+      "community": "Portofino",
+      "trade": "Gas smell / leak",
+      "skill": "plumbing",
+      "durationMin": 45,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "I smell gas near the stove in unit 164. Cat is hiding, I am going outside.",
+      "note": "Pet: cat - Pepper. Ask resident to secure before entry. Bring: Gas detector, Pipe wrench, Shut-off key",
+      "facts": [
+        "Pet: cat - Pepper. Ask resident to secure before entry"
+      ]
+    },
+    {
+      "id": "W04",
+      "resident": "R005",
+      "community": "Spruce Knob",
+      "trade": "No heat",
+      "skill": "hvac",
+      "durationMin": 75,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "No heat in the apartment, it is 54 degrees and the furnace is not coming on.",
+      "note": "Bring: Igniter, Thermostat, Multimeter"
+    },
+    {
+      "id": "W05",
+      "resident": "R015",
+      "community": "Portofino",
+      "trade": "Pests",
+      "skill": "general",
+      "durationMin": 30,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "text": "Roaches in the kitchen again. Please treat the neighbors too.",
+      "note": "Repeat issue (3x). Bring: Inspection flashlight",
+      "facts": [
+        "Repeat issue (3x)"
+      ]
+    },
+    {
+      "id": "W06",
+      "resident": "R003",
+      "community": "Portofino",
+      "trade": "Outlet / light / breaker",
+      "skill": "electrical",
+      "durationMin": 35,
+      "window": [
+        "11:00",
+        "17:00"
+      ],
+      "urgency": 1,
+      "text": "Bathroom outlet stopped working. Not urgent. After 11 AM please, I sleep days.",
+      "note": "Bring: Outlets, Bulbs, Multimeter",
+      "hold": "Waiting on the resident’s OK to enter"
+    },
+    {
+      "id": "W07",
+      "resident": "R018",
+      "community": "The Pines",
+      "trade": "Lockout / broken lock",
+      "skill": "locks",
+      "durationMin": 25,
+      "window": [
+        "00:00",
+        "24:00"
+      ],
+      "urgency": 3,
+      "text": "I am locked out, key snapped off in the lock.",
+      "note": "Bring: Lock-out kit, Spare cores"
+    },
+    {
+      "id": "W08",
+      "resident": "R004",
+      "community": "Glencoe Hills",
+      "trade": "Flooding / burst pipe",
+      "skill": "plumbing",
+      "durationMin": 90,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "Water is pouring out from under the washer and flooding the hallway floor.",
+      "note": "Pet: dog - Waffles. Ask resident to secure before entry. Bring: Wet vac, Pipe clamps, Water shut-off key",
+      "facts": [
+        "Pet: dog - Waffles. Ask resident to secure before entry"
+      ]
+    },
+    {
+      "id": "W09",
+      "resident": "R017",
+      "community": "Spruce Knob",
+      "trade": "Appliance issue",
+      "skill": "appliance",
+      "durationMin": 50,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 2,
+      "text": "Dishwasher is not draining. Dishes are sitting in water.",
+      "note": "Pet: cat - Mochi. Ask resident to secure before entry. Bring: Multimeter, Common appliance parts",
+      "facts": [
+        "Pet: cat - Mochi. Ask resident to secure before entry"
+      ]
+    },
+    {
+      "id": "W10",
+      "resident": "R011",
+      "community": "Spruce Knob",
+      "trade": "Door / window / cabinet",
+      "skill": "general",
+      "durationMin": 30,
+      "window": [
+        "12:00",
+        "17:00"
+      ],
+      "urgency": 1,
+      "text": "Closet door fell off its track.",
+      "note": "Bring: Drill, Hinges",
+      "hold": "Waiting on the resident’s OK to enter"
+    },
+    {
+      "id": "W11",
+      "resident": "R002",
+      "community": "Evergreen",
+      "trade": "Toilet problem",
+      "skill": "plumbing",
+      "durationMin": 40,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 1,
+      "text": "Toilet keeps running after I flush.",
+      "note": "Bring: Flapper kit, Plunger, Closet auger"
+    },
+    {
+      "id": "W12",
+      "resident": "R012",
+      "community": "The Pines",
+      "trade": "No hot water",
+      "skill": "plumbing",
+      "durationMin": 60,
+      "window": [
+        "13:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "No hay agua caliente. No hot water since last night.",
+      "note": "Speaks Spanish. Bring: Heating element, Thermostat",
+      "facts": [
+        "Speaks Spanish"
+      ]
+    },
+    {
+      "id": "W13",
+      "resident": "R020",
+      "community": "Bella Casa",
+      "trade": "Smoke / fire / burning smell",
+      "skill": "electrical",
+      "durationMin": 45,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "Smoke alarm is chirping and I smell something burning from the bedroom outlet.",
+      "note": "Pet: cat - Juniper. Ask resident to secure before entry. Bring: Multimeter, Fire extinguisher",
+      "facts": [
+        "Pet: cat - Juniper. Ask resident to secure before entry"
+      ]
+    },
+    {
+      "id": "W14",
+      "resident": "R013",
+      "community": "Evergreen",
+      "trade": "Cosmetic",
+      "skill": "general",
+      "durationMin": 30,
+      "window": [
+        "10:00",
+        "12:00"
+      ],
+      "urgency": 1,
+      "text": "Paint is scuffed near the front door and there is a nail hole to patch.",
+      "note": "Bring: Paint, Caulk",
+      "hold": "Waiting on the resident’s OK to enter"
+    },
+    {
+      "id": "W15",
+      "resident": "R006",
+      "community": "The Pines",
+      "trade": "Outlet / light / breaker",
+      "skill": "electrical",
+      "durationMin": 35,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 1,
+      "text": "Hallway light outside my door is out.",
+      "note": "Bring: Outlets, Bulbs, Multimeter"
+    },
+    {
+      "id": "W16",
+      "resident": "R009",
+      "community": "Glencoe Hills",
+      "trade": "Refrigerator not working",
+      "skill": "appliance",
+      "durationMin": 60,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "Refrigerator stopped cooling and the freezer is thawing.",
+      "note": "Bring: Multimeter, Fan motor"
+    },
+    {
+      "id": "W17",
+      "resident": "R007",
+      "community": "Evergreen",
+      "trade": "Common area / amenity",
+      "skill": "general",
+      "durationMin": 30,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "text": "The gym door by the pool gate will not latch.",
+      "note": "Bring: Drill, Hardware kit"
+    },
+    {
+      "id": "W18",
+      "resident": "unknown",
+      "trade": "Leak / dripping",
+      "skill": "plumbing",
+      "durationMin": 45,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "Water is leaking through the ceiling in the bathroom, my baby sleeps in the next room.",
+      "note": "Unit NOT FOUND: call or message the resident to confirm the unit. Priority set from the message only; manager should check. Bring: Supply lines, Wrench set, Plumber tape",
+      "facts": [
+        "Unit NOT FOUND: call or message the resident to confirm the unit",
+        "Priority set from the message only; manager should check"
+      ],
+      "hold": "Unit not found: the board cannot route it until someone confirms the unit"
+    },
+    {
+      "id": "W19",
+      "resident": "R016",
+      "community": "Glencoe Hills",
+      "trade": "Other / unclear",
+      "skill": "general",
+      "durationMin": 40,
+      "window": [
+        "12:00",
+        "17:00"
+      ],
+      "text": "Mold on the bathroom ceiling, getting bigger.",
+      "note": "Bring: Basic tool kit"
+    },
+    {
+      "id": "W20",
+      "resident": "R013",
+      "community": "Evergreen",
+      "trade": "No heat",
+      "skill": "hvac",
+      "durationMin": 75,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "Apartment 222 here, thermostat is dead and heater will not run, it is freezing inside.",
+      "note": "Bring: Igniter, Thermostat, Multimeter"
+    },
+    {
+      "id": "W21",
+      "resident": "R007",
+      "community": "Evergreen",
+      "trade": "Flooding / burst pipe",
+      "skill": "plumbing",
+      "durationMin": 90,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "urgency": 3,
+      "text": "Evergreen building eleven, unit one forty three. Water is pouring through the ceiling light!",
+      "note": "Bring: Wet vac, Pipe clamps, Water shut-off key"
+    },
+    {
+      "id": "W22",
+      "resident": "unknown",
+      "trade": "Sewage backup",
+      "skill": "plumbing",
+      "durationMin": 90,
+      "window": [
+        "08:00",
+        "17:00"
+      ],
+      "text": "Building eleven unit four, the toilet is overflowing and will not stop.",
+      "note": "Read from the message as Building 11, Unit 4, but it doesn't match our records: confirm with the resident. Priority set from the message only; manager should check. Bring: Drain machine, PPE",
+      "facts": [
+        "Read from the message as Building 11, Unit 4, but it doesn't match our records: confirm with the resident",
+        "Priority set from the message only; manager should check"
+      ],
+      "hold": "Unit not found: the board cannot route it until someone confirms the unit"
+    }
+  ],
+  "plan": {
+    "planner": "Maintenance Hub triage board",
+    "assignments": {
+      "SK1": [
+        {
+          "id": "W04",
+          "start": "08:05",
+          "note": "Bring: Igniter, Thermostat, Multimeter"
+        }
+      ],
+      "SK2": [
+        {
+          "id": "W09",
+          "start": "08:03",
+          "note": "Pet: cat - Mochi. Ask resident to secure before entry. Bring: Multimeter, Common appliance parts"
+        }
+      ],
+      "GH1": [
+        {
+          "id": "W19",
+          "start": "12:00",
+          "note": "Bring: Basic tool kit"
+        }
+      ],
+      "GH2": [
+        {
+          "id": "W08",
+          "start": "08:05",
+          "note": "Pet: dog - Waffles. Ask resident to secure before entry. Bring: Wet vac, Pipe clamps, Water shut-off key"
+        },
+        {
+          "id": "W16",
+          "start": "09:38",
+          "note": "Bring: Multimeter, Fan motor"
+        }
+      ],
+      "EV1": [
+        {
+          "id": "W20",
+          "start": "08:02",
+          "note": "Bring: Igniter, Thermostat, Multimeter"
+        },
+        {
+          "id": "W21",
+          "start": "09:20",
+          "note": "Bring: Wet vac, Pipe clamps, Water shut-off key"
+        },
+        {
+          "id": "W11",
+          "start": "10:53",
+          "note": "Bring: Flapper kit, Plunger, Closet auger"
+        }
+      ],
+      "EV2": [
+        {
+          "id": "W17",
+          "start": "08:03",
+          "note": "Bring: Drill, Hardware kit"
+        }
+      ],
+      "BC1": [
+        {
+          "id": "W13",
+          "start": "08:05",
+          "note": "Pet: cat - Juniper. Ask resident to secure before entry. Bring: Multimeter, Fire extinguisher"
+        },
+        {
+          "id": "W01",
+          "start": "08:52",
+          "note": "Repeat issue (3x). Pet: dog - Biscuit. Ask resident to secure before entry. Bring: Capacitor, Drain-line vac, Gauges"
+        }
+      ],
+      "BC2": [],
+      "PO1": [
+        {
+          "id": "W03",
+          "start": "08:02",
+          "note": "Pet: cat - Pepper. Ask resident to secure before entry. Bring: Gas detector, Pipe wrench, Shut-off key"
+        }
+      ],
+      "PO2": [
+        {
+          "id": "W05",
+          "start": "08:05",
+          "note": "Repeat issue (3x). Bring: Inspection flashlight"
+        }
+      ],
+      "TP1": [
+        {
+          "id": "W15",
+          "start": "08:04",
+          "note": "Bring: Outlets, Bulbs, Multimeter"
+        }
+      ],
+      "TP2": [
+        {
+          "id": "W07",
+          "start": "08:05",
+          "note": "Bring: Lock-out kit, Spare cores"
+        },
+        {
+          "id": "W12",
+          "start": "13:00",
+          "note": "Speaks Spanish. Bring: Heating element, Thermostat"
+        }
+      ]
+    },
+    "urgency": {
+      "W01": 3,
+      "W02": 3,
+      "W03": 3,
+      "W04": 3,
+      "W05": 3,
+      "W06": 1,
+      "W07": 3,
+      "W08": 3,
+      "W09": 2,
+      "W10": 1,
+      "W11": 2,
+      "W12": 3,
+      "W13": 3,
+      "W14": 1,
+      "W15": 1,
+      "W16": 3,
+      "W17": 1,
+      "W18": 3,
+      "W19": 1,
+      "W20": 3,
+      "W21": 3,
+      "W22": 3
+    }
+  }
+}

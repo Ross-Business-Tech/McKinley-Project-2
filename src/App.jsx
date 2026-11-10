@@ -323,10 +323,10 @@ function StepBody({ n, scenario, r, ctx }) {
       </div>
     )
   }
-  return <Scorecard r={r} />
+  return <Scorecard r={r} ctx={ctx} />
 }
 
-function Scorecard({ r }) {
+function Scorecard({ r, ctx }) {
   const p = r.planScore
   const h = r.handScore
   const delta = r.final === null ? null : r.final - r.handPts.total
@@ -346,6 +346,18 @@ function Scorecard({ r }) {
         </div>
       ) : (
         <p className="banner fail" role="status">NOT SCORED: this plan could not work in real life. By hand scores {r.handPts.total} / 100.</p>
+      )}
+      {ctx.held.length > 0 && (
+        <div className="stack">
+          <b>On hold, not scheduled ({ctx.held.length})</b>
+          {ctx.held.map((h) => (
+            <div key={h.id} className="row">
+              <span>{h.id} · {h.rid}{h.text ? `: “${h.text.slice(0, 70)}${h.text.length > 70 ? '…' : ''}”` : ''}<span className="note"><br />{h.reason}</span></span>
+              {h.urgency === 3 ? <span className="pill crit">Urgent: needs a person now</span> : <span className="pill warn">On hold</span>}
+            </div>
+          ))}
+          <p className="note">Held requests are not part of the score. Any that are urgent still need a person to act today.</p>
+        </div>
       )}
       {r.planPts && (
         <div className="scroll">

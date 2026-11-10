@@ -42,7 +42,7 @@ export default function Day({ day, setDay }) {
   return (
     <details className="panel" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary>
-        Test day: {ctx.title} <span className="note">· {ctx.jobs.length} requests · {ctx.crew.length} crew · {fmt(ctx.shift[0])}–{fmt(ctx.shift[1])}{day.loaded ? ' · includes a plan' : ''} (change)</span>
+        Test day: {ctx.title} <span className="note">· {ctx.jobs.length} requests{ctx.held.length ? ` (+${ctx.held.length} on hold)` : ''} · {ctx.crew.length} crew · {fmt(ctx.shift[0])}–{fmt(ctx.shift[1])}{day.loaded ? ' · includes a plan' : ''} (change)</span>
       </summary>
       <div className="stack">
         {ctx.source && <p className="note">Source: {ctx.source}</p>}

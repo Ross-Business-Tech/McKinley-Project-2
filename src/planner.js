@@ -11,9 +11,8 @@ export function livePlan(ctx) {
     (a, b) => (b.urgency ?? 0) - (a.urgency ?? 0) || a.win[1] - a.win[0] - (b.win[1] - b.win[0]) || a.win[0] - b.win[0] || a.id.localeCompare(b.id),
   )
   for (const job of order) {
-    const region = ctx.comms[job.comm].region
     const options = ctx.crew
-      .filter((t) => t.skills.includes(job.skill) && ctx.comms[t.base].region === region)
+      .filter((t) => t.skills.includes(job.skill) && ctx.canServe(t, job))
       .map((t) => {
         const s = state[t.id]
         const drive = ctx.travel(s.loc, job.comm)

@@ -59,6 +59,7 @@ export function normalizePlan(data, ctx) {
     if (!Array.isArray(list)) return bad(`Technician ${tid} should have a list of requests.`)
     for (const item of list) {
       const id = typeof item === 'string' ? item : item?.id
+      if (ctx.heldById[id]) return bad(`The plan schedules request "${id}", but it is on hold (${ctx.heldById[id].reason}).`)
       if (!ctx.jobById[id]) return bad(`The plan includes a request "${id}" that is not in this day (use ${jobIds}).`)
       const at = toMin(item?.start ?? item?.at)
       plan[tid].push({ id, note: typeof item?.note === 'string' ? item.note : '', ...(Number.isFinite(at) ? { at } : {}) })
@@ -101,14 +102,24 @@ export function normalizeCase(d) {
     if (!t?.id || !Array.isArray(t.skills) || !t.skills.length) return bad('Every crew member needs an "id" and a list of "skills".')
     if (crew.some((c) => c.id === t.id)) return bad(`Two crew members share the id "${t.id}".`)
     if (!comms[t.base]) return bad(`Crew member ${t.id} starts at "${t.base}", which is not a listed community.`)
-    crew.push({ id: t.id, name: t.name || t.id, trade: t.trade || t.skills.join(' + '), skills: t.skills.map((s) => String(s).toLowerCase()), base: t.base, rate: t.rate, vendor: !!t.vendor, flat: t.flat })
+    if (t.serves !== undefined && (!Array.isArray(t.serves) || t.serves.some((c) => !comms[c]))) return bad(`Crew member ${t.id} has a "serves" list with a community that is not listed.`)
+    crew.push({ id: t.id, name: t.name || t.id, trade: t.trade || t.skills.join(' + '), skills: t.skills.map((s) => String(s).toLowerCase()), base: t.base, serves: t.serves || null, rate: t.rate, vendor: !!t.vendor, flat: t.flat })
   }
 
   if (!Array.isArray(d.requests) || !d.requests.length) return bad('The case file needs a "requests" list with at least one request.')
   const jobs = []
+  const held = []
   for (const r of d.requests) {
     if (!r?.id) return bad('Every request needs an "id".')
-    if (jobs.some((j) => j.id === r.id)) return bad(`Two requests share the id "${r.id}".`)
+    if (jobs.some((j) => j.id === r.id) || held.some((j) => j.id === r.id)) return bad(`Two requests share the id "${r.id}".`)
+    if (r.hold) {
+      // On hold: listed and shown, but not scheduled or scored (for example, waiting on the resident's OK to enter).
+      if (r.community && !comms[r.community]) return bad(`Request ${r.id} is at "${r.community}", which is not a listed community.`)
+      const hu = urgencyOf(r.urgency)
+      if (Number.isNaN(hu)) return bad(`Request ${r.id} has an urgency that is not 1, 2 or 3 (or routine, soon, urgent).`)
+      held.push({ id: r.id, rid: r.resident || r.id, comm: r.community || null, trade: r.trade || r.skill || '', text: r.text || '', reason: String(r.hold), urgency: hu })
+      continue
+    }
     if (!comms[r.community]) return bad(`Request ${r.id} is at "${r.community}", which is not a listed community.`)
     const skill = String(r.skill || r.trade || '').toLowerCase()
     if (!skill) return bad(`Request ${r.id} needs a "skill" (the trade it needs).`)
@@ -123,16 +134,17 @@ export function normalizeCase(d) {
     })
   }
 
+  if (!jobs.length) return bad('Every request in this file is on hold, so there is nothing to schedule.')
+  const canServe = (t, j) => (t.serves ? t.serves.includes(j.comm) : comms[t.base].region === comms[j.comm].region)
   const warnings = []
   for (const j of jobs) {
-    const region = comms[j.comm].region
-    if (!crew.some((t) => t.skills.includes(j.skill) && comms[t.base].region === region)) {
-      warnings.push(`${j.id}: nobody on the crew has the "${j.skill}" skill in ${region}, so no plan can cover it.`)
+    if (!crew.some((t) => t.skills.includes(j.skill) && canServe(t, j))) {
+      warnings.push(`${j.id}: nobody on the crew has the "${j.skill}" skill for ${comms[j.comm].name}, so no plan can cover it.`)
     }
   }
   const ctx = {
     id: nextId++, title: d.title || 'Untitled day', source: d.source || '', isSample: false,
-    shift, comms, within, otherMinutes, travelPairs, travel, crew, jobs, jobById: Object.fromEntries(jobs.map((j) => [j.id, j])),
+    shift, comms, within, otherMinutes, travelPairs, travel, crew, canServe, jobs, held, heldById: Object.fromEntries(held.map((h) => [h.id, h])), jobById: Object.fromEntries(jobs.map((j) => [j.id, j])),
     hasUrgency: jobs.some((j) => j.urgency !== null), warnings,
   }
   let loaded = null
@@ -158,12 +170,15 @@ export function exportCase(ctx, out) {
     shift: { start: toClock(ctx.shift[0]), end: toClock(ctx.shift[1]) },
     communities: ctx.comms,
     travel: { within: ctx.within, pairs: ctx.travelPairs, ...(ctx.otherMinutes !== null ? { otherMinutes: ctx.otherMinutes } : {}) },
-    crew: ctx.crew.map((t) => ({ id: t.id, name: t.name, trade: t.trade, skills: t.skills, base: t.base, ...(t.vendor ? { vendor: true, flat: t.flat } : { rate: t.rate }) })),
+    crew: ctx.crew.map((t) => ({ id: t.id, name: t.name, trade: t.trade, skills: t.skills, base: t.base, ...(t.serves ? { serves: t.serves } : {}), ...(t.vendor ? { vendor: true, flat: t.flat } : { rate: t.rate }) })),
     requests: ctx.jobs.map((j) => ({
       id: j.id, resident: j.rid, community: j.comm, trade: j.trade, skill: j.skill, durationMin: j.dur,
       window: [toClock(j.win[0]), toClock(j.win[1])], ...(j.urgency !== null ? { urgency: j.urgency } : {}),
       ...(j.key ? { mustTell: j.key } : {}), text: j.text, note: j.note, ...(j.hidden.length ? { facts: j.hidden } : {}), ...(j.iid ? { source: j.iid } : {}),
     })),
+  }
+  for (const h of ctx.held) {
+    file.requests.push({ id: h.id, resident: h.rid, ...(h.comm ? { community: h.comm } : {}), trade: h.trade, ...(h.urgency !== null ? { urgency: h.urgency } : {}), text: h.text, hold: h.reason })
   }
   if (out) {
     file.plan = {

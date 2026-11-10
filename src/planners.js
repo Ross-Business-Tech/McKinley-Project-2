@@ -42,8 +42,7 @@ function mutate(ctx, base, p, rand) {
     if (rand() < p.ignoreWindow) stop.at = Math.max(ctx.shift[0], job.win[0] - 90)
     if (job.urgency === 3 && rand() < p.downgrade) urgency[job.id] = 1
     if (rand() < p.wrongSkill) {
-      const region = ctx.comms[job.comm].region
-      const others = ctx.crew.filter((t) => t.id !== owner && !t.skills.includes(job.skill) && ctx.comms[t.base].region === region)
+      const others = ctx.crew.filter((t) => t.id !== owner && !t.skills.includes(job.skill) && ctx.canServe(t, job))
       if (others.length) {
         plan[owner].splice(idx, 1)
         plan[others[Math.floor(rand() * others.length)].id].push(stop)
@@ -98,7 +97,7 @@ Drive times: ${drives || 'none listed'}; within one community ${ctx.within} min.
 Requests:
 ${jobs}
 
-Rules: cover every request exactly once, only use a technician with the right skill, no one can be in two places at once, stay inside shift hours and each resident's entry window, group jobs by community to save driving, and never treat an emergency as less urgent than it is. Pass each staff note to the technician on that stop.
+${ctx.held.length ? `On hold, do NOT schedule these: ${ctx.held.map((h) => h.id).join(', ')}.\n\n` : ''}Rules: cover every request exactly once, only use a technician with the right skill, no one can be in two places at once, stay inside shift hours and each resident's entry window, group jobs by community to save driving, and never treat an emergency as less urgent than it is. Pass each staff note to the technician on that stop.
 
 Answer with JSON only, in this shape:
 {"plan": {"${ctx.crew[0].id}": [{"id": "${first.id}", "note": "<the staff note for ${first.id}>"}]${ctx.crew.slice(1).map((t) => `, "${t.id}": []`).join('')}},

@@ -58,6 +58,10 @@ You can see a complete example any time: in the evaluator, open **Test day** and
 
 **Crew pay** (for the cost estimate): `rate` is dollars per hour. For an outside vendor use `"vendor": true` and `"flat"` (dollars per visit).
 
+**Crew extra:** `serves` is a list of community codes a technician covers. If it is left out, a technician covers every community in the same `region` as their `base`.
+
+**On hold:** give a request `"hold": "reason"` when the planner deliberately did not schedule it (for example, waiting on the resident's OK to enter, or the unit could not be found). Held requests are listed on the scorecard and are not scheduled or scored. A held request whose `urgency` is 3 is flagged as needing a person today. A held request may leave out `community`, `skill` and `durationMin`.
+
 **Request extras (all optional):**
 - `urgency`: the **reference** answer, 3 = Urgent, 2 = Soon, 1 = Routine (or `"urgent"`, `"soon"`, `"routine"`). It is what a careful person would decide. If no request has one, the "no emergency treated as less urgent" gate is skipped and says so.
 - `mustTell`: a phrase that must appear in the note the technician receives. If absent, the note check is skipped for that request.

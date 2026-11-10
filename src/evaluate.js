@@ -8,8 +8,6 @@ export function fmt(m) {
   return `${h % 12 || 12}:${mm} ${h < 12 ? 'AM' : 'PM'}`
 }
 
-const regionOf = (ctx, comm) => ctx.comms[comm].region
-
 // Turn a plan ({techId: [{id, at?, note}]}) into timelines with real times.
 export function simulate(ctx, plan, { ignoreWindows = false } = {}) {
   return ctx.crew.map((tech) => {
@@ -47,7 +45,7 @@ export function handPlan(ctx) {
   const state = Object.fromEntries(ctx.crew.map((t) => [t.id, { time: ctx.shift[0], loc: t.base, list: [] }]))
   const order = [...ctx.jobs].sort((a, b) => (b.urgency ?? 0) - (a.urgency ?? 0) || a.id.localeCompare(b.id))
   for (const job of order) {
-    const options = ctx.crew.filter((t) => t.skills.includes(job.skill) && regionOf(ctx, t.base) === regionOf(ctx, job.comm))
+    const options = ctx.crew.filter((t) => t.skills.includes(job.skill) && ctx.canServe(t, job))
     let best = null
     for (const t of options) {
       const s = state[t.id]
