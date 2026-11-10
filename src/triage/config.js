@@ -36,18 +36,18 @@ export function travelMinutes(a, b) {
 
 // Made-up technicians. Skills are what each person is strongest at.
 export const TECHS = [
-  { id: 'SK1', name: 'Dale', lang: 'en', phone: '734-555-0151', sites: ['Spruce Knob'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
-  { id: 'SK2', name: 'Tasha', lang: 'en', phone: '734-555-0152', sites: ['Spruce Knob'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
-  { id: 'GH1', name: 'Marcus', lang: 'en', phone: '734-555-0153', sites: ['Glencoe Hills'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
-  { id: 'GH2', name: 'Priya', lang: 'en', phone: '734-555-0154', sites: ['Glencoe Hills'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
-  { id: 'EV1', name: 'Jonah', lang: 'en', phone: '734-555-0155', sites: ['Evergreen'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
-  { id: 'EV2', name: 'Rosa', lang: 'es', phone: '734-555-0156', sites: ['Evergreen'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
-  { id: 'BC1', name: 'Carlos', lang: 'en', phone: '407-555-0157', sites: ['Bella Casa'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
-  { id: 'BC2', name: 'Alicia', lang: 'es', phone: '407-555-0158', sites: ['Bella Casa'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
-  { id: 'PO1', name: 'Terrence', lang: 'pt', phone: '407-555-0159', sites: ['Portofino'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17] },
-  { id: 'PO2', name: 'Mei', lang: 'en', phone: '407-555-0160', sites: ['Portofino'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17] },
-  { id: 'TP1', name: 'Andre', lang: 'ht', phone: '407-555-0161', sites: ['The Pines'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17] },
-  { id: 'TP2', name: 'Lena', lang: 'en', phone: '407-555-0162', sites: ['The Pines'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17] },
+  { id: 'SK1', name: 'Dale', lang: 'en', phone: '734-555-0151', sites: ['Spruce Knob'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'SK2', name: 'Tasha', lang: 'en', phone: '734-555-0152', sites: ['Spruce Knob'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'GH1', name: 'Marcus', lang: 'en', phone: '734-555-0153', sites: ['Glencoe Hills'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'GH2', name: 'Priya', lang: 'en', phone: '734-555-0154', sites: ['Glencoe Hills'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'EV1', name: 'Jonah', lang: 'en', phone: '734-555-0155', sites: ['Evergreen'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'EV2', name: 'Rosa', lang: 'es', phone: '734-555-0156', sites: ['Evergreen'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'BC1', name: 'Carlos', lang: 'en', phone: '407-555-0157', sites: ['Bella Casa'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'BC2', name: 'Alicia', lang: 'es', phone: '407-555-0158', sites: ['Bella Casa'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'PO1', name: 'Terrence', lang: 'pt', phone: '407-555-0159', sites: ['Portofino'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'PO2', name: 'Mei', lang: 'en', phone: '407-555-0160', sites: ['Portofino'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'TP1', name: 'Andre', lang: 'ht', phone: '407-555-0161', sites: ['The Pines'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'TP2', name: 'Lena', lang: 'en', phone: '407-555-0162', sites: ['The Pines'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
 ]
 
 // Minutes a typical job takes, and what to bring. Edit freely.

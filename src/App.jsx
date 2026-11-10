@@ -7,7 +7,7 @@ import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
-import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
+import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
@@ -55,13 +55,20 @@ function App() {
   const [techId, setTechId] = useState(() => load('mk-tech', null))
   const [techTab, setTechTab] = useState('day')
   const [techSite, setTechSite] = useState(null)
+  // Which day and shift we're planning for. Starts from the real clock: evenings and weekends are on-call time.
+  const [schedule, setSchedule] = useState(() => {
+    const now = new Date()
+    const day = DAYS[now.getDay()]
+    const h = now.getHours()
+    return { day, afterHours: h < 8 || h >= 17 || day === 'Sat' || day === 'Sun' }
+  })
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
   const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
-  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v4', TECHS))
+  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v5', TECHS))
 
   useEffect(() => save('mk-sites-v2', sites), [sites])
-  useEffect(() => save('mk-teams-v4', teamsRaw), [teamsRaw])
+  useEffect(() => save('mk-teams-v5', teamsRaw), [teamsRaw])
   useEffect(() => save('mk-role', role), [role])
   useEffect(() => save('mk-tech', techId), [techId])
 
@@ -72,8 +79,8 @@ function App() {
     [allOrders, site],
   )
   const team = useMemo(() => allTeams.filter((t) => site === 'all' || t.sites.includes(site)), [allTeams, site])
-  const plan = useMemo(() => buildPlan(orders, tech, team), [orders, tech, team])
-  const fullPlan = useMemo(() => buildPlan(allOrders, tech, allTeams), [allOrders, tech, allTeams])
+  const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule])
+  const fullPlan = useMemo(() => buildPlan(allOrders, tech, allTeams, schedule), [allOrders, tech, allTeams, schedule])
   const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
@@ -171,6 +178,8 @@ function App() {
             <div><b>{myStops.filter((st) => techDone[st.job.id]).length}</b><span>{L.done}</span></div>
           </section>
         </header>
+        {isOnCall(me, schedule.day) && schedule.afterHours && <p className="notice oncallbanner">{L.onCall}</p>}
+        {!(schedule.afterHours ? isOnCall(me, schedule.day) : isWorking(me, schedule.day)) && <p className="notice">{L.offToday}</p>}
         <nav className="tabs">
           {[['day', L.myDay], ['map', L.map]].map(([k, l]) => (
             <button key={k} className={techTab === k ? 'on' : ''} onClick={() => setTechTab(k)}>{l}</button>
@@ -224,6 +233,24 @@ function App() {
           {site} team: {team.length ? team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ') || 'general'}${t.lang && t.lang !== 'en' ? `; ${langInfo(t.lang)?.name}` : ''})`).join(' · ') : 'no technicians yet. Add them on the Teams tab.'}
         </p>
       )}
+
+      <div className="schedbar">
+        <select aria-label="Day" value={schedule.day} onChange={(e) => setSchedule({ ...schedule, day: e.target.value })}>
+          {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <div className="seg">
+          <button className={!schedule.afterHours ? 'on' : ''} onClick={() => setSchedule({ ...schedule, afterHours: false })}>Regular hours</button>
+          <button className={schedule.afterHours ? 'on' : ''} onClick={() => setSchedule({ ...schedule, afterHours: true })}>📟 After hours</button>
+        </div>
+      </div>
+      <p className="small oncall">
+        {schedule.afterHours ? 'On call' : 'Working'} {schedule.day}{site !== 'all' && site !== 'unassigned' ? ` at ${site}` : ''}:{' '}
+        {(() => {
+          const who = team.filter((t) => (schedule.afterHours ? isOnCall(t, schedule.day) : isWorking(t, schedule.day)))
+          return who.length ? who.map((t) => t.name).join(', ') : <b className="warn">nobody scheduled</b>
+        })()}
+        {schedule.afterHours && ' · only priority 4–5 jobs go out; the rest wait for regular hours'}
+      </p>
 
       <nav className="tabs">
         {TABS.map(([k, l]) => (
@@ -376,6 +403,8 @@ function App() {
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
                   {t && <span className="chip c-tech">{t.name}</span>}
                   {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}</span>}
+                  {plan.deferred.some((x) => x.id === o.id) && <span className="chip">Waits for regular hours</span>}
+                  {plan.unstaffed.some((x) => x.id === o.id) && <span className="chip e-emergency">No one scheduled{o.sev >= 4 ? ': call the supervisor' : ''}</span>}
                   {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
                 </div>
                 {(photos[o.id] || []).length > 0 && (
@@ -459,6 +488,7 @@ function App() {
 
       {tab === 'routes' && (
         <>
+          {plan.afterHours && <p className="notice small">📟 After-hours plan for {schedule.day}: on-call technicians only, from 5 PM.</p>}
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
           {(site === 'unassigned' ? [] : plan.techs).map(({ tech: t, plan: p, byHand }) => (
             <section key={t.id} className="card">
@@ -478,6 +508,20 @@ function App() {
               </ol>
             </section>
           ))}
+          {plan.unstaffed.length > 0 && (
+            <section className="card">
+              <h2 className="warn">No one scheduled ({plan.unstaffed.length})</h2>
+              <p className="small">Nobody is {plan.afterHours ? 'on call' : 'working'} at these properties (or in the same city) on {schedule.day}. Assign someone on the Teams tab or reassign by hand.</p>
+              <ul>{plan.unstaffed.map((o) => <li key={o.id}>{o.sev} · {o.label} · {o.community}</li>)}</ul>
+            </section>
+          )}
+          {plan.deferred.length > 0 && (
+            <section className="card">
+              <h2>Waiting for regular hours ({plan.deferred.length})</h2>
+              <p className="small">Not urgent enough to call out the on-call technician. These go on the next regular-hours plan.</p>
+              <ul>{plan.deferred.map((o) => <li key={o.id}>{o.sev} · {o.label} · {o.community}</li>)}</ul>
+            </section>
+          )}
           {plan.unknown.length > 0 && (
             <section className="card">
               <h2>Unit not found ({plan.unknown.length})</h2>
@@ -524,7 +568,7 @@ function App() {
                 <TechEditor key={t.id} t={teamsRaw.find((x) => x.id === t.id)} sites={sites} update={(p) => updateTech(t.id, p)} toggle={toggle}
                   remove={() => setTeamsRaw(teamsRaw.filter((x) => x.id !== t.id))} />
               ))}
-              <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', lang: '', phone: '', sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
+              <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', lang: '', phone: '', workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: [], sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
             </section>
           ))}
           <AddSite onAdd={(s) => { setSites([...sites, s]); setTeamSite(s.name) }} existing={sites} />
@@ -555,6 +599,18 @@ function TechEditor({ t, sites, update, toggle, remove }) {
             inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
           {t.phone && t.phone.replace(/\D/g, '').length < 10 && <span className="small warn">Enter all 10 digits</span>}
         </label>
+      </div>
+      <p className="small">Works on</p>
+      <div className="chips">
+        {DAYS.map((d) => (
+          <button key={d} className={`chip chipbtn ${isWorking(t, d) ? 'sel' : ''}`} onClick={() => update({ workDays: toggle(t.workDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], d) })}>{d}</button>
+        ))}
+      </div>
+      <p className="small">📟 On call (after hours, 5 PM to midnight)</p>
+      <div className="chips">
+        {DAYS.map((d) => (
+          <button key={d} className={`chip chipbtn ${isOnCall(t, d) ? 'sel oncallchip' : ''}`} onClick={() => update({ onCallDays: toggle(t.onCallDays || [], d) })}>{d}</button>
+        ))}
       </div>
       <p className="small">Strengths</p>
       <div className="chips">
