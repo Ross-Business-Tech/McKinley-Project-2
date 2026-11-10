@@ -79,3 +79,9 @@ a.btn.go{background:var(--red);color:#fff;border-color:var(--red);min-height:34p
 .order>.row:first-child{gap:6px;flex-wrap:nowrap}
 .order>.row:first-child .pill{white-space:nowrap}
 a.btn.go,.btn.mini{padding:4px 9px;font-size:.8rem;min-height:32px}
+
+.ticket{border:1px solid #c5d6ff;background:#f3f7ff;border-radius:12px;padding:10px 12px;margin:10px 0 0}
+.ticket-head{margin:0 0 6px;font-size:.9rem}.ticket dl{margin:0 0 8px;font-size:.88rem}
+.ticket dl div{display:grid;grid-template-columns:7.5em 1fr;gap:8px;padding:3px 0;border-top:1px dashed #d6e2fb}
+.ticket dt{color:var(--mute);font-weight:600}.ticket dd{margin:0}
+label.ask{color:var(--red)}

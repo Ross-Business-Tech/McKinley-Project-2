@@ -3,6 +3,7 @@ import './App.css'
 import SiteMap from './SiteMap.jsx'
 import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
+import { LANGS, langInfo, workTicket } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
@@ -43,10 +44,10 @@ function App() {
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
   const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
-  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v2', TECHS))
+  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v3', TECHS))
 
   useEffect(() => save('mk-sites-v2', sites), [sites])
-  useEffect(() => save('mk-teams-v2', teamsRaw), [teamsRaw])
+  useEffect(() => save('mk-teams-v3', teamsRaw), [teamsRaw])
 
   const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
   const allOrders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
@@ -134,7 +135,7 @@ function App() {
       </div>
       {site !== 'all' && site !== 'unassigned' && (
         <p className="small team">
-          {site} team: {team.length ? team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ') || 'general'})`).join(' · ') : 'no technicians yet. Add them on the Teams tab.'}
+          {site} team: {team.length ? team.map((t) => `${t.name} (${t.skills.filter((x) => x !== 'general').join(', ') || 'general'}${t.lang && t.lang !== 'en' ? `; ${langInfo(t.lang)?.name}` : ''})`).join(' · ') : 'no technicians yet. Add them on the Teams tab.'}
         </p>
       )}
 
@@ -280,6 +281,34 @@ function App() {
                     <p>Bring: {o.bring.join(', ')} · about {o.mins} min</p>
                   </div>
                 )}
+                {approved[o.id] && t && (() => {
+                  const wt = workTicket(o, t, addressOf(o))
+                  const other = wt.lang.code !== 'en'
+                  return (
+                    <div className="ticket">
+                      <p className="ticket-head">
+                        Work order for <b>{t.name}</b> · {wt.lang.native}
+                        {other && !wt.lang.full && <span className="small"> (shown in English: use Translate below)</span>}
+                      </p>
+                      {other && (
+                        <dl>
+                          {wt.lines.map(([k, v], i) => (
+                            <div key={i} dir={wt.lang.code === 'ar' ? 'auto' : undefined}><dt>{k}</dt><dd>{v}</dd></div>
+                          ))}
+                        </dl>
+                      )}
+                      {!other && <p className="small">{t.name} reads English, so the work order goes as is.</p>}
+                      <div className="row">
+                        {t.phone && <a className="btn mini" href={`sms:${t.phone}?&body=${encodeURIComponent(wt.text)}`}>Text it to {t.name}</a>}
+                        {wt.translateUrl && (
+                          <a className="btn mini" href={wt.translateUrl} target="_blank" rel="noreferrer">
+                            {wt.lang.full ? 'Translate the resident’s message' : `Translate to ${wt.lang.name}`}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
                 <div className="row actions">
                   <select aria-label="Change priority" value={state[o.id]?.sevOverride || o.sev}
                     onChange={(e) => patch(o.id, { sevOverride: Number(e.target.value) })}>
@@ -320,7 +349,7 @@ function App() {
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
           {(site === 'unassigned' ? [] : plan.techs).map(({ tech: t, plan: p, byHand }) => (
             <section key={t.id} className="card">
-              <h2>{t.name} <span className="small">· {t.sites.join(', ')} · {t.skills.join(', ')}</span></h2>
+              <h2>{t.name} <span className="small">· {langInfo(t.lang)?.native || 'language not set'} · {t.sites.join(', ')} · {t.skills.join(', ')}</span></h2>
               <p className="small">{p.stops.length} jobs · {Math.round(p.drive)} min driving (by hand: {Math.round(byHand.drive)}) · done around {fmt(p.finish)}</p>
               <ol className="route">
                 {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
@@ -382,7 +411,7 @@ function App() {
                 <TechEditor key={t.id} t={teamsRaw.find((x) => x.id === t.id)} sites={sites} update={(p) => updateTech(t.id, p)} toggle={toggle}
                   remove={() => setTeamsRaw(teamsRaw.filter((x) => x.id !== t.id))} />
               ))}
-              <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
+              <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', lang: '', phone: '', sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
             </section>
           ))}
           <AddSite onAdd={(s) => { setSites([...sites, s]); setTeamSite(s.name) }} existing={sites} />
@@ -400,6 +429,17 @@ function TechEditor({ t, sites, update, toggle, remove }) {
       <div className="row between">
         <input className="name" value={t.name} onChange={(e) => update({ name: e.target.value })} aria-label="Technician name" />
         <button className="link" onClick={remove}>Remove</button>
+      </div>
+      <div className="two">
+        <label className={t.lang ? '' : 'ask'}>{t.lang ? 'Primary language' : 'Ask them: what is your primary language?'}
+          <select value={t.lang || ''} onChange={(e) => update({ lang: e.target.value })}>
+            <option value="">Choose…</option>
+            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native === l.name ? l.name : `${l.native} (${l.name})`}</option>)}
+          </select>
+        </label>
+        <label>Mobile number (to text work orders)
+          <input value={t.phone || ''} onChange={(e) => update({ phone: e.target.value })} inputMode="tel" placeholder="555-0100" />
+        </label>
       </div>
       <p className="small">Strengths</p>
       <div className="chips">
