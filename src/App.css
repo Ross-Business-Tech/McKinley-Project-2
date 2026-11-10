@@ -56,3 +56,25 @@ th { border-top: 0; font-family: var(--mono); font-size: 11px; text-transform: u
 details summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
 .strip.dim { opacity: .45; filter: grayscale(1); }
 .rules { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+
+/* ---- Repeat runs ---- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card.unsafe { border-color: var(--crit); }
+.card-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.big { font-family: var(--mono); font-size: 28px; font-weight: 500; line-height: 1; }
+.dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.dot { width: 14px; height: 14px; border-radius: 3px; background: var(--ok); }
+.dot.fail { background: var(--crit); }
+.dot.unsafe { background: var(--crit); outline: 2px solid var(--fg); outline-offset: 1px; }
+.checks { display: flex; flex-wrap: wrap; gap: 14px; }
+.checks label, .pick { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.checks input, .pick input { margin-top: 3px; }
+textarea { font: inherit; font-size: 13px; width: 100%; min-height: 110px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); box-sizing: border-box; }
+select { font: inherit; font-size: 14px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-height: 40px; }
+.list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.verdict { padding: 8px 10px; border-radius: 6px; font-size: 14px; font-weight: 600; }
+.verdict.reliable { background: var(--ok-soft); color: var(--ok); }
+.verdict.promising, .verdict.mostly { background: var(--warn-soft); color: var(--warn); }
+.verdict.weak, .verdict.unsafe { background: var(--crit-soft); color: var(--crit); }
+.field { font: inherit; font-size: 14px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-height: 40px; box-sizing: border-box; width: 100%; }

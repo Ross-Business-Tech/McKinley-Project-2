@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { COMMUNITIES, JOBS, SCENARIOS, SHEET_NAME, TECHS, URGENCY } from './data.js'
-import { fmt, runEvaluation } from './evaluate.js'
+import { runEvaluation } from './evaluate.js'
 import { LIVE_SCENARIO } from './planner.js'
+import { Pill, Timelines } from './parts.jsx'
+import { urgClass } from './urg.js'
+import Repeat from './Repeat.jsx'
 
 const ALL_SCENARIOS = [LIVE_SCENARIO, ...SCENARIOS]
 
@@ -17,11 +20,11 @@ const STEPS = [
   { n: 8, title: 'Scorecard', short: 'One-page summary' },
 ]
 
-const urgClass = (u) => (u === 3 ? 'crit' : u === 2 ? 'warn' : 'ok')
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 export default function App() {
   const [scenarioId, setScenarioId] = useState('live')
+  const [mode, setMode] = useState('repeat') // repeat | single
   const [status, setStatus] = useState('idle') // idle | running | done
   const [step, setStep] = useState(0) // number of finished steps
   const timer = useRef(null)
@@ -87,6 +90,19 @@ export default function App() {
         </p>
       </header>
 
+      <div className="seg" role="radiogroup" aria-label="Evaluation mode">
+        <button role="radio" aria-checked={mode === 'repeat'} className={mode === 'repeat' ? 'seg-on' : ''} onClick={() => setMode('repeat')}>
+          Repeat runs (for AI models)
+        </button>
+        <button role="radio" aria-checked={mode === 'single'} className={mode === 'single' ? 'seg-on' : ''} onClick={() => setMode('single')}>
+          One plan, step by step
+        </button>
+      </div>
+
+      {mode === 'repeat' && <Repeat />}
+
+      {mode === 'single' && (
+        <>
       <section className="panel stack" aria-label="Choose a planner to test">
         <h2>1. Pick a planner to test</h2>
         <div className="seg" role="radiogroup" aria-label="Planner scenarios">
@@ -132,6 +148,8 @@ export default function App() {
           })}
         </ol>
       )}
+        </>
+      )}
       <footer className="note">Built from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
     </main>
   )
@@ -141,49 +159,8 @@ function Skipped() {
   return <p className="note">Skipped: the plan could not work in real life, so it is not scored.</p>
 }
 
-function UrgencyTag({ job, marked }) {
-  return (
-    <span className="chips">
-      <span className={`pill ${urgClass(marked)}`}>Marked {URGENCY[marked]}</span>
-      {marked < job.urgency && <span className="chip bad">Less urgent than it really is</span>}
-    </span>
-  )
-}
 
-function Pill({ ok, yes = 'Pass', no = 'Fail' }) {
-  return <span className={`pill ${ok ? 'ok' : 'crit'}`}>{ok ? yes : no}</span>
-}
 
-function Timelines({ list, compact, urgency }) {
-  return (
-    <div className="stack">
-      {list.map(({ tech, stops }) => (
-        <div key={tech.id} className="tl">
-          <div className="tl-head">
-            <b>{tech.name}</b> <span className="note">{tech.trade} · starts at {COMMUNITIES[tech.base].name}</span>
-          </div>
-          {stops.length === 0 && <p className="note">No jobs</p>}
-          {stops.map((s) => (
-            <div key={s.job.id} className={`stop ${s.overlap ? 'bad' : ''}`}>
-              <span className="time">{fmt(s.start)}–{fmt(s.end)}</span>
-              <span>
-                <b>{s.job.rid}</b> · {COMMUNITIES[s.job.comm].name} · {s.job.trade}
-                {urgency && <UrgencyTag job={s.job} marked={urgency[s.job.id] ?? s.job.urgency} />}
-                {!compact && s.note && <span className="note"> — {s.note}</span>}
-                <span className="chips">
-                  {s.wasted && <span className="chip flag">Wasted trip (outside entry window)</span>}
-                  {s.overlap && <span className="chip bad">Double-booked</span>}
-                  {s.outsideShift && <span className="chip bad">Outside hours</span>}
-                  {s.skillMismatch && <span className="chip bad">Wrong skill</span>}
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function Metrics({ plan, hand }) {
   const rows = [
