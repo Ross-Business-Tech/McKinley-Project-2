@@ -10,6 +10,7 @@ import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
+import { buildCaseFile, downloadCaseFile } from './triage/exportCase.js'
 
 const tag = (sev) => SEVERITY[sev]
 
@@ -391,6 +392,10 @@ function App() {
 
       {tab === 'routes' && (
         <>
+          <div className="card">
+            <button onClick={() => downloadCaseFile(buildCaseFile({ plan: fullPlan, orders: allOrders, teams: allTeams, sites }))}>Export day for evaluation</button>
+            <p className="small">Saves today's requests and this board's plan (all sites) as a file the separate Plan Evaluator can grade. It does not change anything here.</p>
+          </div>
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
           {(site === 'unassigned' ? [] : plan.techs).map(({ tech: t, plan: p, byHand }) => (
             <section key={t.id} className="card">
