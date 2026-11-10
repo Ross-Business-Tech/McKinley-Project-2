@@ -41,7 +41,7 @@ export function drafts(o, items, sites) {
   const first = r ? r.name.split(' ')[0] : 'there'
   const community = o.community || 'your community'
   const spanish = r && r.lang === 'Spanish'
-  const en = `Hi ${first}, this is the ${community} maintenance team about your request (“${o.text.slice(0, 70)}${o.text.length > 70 ? '…' : ''}”). Could you reply with ${asks}? Thank you!`
+  const en = `Hi ${first}, this is your ${community} maintenance team following up on your request (“${o.text.slice(0, 70)}${o.text.length > 70 ? '…' : ''}”). When you have a moment, could you reply with ${asks}? We'll get this taken care of. Thank you!`
   const es = `Hola ${first}, somos el equipo de mantenimiento de ${community} sobre su solicitud. ¿Puede responder con la información que falta (${items.map((i) => i.label.toLowerCase()).join(', ')})? ¡Gracias!`
   const body = spanish ? es : en
   const office = officeFor(o.community, sites)
