@@ -96,6 +96,7 @@ function App() {
   const team = useMemo(() => allTeams.filter((t) => (site === 'all' ? t.sites.some((x) => mySiteNames.includes(x)) : t.sites.includes(site))), [allTeams, site, mySiteNames])
   const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule])
   const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule])
+  const approvedOnRoutes = fullPlan.techs.reduce((n, x) => n + x.plan.stops.filter((st) => approved[st.job.id]).length, 0)
   const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
@@ -526,8 +527,22 @@ function App() {
         <>
           {plan.afterHours && <p className="notice small">📟 After-hours plan for {schedule.day}: on-call technicians only, from 5 PM.</p>}
           <div className="card">
-            <button disabled={!fullPlan.techs.length} onClick={() => downloadCaseFile(buildCaseFile({ plan: fullPlan, orders: everyOrder, schedule, sites }))}>Export day for evaluation</button>
-            <p className="small">{fullPlan.techs.length ? `Saves ${schedule.day}'s requests and this board's plan (all sites${fullPlan.afterHours ? ', after hours' : ''}) as a file the separate Plan Evaluator can grade. It does not change anything here.` : 'Nobody is on duty for this day and shift, so there is no plan to export.'}</p>
+            <h2>Evaluate this day</h2>
+            <p className="small">Saves a file the separate Plan Evaluator can grade. It does not change anything here.</p>
+            {fullPlan.techs.length === 0 ? (
+              <p className="small">Nobody is on duty for this day and shift, so there is no plan to export.</p>
+            ) : (
+              <div className="row">
+                <button className="primary" disabled={approvedOnRoutes === 0}
+                  onClick={() => downloadCaseFile(buildCaseFile({ plan: fullPlan, orders: everyOrder, schedule, sites, approved }), 'technician-days-for-evaluation.json')}>
+                  Export approved technician days ({approvedOnRoutes} {approvedOnRoutes === 1 ? 'job' : 'jobs'})
+                </button>
+                <button onClick={() => downloadCaseFile(buildCaseFile({ plan: fullPlan, orders: everyOrder, schedule, sites }), 'board-suggestions-for-evaluation.json')}>
+                  Export the board's suggestions
+                </button>
+              </div>
+            )}
+            <p className="small">“Approved technician days” is what every technician sees in My day after the supervisor approves, including any reassignments. Jobs not approved yet are listed as on hold. Approve jobs in the Priority tab first.</p>
           </div>
           {site !== 'unassigned' && <p className="small">Plan saves about <b>{Math.round(plan.saved)} minutes</b> of driving compared with working requests in the order they came in, while handling emergencies first. The manager has the final say.</p>}
           <div className="cardgrid">

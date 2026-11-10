@@ -20,8 +20,10 @@ const referenceSeverity = (o) => o.expect?.sev ?? o.expect?.sevMin ?? null
 const noteFor = (o) => [...o.flags, `Bring: ${o.bring.join(', ')}`].join('. ')
 
 // `plan` is the board's plan for the day, `orders` every work order it was built from, `schedule` the day/after-hours choice.
+// `approved` (optional, {orderId: true}): export only what the supervisor approved, i.e. each technician's "My day".
+// Suggested jobs that are not approved yet are listed as on hold, so an urgent one shows up as a warning.
 // The crew is whoever the plan actually used that day (so days off and after-hours shifts are respected).
-export function buildCaseFile({ plan, orders, schedule, sites }) {
+export function buildCaseFile({ plan, orders, schedule, sites, approved = null }) {
   const crewIn = plan.techs.map((x) => x.tech).filter((t) => t.sites?.length)
   const used = new Set()
   crewIn.forEach((t) => t.sites.forEach((s) => used.add(s)))
@@ -44,6 +46,9 @@ export function buildCaseFile({ plan, orders, schedule, sites }) {
   const unknownIds = new Set(plan.unknown.map((o) => o.id))
   const heldIds = new Set(plan.held.map((o) => o.id))
   const deferredIds = new Set((plan.deferred || []).map((o) => o.id))
+  const isApproved = (id) => !approved || !!approved[id]
+  const pendingIds = new Set()
+  if (approved) plan.techs.forEach(({ plan: p }) => p.stops.forEach(({ job }) => !approved[job.id] && pendingIds.add(job.id)))
   const startHour = crewIn.length ? Math.min(...crewIn.map((t) => t.shift[0])) : 8
   const endHour = crewIn.length ? Math.max(...crewIn.map((t) => t.shift[1])) : 17
 
@@ -67,16 +72,17 @@ export function buildCaseFile({ plan, orders, schedule, sites }) {
       ...(unknownIds.has(o.id) ? { hold: 'Unit not found: the board cannot route it until someone confirms the unit' } : {}),
       ...(heldIds.has(o.id) ? { hold: 'Waiting on the resident’s OK to enter' } : {}),
       ...(deferredIds.has(o.id) ? { hold: 'After hours: routine work waits for the regular shift' } : {}),
+      ...(pendingIds.has(o.id) ? { hold: 'Suggested by the board, but the supervisor has not approved it yet' } : {}),
     }
   })
 
   const assignments = Object.fromEntries(
-    plan.techs.map(({ tech, plan: p }) => [tech.id, p.stops.map(({ job, arrive }) => ({ id: job.id, start: clock(arrive), note: noteFor(job) }))]),
+    plan.techs.map(({ tech, plan: p }) => [tech.id, p.stops.filter(({ job }) => isApproved(job.id)).map(({ job, arrive }) => ({ id: job.id, start: clock(arrive), note: noteFor(job) }))]),
   )
 
   return {
     format: 'plan-case/v1',
-    title: `Maintenance Hub ${schedule?.day ? `${schedule.day}${plan.afterHours ? ', after hours' : ''}` : 'day'} (${orders.length} requests)`,
+    title: `Maintenance Hub ${schedule?.day ? `${schedule.day}${plan.afterHours ? ', after hours' : ''}` : 'day'}${approved ? ', approved technician days' : ''} (${orders.length} requests)`,
     source: 'Exported from the Maintenance Hub triage board. Made-up sample data.',
     shift: { start: clock(startHour), end: clock(endHour) },
     communities,
@@ -84,18 +90,18 @@ export function buildCaseFile({ plan, orders, schedule, sites }) {
     crew: crewIn.map((t) => ({ id: t.id, name: t.name, trade: t.skills.join(' + '), skills: t.skills, base: t.sites[0], serves: t.sites })),
     requests,
     plan: {
-      planner: 'Maintenance Hub triage board',
+      planner: approved ? 'Maintenance Hub: supervisor-approved technician days' : 'Maintenance Hub triage board (suggestions)',
       assignments,
       urgency: Object.fromEntries(orders.map((o) => [o.id, toUrgency(o.sev)])),
     },
   }
 }
 
-export function downloadCaseFile(file) {
+export function downloadCaseFile(file, name = 'maintenance-day-for-evaluation.json') {
   const url = URL.createObjectURL(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = 'maintenance-day-for-evaluation.json'
+  a.download = name
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
