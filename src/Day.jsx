@@ -55,7 +55,7 @@ export default function Day({ day, setDay }) {
         )}
         <p className="note">
           A <b>case file</b> holds one day: the requests, the crew, drive times and, if you like, the plan a planner made. Any planner can write one. Load one
-          to grade that planner’s plan, and every planner here is then tested on that day. Nothing leaves your device.
+          to grade that planner’s plan against a by-hand plan for the same day. Nothing leaves your device.
         </p>
         <div className="actions">
           <label className="filebtn">

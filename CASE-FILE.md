@@ -69,7 +69,7 @@ You can see a complete example any time: in the evaluator, open **Test day** and
 - `facts`: a list of short strings (pets, language, contact preference) shown on screen.
 - `source`: free text label, such as a spreadsheet row.
 
-**`plan` (optional):** leave it out to describe the day only (every planner in the evaluator is then tested on that day). Include it to have that plan graded.
+**`plan` (optional):** leave it out to describe the day only (the evaluator then grades its built-in rule-based planner on that day). Include it to have that plan graded.
 - `assignments`: for each crew id, the requests in visiting order. `start` is optional; if left out, the technician goes as soon as they can and waits for the entry window.
 - `urgency`: **the planner's own** urgency rating for each request, so the evaluator can catch an emergency being played down.
 

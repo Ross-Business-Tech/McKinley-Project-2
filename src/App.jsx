@@ -7,7 +7,6 @@ import { sampleDay } from './casefile.js'
 import Day from './Day.jsx'
 import { Pill, Timelines } from './parts.jsx'
 import { URGENCY, urgClass } from './urg.js'
-import Repeat from './Repeat.jsx'
 
 const STEPS = [
   { n: 1, title: 'Write the test day', short: 'A day of requests from the sheet, plus an assumed crew and drive times' },
@@ -25,7 +24,6 @@ const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.(
 export default function App() {
   const [day, setDay] = useState(() => ({ ctx: sampleDay(), loaded: null }))
   const [scenarioId, setScenarioId] = useState('live')
-  const [mode, setMode] = useState('single') // single | repeat
   const [status, setStatus] = useState('idle') // idle | running | done
   const [step, setStep] = useState(0) // number of finished steps
   const timer = useRef(null)
@@ -116,19 +114,6 @@ export default function App() {
 
       <Day day={day} setDay={changeDay} />
 
-      <div className="seg" role="radiogroup" aria-label="Evaluation mode">
-        <button role="radio" aria-checked={mode === 'single'} className={mode === 'single' ? 'seg-on' : ''} onClick={() => setMode('single')}>
-          Grade a plan
-        </button>
-        <button role="radio" aria-checked={mode === 'repeat'} className={mode === 'repeat' ? 'seg-on' : ''} onClick={() => setMode('repeat')}>
-          Advanced: repeated runs (AI models)
-        </button>
-      </div>
-
-      {mode === 'repeat' && <Repeat key={ctx.id} day={day} />}
-
-      {mode === 'single' && (
-        <>
       <section className="panel stack" aria-label="Choose a planner to test">
         <h2>1. Pick a planner to test</h2>
         <div className="seg" role="radiogroup" aria-label="Planner scenarios">
@@ -174,8 +159,6 @@ export default function App() {
             )
           })}
         </ol>
-      )}
-        </>
       )}
       <footer className="note">The built-in sample day comes from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
     </main>
