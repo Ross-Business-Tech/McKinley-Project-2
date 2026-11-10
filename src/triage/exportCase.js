@@ -19,8 +19,10 @@ const referenceSeverity = (o) => o.expect?.sev ?? o.expect?.sevMin ?? null
 // Short note the technician should receive on the stop.
 const noteFor = (o) => [...o.flags, `Bring: ${o.bring.join(', ')}`].join('. ')
 
-export function buildCaseFile({ plan, orders, teams, sites }) {
-  const crewIn = teams.filter((t) => t.sites?.length)
+// `plan` is the board's plan for the day, `orders` every work order it was built from, `schedule` the day/after-hours choice.
+// The crew is whoever the plan actually used that day (so days off and after-hours shifts are respected).
+export function buildCaseFile({ plan, orders, schedule, sites }) {
+  const crewIn = plan.techs.map((x) => x.tech).filter((t) => t.sites?.length)
   const used = new Set()
   crewIn.forEach((t) => t.sites.forEach((s) => used.add(s)))
   orders.forEach((o) => o.community && used.add(o.community))
@@ -41,11 +43,13 @@ export function buildCaseFile({ plan, orders, teams, sites }) {
 
   const unknownIds = new Set(plan.unknown.map((o) => o.id))
   const heldIds = new Set(plan.held.map((o) => o.id))
-  const startHour = Math.min(...crewIn.map((t) => t.shift[0]), 8)
-  const endHour = Math.max(...crewIn.map((t) => t.shift[1]), 17)
+  const deferredIds = new Set((plan.deferred || []).map((o) => o.id))
+  const startHour = crewIn.length ? Math.min(...crewIn.map((t) => t.shift[0])) : 8
+  const endHour = crewIn.length ? Math.max(...crewIn.map((t) => t.shift[1])) : 17
 
   const requests = orders.map((o) => {
-    const wholeShift = ['emergency', 'none'].includes(o.entry.status)
+    // After hours the board sends urgent jobs without waiting for the resident's usual daytime window.
+    const wholeShift = ['emergency', 'none'].includes(o.entry.status) || (plan.afterHours && o.sev >= 4)
     const [w0, w1] = wholeShift ? [startHour, endHour] : o.window
     const ref = referenceSeverity(o)
     return {
@@ -62,6 +66,7 @@ export function buildCaseFile({ plan, orders, teams, sites }) {
       ...(o.flags.length ? { facts: o.flags } : {}),
       ...(unknownIds.has(o.id) ? { hold: 'Unit not found: the board cannot route it until someone confirms the unit' } : {}),
       ...(heldIds.has(o.id) ? { hold: 'Waiting on the resident’s OK to enter' } : {}),
+      ...(deferredIds.has(o.id) ? { hold: 'After hours: routine work waits for the regular shift' } : {}),
     }
   })
 
@@ -71,7 +76,7 @@ export function buildCaseFile({ plan, orders, teams, sites }) {
 
   return {
     format: 'plan-case/v1',
-    title: `Maintenance Hub day (${orders.length} requests)`,
+    title: `Maintenance Hub ${schedule?.day ? `${schedule.day}${plan.afterHours ? ', after hours' : ''}` : 'day'} (${orders.length} requests)`,
     source: 'Exported from the Maintenance Hub triage board. Made-up sample data.',
     shift: { start: clock(startHour), end: clock(endHour) },
     communities,

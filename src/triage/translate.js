@@ -116,6 +116,12 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "supervisor": "Supervisor",
+  "onCall": "📟 On call today, 5 PM to midnight",
+  "offToday": "Not scheduled today",
+  "map": "Map",
+  "jobsToday": "Jobs today",
+  "emergencies": "Emergencies",
   "myDay": "My day",
   "stop": "Stop",
   "arrive": "Arrive about",
@@ -131,6 +137,12 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "supervisor": "Supervisor",
+  "onCall": "📟 De guardia hoy, de 5 PM a medianoche",
+  "offToday": "Hoy no tiene turno",
+  "map": "Mapa",
+  "jobsToday": "Trabajos hoy",
+  "emergencies": "Emergencias",
   "myDay": "Mi día",
   "stop": "Parada",
   "arrive": "Llegar aprox.",
@@ -146,6 +158,12 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "supervisor": "Supervisor",
+  "onCall": "📟 De plantão hoje, das 17h à meia-noite",
+  "offToday": "Sem escala hoje",
+  "map": "Mapa",
+  "jobsToday": "Serviços hoje",
+  "emergencies": "Emergências",
   "myDay": "Meu dia",
   "stop": "Parada",
   "arrive": "Chegar por volta de",
@@ -161,6 +179,12 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "supervisor": "Superviseur",
+  "onCall": "📟 D'astreinte aujourd'hui, de 17 h à minuit",
+  "offToday": "Pas de service aujourd'hui",
+  "map": "Plan",
+  "jobsToday": "Travaux du jour",
+  "emergencies": "Urgences",
   "myDay": "Ma journée",
   "stop": "Arrêt",
   "arrive": "Arrivée vers",
@@ -176,6 +200,12 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "supervisor": "Sipèvizè",
+  "onCall": "📟 Ou de gad jodi a, 5 PM rive minwi",
+  "offToday": "Ou pa sou orè jodi a",
+  "map": "Kat",
+  "jobsToday": "Travay jodi a",
+  "emergencies": "Ijans",
   "myDay": "Jounen mwen",
   "stop": "Arè",
   "arrive": "Rive anviwon",

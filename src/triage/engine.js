@@ -1,5 +1,5 @@
 import residents from './residents.json' with { type: 'json' }
-import { JOB_TYPES, VENDOR_RULES, REPEAT_THRESHOLD, ENTRY_RULES, TECHS } from './config.js'
+import { JOB_TYPES, VENDOR_RULES, REPEAT_THRESHOLD, ENTRY_RULES, TECHS, DEFAULT_SITES } from './config.js'
 import { travel, placeOf, startPlace } from './geo.js'
 import { parseLocation, sameCode } from './location.js'
 
@@ -186,21 +186,43 @@ export const fmt = (t) => {
 }
 
 // Each site has its own team, so jobs only go to technicians based at that site.
+const MARKET = Object.fromEntries(DEFAULT_SITES.map((x) => [x.name, x.market]))
+
+// Who can take a job: someone based at that property first; if nobody is working there,
+// someone working in the same city/market (common for on-call coverage). Never across states.
 function candidateTechs(job, techs) {
-  return techs.filter((t) => !job.community || t.sites.includes(job.community))
+  const here = techs.filter((t) => !job.community || t.sites.includes(job.community))
+  if (here.length || !job.community) return here
+  const m = MARKET[job.community]
+  return m ? techs.filter((t) => t.sites.some((x) => MARKET[x] === m)) : []
+}
+
+// ---------- On-call schedule ----------
+export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export const isWorking = (t, day) => (t.workDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']).includes(day)
+export const isOnCall = (t, day) => (t.onCallDays || []).includes(day)
+export const ON_CALL_HOURS = [17, 24]
+// Regular hours: technicians working that day. After hours: only the on-call technicians,
+// and only urgent work (priority 4-5). Everything else waits for the next regular shift.
+export function availableTechs(techs, day, afterHours) {
+  return techs.filter((t) => (afterHours ? isOnCall(t, day) : isWorking(t, day)))
 }
 
 // Assign every job to the best-fit technician: right skill first, then lightest load.
 function assign(jobs, overrides, techs) {
   const load = Object.fromEntries(techs.map((t) => [t.id, 0]))
   const assigned = Object.fromEntries(techs.map((t) => [t.id, []]))
+  const unstaffed = []
   const ordered = [...jobs].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
   for (const job of ordered) {
     let tech
     if (overrides[job.id]) tech = techs.find((t) => t.id === overrides[job.id])
     if (!tech) {
-      const cands = candidateTechs(job, techs)
-      const pool = cands.length ? cands : techs
+      const pool = candidateTechs(job, techs)
+      if (!pool.length) {
+        unstaffed.push(job)
+        continue
+      }
       tech = [...pool].sort((a, b) => {
         const sa = a.skills.includes(job.skill) ? 0 : 1
         const sb = b.skills.includes(job.skill) ? 0 : 1
@@ -212,7 +234,7 @@ function assign(jobs, overrides, techs) {
     assigned[tech.id].push(job)
     load[tech.id] += job.mins
   }
-  return assigned
+  return { assigned, unstaffed }
 }
 
 function simulate(tech, sequence) {
@@ -262,13 +284,20 @@ function smartOrder(tech, jobs) {
   return seq
 }
 
-export function buildPlan(orders, overrides = {}, teamList = TECHS) {
+export function buildPlan(orders, overrides = {}, allTeam = TECHS, schedule = null) {
+  const afterHours = !!schedule?.afterHours
+  const teamList = (schedule ? availableTechs(allTeam, schedule.day, afterHours) : allTeam).map((t) =>
+    afterHours ? { ...t, shift: ON_CALL_HOURS } : t,
+  )
   // Unknown units are not routed: someone must confirm the unit first.
   const unknown = orders.filter((o) => !o.resident)
-  const known = orders.filter((o) => o.resident)
+  let known = orders.filter((o) => o.resident)
+  // After hours, routine work waits; urgent jobs don't wait for the resident's usual daytime window.
+  const deferred = afterHours ? known.filter((o) => o.sev < 4) : []
+  if (afterHours) known = known.filter((o) => o.sev >= 4).map((o) => ({ ...o, window: [0, 24] }))
   const ready = known.filter((o) => o.entry.status !== 'hold')
   const held = known.filter((o) => o.entry.status === 'hold')
-  const assigned = assign(ready, overrides, teamList)
+  const { assigned, unstaffed } = assign(ready, overrides, teamList)
   const techs = teamList.map((tech) => {
     const jobs = assigned[tech.id]
     const smart = simulate(tech, smartOrder(tech, jobs))
@@ -281,5 +310,5 @@ export function buildPlan(orders, overrides = {}, teamList = TECHS) {
     return { tech, plan: useSmart ? smart : hand, byHand: hand, jobs }
   })
   const saved = techs.reduce((n, t) => n + Math.max(0, t.byHand.drive - t.plan.drive), 0)
-  return { techs, held, unknown, saved }
+  return { techs, held, unknown, saved, deferred, unstaffed, afterHours }
 }
