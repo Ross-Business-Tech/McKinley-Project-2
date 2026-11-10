@@ -92,7 +92,7 @@ export function summarise(planner, ctx, runs) {
     [...runs].sort((a, b) => b.issues.length - a.issues.length)[0]
   let verdict
   if (unsafeRuns) verdict = { level: 'unsafe', text: `Not safe to rely on: an emergency was played down in ${unsafeRuns} of ${n} runs.` }
-  else if (planner.kind === 'pasted') verdict = passes ? { level: 'promising', text: 'This one plan passed. One plan cannot show how consistent the model is: ask it again and paste a few more.' } : { level: 'weak', text: 'This plan failed. See what went wrong below.' }
+  else if (planner.kind === 'pasted') verdict = passes ? { level: 'promising', text: 'This one plan passed. If it came from a rules-based board, it will be the same every time for this day. If it came from an AI model, the model can answer differently each time, so ask again and paste a few more.' } : { level: 'weak', text: 'This plan failed. See what went wrong below.' }
   else if (planner.kind === 'deterministic') verdict = passes ? { level: 'reliable', text: 'Passes, and always will: the same rules give the same plan.' } : { level: 'weak', text: 'Fails, and will fail every time.' }
   else if (passes === n && n >= 10) verdict = { level: 'reliable', text: `Passed all ${n} runs. Looks dependable, though a few more runs would firm that up.` }
   else if (passes === n) verdict = { level: 'promising', text: `Passed all ${n} runs, but that is too few to trust. Run more.` }
@@ -106,7 +106,7 @@ export function summarise(planner, ctx, runs) {
 
 // Grade a single pasted plan (a real model's answer): a sample of one, labelled as such.
 export function gradeSingle(label, ctx, plan, urgency) {
-  const planner = { id: 'pasted', label, kind: 'pasted', blurb: 'One plan you pasted in. One plan is only one sample of what that model can do.' }
+  const planner = { id: 'pasted', label, kind: 'pasted', blurb: 'One plan, graded once.' }
   const result = runEvaluation(ctx, { plan, urgency })
   return summarise(planner, ctx, [{ i: 0, pass: result.pass, issues: issuesOf(ctx, result, urgency), result, urgency, scored: !!result.planScore }])
 }
