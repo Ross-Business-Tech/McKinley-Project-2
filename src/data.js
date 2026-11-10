@@ -2,7 +2,7 @@
 export const SHIFT_START = 480 // 8:00 AM, in minutes after midnight
 export const SHIFT_END = 960 // 4:00 PM
 
-import sheet from './sample-residents.json'
+import sheet from './sample-residents.json' with { type: 'json' }
 
 // Residents and requests come from the sprint's sample spreadsheet (synthetic). Each community code
 // stands for the community name used in the sheet.
