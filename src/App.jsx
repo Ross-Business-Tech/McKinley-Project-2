@@ -115,6 +115,7 @@ function App() {
   return (
     <main className="app">
       <header className="hero">
+        <span className="wordmark">mckinley</span>
         <span className="chip">Prototype · sample data</span>
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
@@ -145,37 +146,49 @@ function App() {
       </nav>
 
       {tab === 'new' && (
-        <form className="card" onSubmit={addOrder}>
-          <h2>Add a maintenance request</h2>
-          <label>Paste the message
-            <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={4}
-              placeholder="e.g. Evergreen building eleven unit four: the toilet is overflowing" />
-          </label>
-          {msg.trim() && !resId && (() => {
-            const l = parseLocation(msg)
-            return (
-              <p className="small readas">
-                {l.building || l.unit || l.site
-                  ? <>We read this as: <b>{[l.site, l.building && `Building ${l.building}`, l.unit && `Unit ${l.unit}`].filter(Boolean).join(', ')}</b></>
-                  : 'No building or unit found yet. Try "building eleven unit four" or "Bldg 11 Unit 4".'}
-              </p>
-            )
-          })()}
-          <label>Resident (optional; if blank we look for a unit number in the message)
-            <select value={resId} onChange={(e) => setResId(e.target.value)}>
-              <option value="">Find it from the message</option>
-              {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
-            </select>
-          </label>
-          <div className="two">
-            <label>Requester phone (optional)
-              <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value)} placeholder="555-0100" inputMode="tel" />
-            </label>
-            <label>Requester email (optional)
-              <input value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" />
-            </label>
+        <form className="card chat" onSubmit={addOrder}>
+          <div className="chat-head">
+            <span className="avatar">m</span>
+            <div><b>McKinley Maintenance</b><span>Here to help, usually within the hour</span></div>
           </div>
-          <button className="primary" type="submit">Triage it</button>
+          <div className="chat-body">
+            <p className="bubble them">Hi there, thanks for reaching out. Tell us what's going on and where, and we'll take it from here.</p>
+            {msg.trim() && <p className="bubble me">{msg.trim()}</p>}
+            {msg.trim() && !resId && (() => {
+              const l = parseLocation(msg)
+              return (
+                <p className="bubble them">
+                  {l.building || l.unit || l.site
+                    ? <>Got it, that's <b>{[l.site, l.building && `Building ${l.building}`, l.unit && `Unit ${l.unit}`].filter(Boolean).join(', ')}</b>. Is that right?</>
+                    : 'Which building and apartment is this for? For example, "Building 11, Unit 4".'}
+                </p>
+              )
+            })()}
+          </div>
+          <div className="chat-form">
+            <label>What can we help you with?
+              <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3}
+                placeholder="e.g. Evergreen building eleven unit four: the toilet is overflowing" />
+            </label>
+            <details>
+              <summary>Add your details (optional)</summary>
+              <label>Your name and apartment
+                <select value={resId} onChange={(e) => setResId(e.target.value)}>
+                  <option value="">We'll find it from your message</option>
+                  {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
+                </select>
+              </label>
+              <div className="two">
+                <label>Best phone number
+                  <input value={reqPhone} onChange={(e) => setReqPhone(e.target.value)} placeholder="555-0100" inputMode="tel" />
+                </label>
+                <label>Email
+                  <input value={reqEmail} onChange={(e) => setReqEmail(e.target.value)} placeholder="name@example.com" inputMode="email" />
+                </label>
+              </div>
+            </details>
+            <button className="primary send" type="submit">Send to our team</button>
+          </div>
         </form>
       )}
 
