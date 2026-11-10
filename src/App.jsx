@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import SiteMap from './SiteMap.jsx'
-import { mapFor, buildingPos } from './triage/geo.js'
+import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt } from './triage/engine.js'
@@ -40,7 +40,6 @@ function App() {
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
   const [handled, setHandled] = useState({})
-  const [allSos, setAllSos] = useState(false)
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
   const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
@@ -59,7 +58,7 @@ function App() {
   const plan = useMemo(() => buildPlan(orders, tech, team), [orders, tech, team])
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
-  const ranked = [...orders].sort((a, b) => b.sev - a.sev || a.received.localeCompare(b.received))
+  const ranked = [...orders].sort((a, b) => (handled[a.id] ? 1 : 0) - (handled[b.id] ? 1 : 0) || b.sev - a.sev || a.received.localeCompare(b.received))
 
   const followups = useMemo(
     () =>
@@ -69,7 +68,10 @@ function App() {
         .sort((a, b) => b.o.sev - a.o.sev),
     [orders],
   )
-  const emergencies = allOrders.filter((o) => o.sev >= 5 && !handled[o.id])
+  const addressOf = (o) => {
+    const st = sites.find((x) => x.name === o.community)
+    return st?.address ? `${st.name}, ${st.address}, ${st.city} ${st.zip || ''}`.trim() : null
+  }
   const openFollowups = followups.filter((f) => !contacted[f.o.id])
 
   const stats = {
@@ -123,38 +125,6 @@ function App() {
           <div><b>{stats.hold}</b><span>Waiting on OK</span></div>
         </section>
       </header>
-
-      {emergencies.length > 0 && (
-        <section className="sos" aria-label="Open emergencies">
-          <h2>🚨 {emergencies.length} emergenc{emergencies.length === 1 ? 'y' : 'ies'} right now</h2>
-          {(allSos ? emergencies : emergencies.slice(0, 2)).map((o) => {
-            const st = sites.find((x) => x.name === o.community)
-            const address = st?.address ? `${st.name}, ${st.address}, ${st.city} ${st.zip || ''}`.trim() : null
-            const bld = o.resident?.building || o.loc?.building
-            const unit = o.resident?.unit || o.loc?.unit
-            const where = bld ? buildingPos(o.community, bld) : null
-            const phone = o.resident?.phone || o.phone
-            return (
-              <div key={o.id} className="sos-item">
-                <p className="sos-what"><b>{o.label}</b> · {[o.community || 'Property unknown', bld && `Bldg ${bld}`, unit && `Unit ${unit}`].filter(Boolean).join(' · ')}</p>
-                {address && <p className="sos-addr">{address}</p>}
-                {where?.note && <p className="sos-note">On site: {where.note.split(';')[0]}</p>}
-                <div className="sos-actions">
-                  {address
-                    ? <a className="btn sos-go" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}&travelmode=driving`} target="_blank" rel="noreferrer">📍 Directions</a>
-                    : <span className="sos-missing">Address unknown: call the requester</span>}
-                  {o.community && mapFor(o.community) && <button className="btn" onClick={() => { setSite(o.community); setTab('map') }}>Map</button>}
-                  {phone && <a className="btn" href={`tel:${phone}`}>Call</a>}
-                  <button className="btn" onClick={() => setHandled({ ...handled, [o.id]: true })}>✓ Done</button>
-                </div>
-              </div>
-            )
-          })}
-          {emergencies.length > 2 && (
-            <button className="link" onClick={() => setAllSos(!allSos)}>{allSos ? 'Show fewer' : `Show all ${emergencies.length} emergencies`}</button>
-          )}
-        </section>
-      )}
 
       <div className="sitepick">
         <label>Site team
@@ -266,11 +236,24 @@ function App() {
             const t = assignedTo(o.id)
             const miss = missingInfo(o)
             return (
-              <article key={o.id} className={`card order ${tag(o.sev).color}`}>
+              <article key={o.id} className={`card order ${tag(o.sev).color} ${handled[o.id] ? 'faded' : ''}`}>
                 <div className="row">
                   <span className={`pill ${tag(o.sev).color}`}>{o.sev} · {tag(o.sev).label}</span>
-                  <span className="small">{tag(o.sev).sla} · {o.label}</span>
+                  {o.sev >= 5 && !handled[o.id] ? (
+                    <>
+                      {addressOf(o)
+                        ? <a className="btn go" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressOf(o))}&travelmode=driving`} target="_blank" rel="noreferrer">📍 Go now</a>
+                        : <span className="go-missing">Address unknown</span>}
+                      {(o.resident?.phone || o.phone) && <a className="btn mini" href={`tel:${o.resident?.phone || o.phone}`}>Call</a>}
+                      <button className="btn mini" onClick={() => setHandled({ ...handled, [o.id]: true })}>✓ Done</button>
+                    </>
+                  ) : o.sev >= 5 ? (
+                    <button className="chip chipbtn e-ok" onClick={() => setHandled({ ...handled, [o.id]: false })} title="Tap to undo">Handled ✓</button>
+                  ) : (
+                    <span className="small">{tag(o.sev).sla}</span>
+                  )}
                 </div>
+                <p className="small label">{o.label}{o.sev >= 5 && addressOf(o) && !handled[o.id] ? ` · ${addressOf(o)}` : ''}</p>
                 <p className="text">“{o.text}”</p>
                 <p className="unit">
                   {o.resident ? <>{o.resident.building && <>Bldg <b>{o.resident.building}</b> · </>}Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : o.loc?.building || o.loc?.unit
