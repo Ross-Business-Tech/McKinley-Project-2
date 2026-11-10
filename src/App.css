@@ -160,3 +160,18 @@ label.ask{color:var(--red)}
   .cardgrid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (min-width: 1000px) { .hero > .chip { justify-self: start; } }
+
+/* Team hours (all-sites view) */
+.hours{padding:10px 12px;margin:0 0 12px}
+.hours-toggle{all:unset;display:flex;justify-content:space-between;align-items:center;width:100%;cursor:pointer}
+.hours table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.8rem}
+.hours th{font-weight:600;color:var(--mute);padding:2px 0;text-align:center;width:24px}
+.hours th.today,.hours td.today{background:var(--soft)}
+.hsite{padding:8px 0 2px;font-weight:700;color:var(--brand2);font-size:.78rem;text-transform:uppercase;letter-spacing:.03em}
+.hname{padding:4px 4px 4px 0}.hname b{display:block;font-size:.85rem}
+.hstat{font-size:.72rem;font-weight:600}.hstat.on{color:var(--green)}.hstat.oc{color:#0f2742}.hstat.off{color:var(--mute)}
+.hcell{text-align:center;vertical-align:middle;position:relative;height:30px}
+i.work{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--brand);vertical-align:middle}
+.pager{font-size:.7rem;display:block;line-height:1}
+.hcell .pager{position:absolute;right:1px;bottom:1px}
+.hlegend{margin:8px 0 0}.hlegend i.work{width:10px;height:10px}

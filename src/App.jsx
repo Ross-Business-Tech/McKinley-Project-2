@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import SiteMap from './SiteMap.jsx'
 import TechDay from './TechDay.jsx'
+import TeamHours from './TeamHours.jsx'
 import { readPhotos } from './photos.js'
 import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
@@ -280,6 +281,7 @@ function App() {
         })()}
         {schedule.afterHours && ' · only priority 4–5 jobs go out; the rest wait for regular hours'}
       </p>
+      {site === 'all' && <TeamHours techs={team} siteNames={mySiteNames} day={schedule.day} afterHours={schedule.afterHours} />}
 
       <nav className="tabs">
         {TABS.map(([k, l]) => (
