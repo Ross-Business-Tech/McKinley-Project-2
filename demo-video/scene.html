@@ -1,0 +1,116 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--teal:#0f6b73;--crit:#b3261e;--critsoft:#fbe4e2;--warn:#8a5a00;--warnsoft:#fbefd2;--ok:#2f6b3a;--oksoft:#e1f1e3;--fg:#17232b;--muted:#5b6b75;--line:#d9e0e4}
+*{box-sizing:border-box;margin:0}
+html,body{width:1280px;height:720px;overflow:hidden;background:#000;font-family:'Inter',system-ui,sans-serif;color:var(--fg)}
+.scene{position:absolute;inset:0;overflow:hidden;opacity:0}
+.center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.big{font-size:84px;font-weight:700;letter-spacing:-2px;text-align:center}
+.cap{position:absolute;left:0;right:0;bottom:56px;text-align:center;font-size:40px;font-weight:600;letter-spacing:-.5px}
+#s1{background:#000;color:#fff}
+#s1 .msgs{position:absolute;left:190px;right:190px;top:40px}
+.msg{padding:10px 0;border-bottom:1px solid #222;color:#8a949a;font-family:'DejaVu Sans Mono',monospace;font-size:24px}
+.msg.gas{transition:none}
+#s1 .q{position:absolute;inset:0;display:flex;align-items:flex-end;padding-bottom:80px;justify-content:center;font-size:92px;font-weight:700;letter-spacing:-2px;text-align:center;text-shadow:0 0 60px #000,0 0 30px #000}
+#s2{background:#fff}
+#s3,#s4,#s5{background:#f3f5f6}
+.card{background:#fff;border:2px solid var(--line);border-left:14px solid var(--crit);border-radius:16px;width:1020px;padding:40px 48px}
+.head{display:flex;justify-content:space-between;align-items:center}
+.title{font-size:38px;font-weight:700;letter-spacing:-.8px}
+.pill{font-family:'DejaVu Sans Mono',monospace;font-size:22px;letter-spacing:2px;padding:6px 18px;border-radius:99px;background:var(--critsoft);color:var(--crit);font-weight:700}
+.why{font-size:30px;line-height:1.4;margin-top:26px}
+.why span{background:linear-gradient(#fde9a8,#fde9a8) no-repeat 0 90%/0% 55%}
+.chips{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+.chip{font-size:26px;padding:8px 20px;border-radius:8px;background:var(--warnsoft);color:var(--warn);font-weight:600;opacity:0}
+.chip.n{background:#dff0f1;color:var(--fg)}
+.btn{background:var(--teal);color:#fff;font-size:44px;font-weight:700;padding:30px 64px;border-radius:18px;letter-spacing:-.5px;display:inline-block}
+.panel{background:#fff;border:2px solid var(--line);border-radius:16px;width:900px;padding:28px 40px}
+.row{display:flex;justify-content:space-between;font-size:34px;padding:18px 0;border-top:2px solid var(--line)}
+.row:first-child{border-top:0}.row b{font-weight:700}.row i{font-style:normal;color:var(--muted);font-family:'DejaVu Sans Mono',monospace;font-size:30px}
+.ph{font-family:'DejaVu Sans Mono',monospace;font-size:20px;letter-spacing:2px;color:var(--muted);margin-bottom:10px}
+.gate{display:flex;justify-content:space-between;align-items:center;font-size:34px;font-weight:600;padding:20px 0;border-top:2px solid var(--line)}
+.gate:first-of-type{border-top:0}
+.tag{font-family:'DejaVu Sans Mono',monospace;font-size:26px;font-weight:700;padding:6px 20px;border-radius:99px;background:#e9edef;color:#8a949a;letter-spacing:2px}
+.barrow{margin-top:22px;font-size:26px}
+.bar{height:22px;border-radius:11px;background:#e5eaed;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%}
+#s6{background:#fff}
+#s7{background:var(--teal);color:#fff}
+.cursor{position:absolute;width:44px;height:44px}
+</style></head><body>
+<div class="scene" id="s1"><div class="msgs" id="msgs"></div><div class="q" id="q1">Which one is urgent?</div></div>
+<div class="scene" id="s2"><div class="center"><div class="big" id="t2a" style="position:absolute">Meet Triage Board.</div><div class="big" id="t2b" style="position:absolute;color:var(--teal)">Know what to fix first.</div></div></div>
+<div class="scene" id="s3"><div class="center" id="c3"><div class="card">
+ <div class="head"><span class="title">Kitchen sink leaking, 4th time</span><span class="pill">URGENT</span></div>
+ <p class="why"><b>Why first:</b> <span id="hl">Active leak under the cabinet. 4th request since April.</span></p>
+ <div class="chips"><span class="chip" id="k1">4th repeat</span><span class="chip" id="k2">Callback owed</span><span class="chip n" id="k3">Prefers calls</span></div></div></div>
+ <div class="cap" id="cap3">Ranked, with the reason.</div></div>
+<div class="scene" id="s4"><div class="center" id="c4" style="justify-content:flex-start;padding-top:110px">
+ <div class="btn" id="btn">Approve and assign</div>
+ <div class="panel" id="panel" style="margin-top:36px;opacity:0"><div class="ph">SUGGESTED CREW SPLIT · MADE-UP CREW</div>
+  <div class="row" id="r1"><span><b>Tech A</b> · plumbing</span><i>Sink · 9:00</i></div>
+  <div class="row" id="r2"><span><b>Tech B</b> · HVAC</span><i>AC · 8:30</i></div>
+  <div class="row" id="r3"><span><b>Vendor</b> · pest</span><i>Roaches · TBD</i></div>
+  <div class="chips" style="margin-top:14px"><span class="chip n" id="dog" style="opacity:1">Crate dog before entry</span></div></div>
+ <svg class="cursor" id="cur" viewBox="0 0 24 24"><path d="M3 2l7 19 3-8 8-3z" fill="#111" stroke="#fff" stroke-width="1.5"/></svg></div>
+ <div class="cap" id="cap4">One click. Crew assigned.</div></div>
+<div class="scene" id="s5"><div class="center" id="c5"><div class="panel" style="width:1040px">
+ <div class="ph">EVALUATOR · SAMPLE TEST DAY · ESTIMATE</div>
+ <div class="gate"><span>No emergency ranked too low</span><span class="tag" id="g1">PASS</span></div>
+ <div class="gate"><span>Plan never worse than by hand</span><span class="tag" id="g2">PASS</span></div>
+ <div id="bars" style="opacity:0"><div class="barrow">Drive time<div class="bar"><i id="b1" style="background:var(--teal);width:0"></i></div><div class="bar"><i id="b2" style="background:#b8c4ca;width:0"></i></div></div>
+ <div class="barrow">Urgent response<div class="bar"><i id="b3" style="background:var(--teal);width:0"></i></div><div class="bar"><i id="b4" style="background:#b8c4ca;width:0"></i></div></div>
+ <div style="margin-top:14px;font-size:22px;color:var(--muted)"><b style="color:var(--teal)">■</b> Tool &nbsp; <b style="color:#b8c4ca">■</b> By hand</div></div></div></div>
+ <div class="cap" id="cap5">Proof before you trust it.</div></div>
+<div class="scene" id="s6"><div class="center"><div class="big" style="font-size:240px;letter-spacing:-8px;color:var(--teal)" id="p1">0 of 4</div><div class="big" style="font-size:64px;margin-top:6px" id="p2">gas leaks ranked low.</div></div>
+ <div style="position:absolute;bottom:36px;left:0;right:0;text-align:center;font-size:22px;color:var(--muted)" id="p3">Sample test set</div></div>
+<div class="scene" id="s7"><div class="center">
+ <svg id="logo" width="150" height="150" viewBox="0 0 100 100" style="position:absolute;margin-top:-60px"><rect x="10" y="14" width="80" height="18" rx="9" fill="#fff"/><rect x="10" y="41" width="60" height="18" rx="9" fill="#fff" opacity=".75"/><rect x="10" y="68" width="38" height="18" rx="9" fill="#fff" opacity=".5"/></svg>
+ <div class="big" id="l1" style="position:absolute;margin-top:140px;font-size:74px">Know what to fix first.</div>
+ <div class="big" id="l2" style="position:absolute;font-size:70px">See it live Nov 17.<div style="font-size:44px;font-weight:500;margin-top:14px;opacity:.85">[URL]</div></div></div></div>
+<script>
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)),ease=x=>x*x*(3-2*x),pr=(t,a,b)=>ease(clamp((t-a)/(b-a)));
+const fadeIO=(t,a,b,f=.6)=>Math.min(pr(t,a,a+f),1-pr(t,b-f,b)) ;
+const $=id=>document.getElementById(id);
+const msgs=["2:14 AM · 4B · Sink dripping again","2:51 AM · 9 · Thermostat won't hold","3:07 AM · 12 · Smells like gas in hall","3:40 AM · 2A · Neighbor's music late","4:22 AM · 7 · Light bulb is out","5:05 AM · 15 · Roaches are back"];
+$('msgs').innerHTML=msgs.map((m,i)=>`<div class="msg" id="m${i}">${m}</div>`).join('');
+function render(t){
+ // scene opacities
+ const S=(id,a,b,fi=.5,fo=.5)=>{$(id).style.opacity=clamp(Math.min((t-a)/fi,(b-t)/fo),0,1)};
+ S('s1',0,5.4,.01,.6);S('s2',5,10.4,.6,.5);S('s3',10,23.4,.5,.5);S('s4',23,36.4,.5,.5);S('s5',36,50.4,.5,.5);S('s6',50,55.4,.5,.5);S('s7',55,60.01,.5,.01);
+ // s1
+ for(let i=0;i<6;i++){const e=pr(t,.3+i*.35,.8+i*.35);const m=$('m'+i);m.style.opacity=e*(i==2&&t>3.2?1:.5);m.style.transform=`translateY(${(1-e)*30}px)`;
+  if(i==2){const r=pr(t,3.2,3.8);m.style.color=`rgb(${138+r*90},${148-r*90},${154-r*100})`;m.style.fontWeight=r>.5?700:400}}
+ $('q1').style.opacity=pr(t,1.9,2.6)*.0+pr(t,1.9,2.6);
+ $('s1').style.transform=`scale(${1+t*.012})`;
+ // s2
+ $('t2a').style.opacity=Math.min(pr(t,5.3,6),1-pr(t,7.2,7.7));$('t2b').style.opacity=pr(t,7.6,8.3);
+ $('t2a').style.transform=`scale(${1+(t-5)*.012})`;$('t2b').style.transform=`scale(${1+(t-7.5)*.012})`;
+ // s3
+ const u3=t-10;$('c3').style.transform=`scale(${1+u3*.007})`;
+ $('hl').style.backgroundSize=`${pr(t,14,16.5)*100}% 55%`;
+ ['k1','k2','k3'].forEach((k,i)=>{const e=pr(t,17+i*.5,17.6+i*.5);$(k).style.opacity=e;$(k).style.transform=`translateY(${(1-e)*14}px)`});
+ $('cap3').style.opacity=pr(t,11,11.8);
+ // s4
+ const u4=t-23;const click=pr(t,27,27.2)-pr(t,27.2,27.5)*.0;
+ $('c4').style.transform=`translateY(${-pr(t,28.4,30.5)*50}px) scale(${1+u4*.004})`;
+ const cx=pr(t,24,26.8),cp=(a,b)=>a+(b-a)*cx;
+ const cu=$('cur');cu.style.left=cp(900,610)+'px';cu.style.top=cp(600,330)+'px';cu.style.opacity=1-pr(t,29,29.6);
+ const press=t>27&&t<27.35;$('btn').style.transform=`scale(${press?.95:1})`;$('btn').style.opacity=1-pr(t,29,30)*.0;
+ $('btn').style.background=t>27?'#0b565c':'#0f6b73';
+ $('panel').style.opacity=pr(t,27.6,28.4);
+ [['r1',28.2],['r2',29.2],['r3',30.2]].forEach(([r,a])=>{const e=pr(t,a,a+.6);$(r).style.opacity=e;$(r).style.transform=`translateX(${(1-e)*-30}px)`});
+ const g=pr(t,32,33)-pr(t,34,35);$('dog').style.boxShadow=`0 0 0 ${g*8}px rgba(15,107,115,${g*.3})`;
+ $('cap4').style.opacity=pr(t,24.5,25.3);
+ // s5
+ $('c5').style.transform=`scale(${1+(t-36)*.005})`;
+ [['g1',39],['g2',41]].forEach(([id,a])=>{const e=pr(t,a,a+.5),el=$(id);el.style.background=e>.5?'var(--oksoft)':'#e9edef';el.style.color=e>.5?'var(--ok)':'#8a949a';el.style.transform=`scale(${1+Math.sin(e*Math.PI)*.15})`;el.textContent=e>.5?'✓ PASS':'···'});
+ $('bars').style.opacity=pr(t,43,43.8);
+ $('b1').style.width=pr(t,43.5,46)*62+'%';$('b2').style.width=pr(t,43.8,46.3)*84+'%';$('b3').style.width=pr(t,44.5,47)*48+'%';$('b4').style.width=pr(t,44.8,47.3)*80+'%';
+ $('cap5').style.opacity=pr(t,37,37.8);
+ // s6
+ $('p1').style.opacity=pr(t,50.4,51.4);$('p1').style.transform=`scale(${.96+pr(t,50.4,55)*.06})`;$('p2').style.opacity=pr(t,52,52.8);$('p3').style.opacity=pr(t,52.5,53.2);
+ // s7
+ $('logo').style.opacity=pr(t,55.2,55.8)*(1-pr(t,57,57.4));$('logo').style.transform=`scale(${1+(t-55)*.03})`;
+ $('l1').style.opacity=pr(t,57,57.6)*(1-pr(t,58.2,58.6));$('l2').style.opacity=pr(t,58.4,59);
+}
+window.render=render;render(0);
+</script></body></html>
