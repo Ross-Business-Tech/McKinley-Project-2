@@ -175,3 +175,21 @@ i.work{display:inline-block;width:12px;height:12px;border-radius:3px;background:
 .pager{font-size:.7rem;display:block;line-height:1}
 .hcell .pager{position:absolute;right:1px;bottom:1px}
 .hlegend{margin:8px 0 0}.hlegend i.work{width:10px;height:10px}
+
+/* Sync status, AI, stats, parts, vendors, time off, alerts */
+.chip.sync{background:rgba(255,255,255,.14)!important;color:#fff!important;border:0!important;margin-left:6px}
+.chip.sync.online::first-letter{color:#7CF29A}.chip.sync.local::first-letter{color:#FFD27A}
+.chip.c-ai{background:#eef2ff;color:#3b3f99;border-color:#d4d8fb}
+.aibox{background:#f3f4ff;border-radius:10px;padding:8px 10px}
+.stattiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 12px}
+.stattiles div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.stattiles b{display:block;font-size:1.6rem}.stattiles span{font-size:.75rem;color:var(--mute)}
+@media(max-width:520px){.stattiles{grid-template-columns:repeat(2,1fr)}}
+.bars{list-style:none;padding:0;margin:8px 0 0}
+.bars li{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr auto;gap:8px;align-items:center;padding:4px 0;font-size:.85rem}
+.blabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bval{font-weight:600;min-width:2.5em;text-align:right}
+.btrack{height:10px;background:var(--soft);border-radius:4px;overflow:hidden}.bfill{display:block;height:100%;background:var(--brand);border-radius:0 4px 4px 0}
+.parts{margin-top:8px}.partform{flex-wrap:nowrap}.partform input{min-width:0}.partform .qty{width:64px;flex:none}.partform button{flex:none}
+.vendorreq .row{margin:6px 0}.resupdate{margin-top:8px}
+.timeoff .row{padding:4px 0;border-top:1px dashed var(--line)}.timeoff .row.today{background:var(--soft)}
+.alertbtn{width:100%;margin:0 0 10px}

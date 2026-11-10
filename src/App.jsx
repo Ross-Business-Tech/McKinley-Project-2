@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import SiteMap from './SiteMap.jsx'
 import TechDay from './TechDay.jsx'
 import TeamHours from './TeamHours.jsx'
 import { readPhotos } from './photos.js'
+import { define, useShared, useSyncMode, connect, setWho, signedInEmail } from './shared.js'
+import { aiRead } from './ai.js'
+import Stats from './Stats.jsx'
+import { VendorsEditor, VendorRequest } from './Vendors.jsx'
+import { DEFAULT_VENDORS } from './vendorsData.js'
+import { PartsList, ResidentUpdate } from './JobExtras.jsx'
 import { mapFor } from './triage/geo.js'
 import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
@@ -35,12 +41,36 @@ function save(key, value) {
   }
 }
 
+// Everything below is shared with the whole team when the app runs on the team's here.now site
+// (see shared.js); on a test link it is saved in this browser only.
+define('orders', 'list', TEST_ORDERS)
+define('state', 'map', {})
+define('assign', 'map', {})
+define('approved', 'map', {})
+define('contacted', 'map', {})
+define('handled', 'map', {})
+define('techDone', 'map', {})
+define('ai', 'map', {})
+define('parts', 'map', {})
+define('timeoff', 'map', {})
+define('teams', 'list', TECHS)
+define('sups', 'list', DEFAULT_SUPERVISORS)
+define('sites', 'list', DEFAULT_SITES, 'name')
+define('vendors', 'list', DEFAULT_VENDORS)
+connect()
+
 function App() {
-  const [raw, setRaw] = useState(TEST_ORDERS)
-  const [state, setState] = useState({})
-  const [tech, setTech] = useState({})
-  const [approved, setApproved] = useState({})
-  const [contacted, setContacted] = useState({})
+  const syncMode = useSyncMode()
+  const [raw, setRaw] = useShared('orders')
+  const [state, setState] = useShared('state')
+  const [tech, setTech] = useShared('assign')
+  const [approved, setApproved] = useShared('approved')
+  const [contacted, setContacted] = useShared('contacted')
+  const [aiRes, setAiRes] = useShared('ai')
+  const [parts, setParts] = useShared('parts')
+  const [timeoff, setTimeoff] = useShared('timeoff')
+  const [vendors, setVendors] = useShared('vendors')
+  const [email, setEmail] = useState(null)
   const [tab, setTab] = useState('queue')
   const [msg, setMsg] = useState('')
   const [resId, setResId] = useState('')
@@ -48,14 +78,14 @@ function App() {
   const [reqEmail, setReqEmail] = useState('')
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
-  const [handled, setHandled] = useState({})
+  const [handled, setHandled] = useShared('handled')
   const [photos, setPhotos] = useState({})
   const [newPhotos, setNewPhotos] = useState([])
-  const [techDone, setTechDone] = useState({})
+  const [techDone, setTechDone] = useShared('techDone')
   const [role, setRole] = useState(() => load('mk-role', null))
   const [techId, setTechId] = useState(() => load('mk-tech', null))
   const [supId, setSupId] = useState(() => load('mk-sup', null))
-  const [sups, setSups] = useState(() => load('mk-sups-v1', DEFAULT_SUPERVISORS))
+  const [sups, setSups] = useShared('sups')
   const [techTab, setTechTab] = useState('day')
   const [techSite, setTechSite] = useState(null)
   // Which day and shift we're planning for. Starts from the real clock: evenings and weekends are on-call time.
@@ -67,18 +97,68 @@ function App() {
   })
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
-  const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
-  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v5', TECHS))
+  const [sites, setSites] = useShared('sites')
+  const [teamsRaw, setTeamsRaw] = useShared('teams')
 
-  useEffect(() => save('mk-sites-v2', sites), [sites])
-  useEffect(() => save('mk-teams-v5', teamsRaw), [teamsRaw])
+  // Sign-in: on a members-only or invite-only here.now site, the access gate knows who you are.
+  useEffect(() => {
+    signedInEmail().then(setEmail)
+  }, [])
   useEffect(() => save('mk-role', role), [role])
   useEffect(() => save('mk-tech', techId), [techId])
   useEffect(() => save('mk-sup', supId), [supId])
-  useEffect(() => save('mk-sups-v1', sups), [sups])
 
-  const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
-  const everyOrder = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
+  // Days off (requested by technicians) take that weekday out of their shifts and on-call days.
+  const allTeams = useMemo(
+    () =>
+      teamsRaw.map((t) => {
+        const off = DAYS.filter((d) => timeoff[`${t.id}|${d}`])
+        const wd = t.workDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        return { ...t, home: t.sites[0] || '', daysOff: off, workDays: wd.filter((d) => !off.includes(d)), onCallDays: (t.onCallDays || []).filter((d) => !off.includes(d)), usualWorkDays: wd }
+      }),
+    [teamsRaw, timeoff],
+  )
+
+  // Signed in through the here.now gate with an email that's on a team? Open their view directly.
+  useEffect(() => {
+    if (!email || role) return
+    const t = allTeams.find((x) => (x.email || '').toLowerCase() === email)
+    const b = sups.find((x) => (x.email || '').toLowerCase() === email)
+    if (t) {
+      setRole('tech')
+      setTechId(t.id)
+    } else if (b) {
+      setRole('supervisor')
+      setSupId(b.id)
+    }
+  }, [email, role, allTeams, sups])
+  const everyOrder = useMemo(() => raw.map((r) => buildOrder(r, state[r.id], aiRes[r.id])), [raw, state, aiRes])
+
+  // AI step: read each request once and save the result for everyone. If the AI connection
+  // isn't set up (test links, no key yet), stop after the first failure and use the rules.
+  const aiTried = useRef(new Set())
+  const aiOff = useRef(false)
+  useEffect(() => {
+    if (aiOff.current || syncMode === 'starting') return
+    const todo = everyOrder.filter((o) => !aiRes[o.id] && !aiTried.current.has(o.id))
+    if (!todo.length) return
+    let cancelled = false
+    ;(async () => {
+      for (const o of todo.slice(0, 5)) {
+        if (cancelled || aiOff.current) return
+        aiTried.current.add(o.id)
+        try {
+          const r = await aiRead(o)
+          if (r) setAiRes((m) => ({ ...m, [o.id]: r }))
+        } catch {
+          aiOff.current = true
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [everyOrder, aiRes, syncMode, setAiRes])
   // Each supervisor sees only their own properties. "Regional view" sees all of them.
   // Requests we couldn't match to a property show for everyone, so none get lost.
   const sup = sups.find((x) => x.id === supId) || null
@@ -152,6 +232,7 @@ function App() {
     ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
     ['routes', 'Routes'],
     ['map', 'Map'],
+    ['stats', 'Stats'],
     ['teams', 'Teams'],
     ['new', 'Add'],
   ]
@@ -166,9 +247,11 @@ function App() {
   }
 
   // ---------- Who is using the app? ----------
+  setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (role ? 'Regional view' : null))
+
   if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup)) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} initialRole={role}
+      <RoleChooser techs={allTeams} sups={sups} initialRole={role} email={email}
         onPick={(r, id) => {
           setRole(r)
           if (r === 'tech') setTechId(id)
@@ -195,6 +278,7 @@ function App() {
             <span className="wordmark">mckinley</span>
             <button className="switch" onClick={() => setRole(null)}>Switch user</button>
           </div>
+          <SyncChip mode={syncMode} email={email} />
           <h1>{L.myDay} · {me.name}</h1>
           <p>{me.sites.join(', ')} · {langInfo(me.lang)?.native || 'English'} · {fmt(me.shift[0])}–{fmt(me.shift[1])}</p>
           {supervisorOf(me.home) && (
@@ -215,7 +299,7 @@ function App() {
         </nav>
         {techTab === 'day' && (
           <TechDay me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
-            addressOf={addressOf} photos={photos} addPhotos={addPhotos} />
+            addressOf={addressOf} photos={photos} addPhotos={addPhotos} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
         )}
         {techTab === 'map' && (
           <>
@@ -240,6 +324,7 @@ function App() {
           <button className="switch" onClick={() => setRole(null)}>Switch user</button>
         </div>
         <span className="chip">Supervisor · {sup ? `${sup.name} · ${mySites.length} properties` : 'Regional view · all properties'} · sample data</span>
+        <SyncChip mode={syncMode} email={email} />
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
         <section className="stats">
@@ -281,6 +366,7 @@ function App() {
         })()}
         {schedule.afterHours && ' · only priority 4–5 jobs go out; the rest wait for regular hours'}
       </p>
+      <TimeOffPanel team={team} allTeams={allTeams} day={schedule.day} timeoff={timeoff} setTimeoff={setTimeoff} />
       {site === 'all' && <TeamHours techs={team} siteNames={mySiteNames} day={schedule.day} afterHours={schedule.afterHours} />}
 
       <nav className="tabs">
@@ -414,6 +500,9 @@ function App() {
                         ? <a className="btn go" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressOf(o))}&travelmode=driving`} target="_blank" rel="noreferrer">📍 Go now</a>
                         : <span className="go-missing">Address unknown</span>}
                       {(o.resident?.phone || o.phone) && <a className="btn mini" href={`tel:${o.resident?.phone || o.phone}`}>Call</a>}
+                      {schedule.afterHours && assignedTo(o.id)?.phone && (
+                        <a className="btn mini" href={`sms:${assignedTo(o.id).phone}?&body=${encodeURIComponent(`📟 EMERGENCY ${o.id}: ${o.label} at ${addressOf(o) || o.community}${o.resident ? `, Bldg ${o.resident.building} Unit ${o.resident.unit}` : ''}. Open your Maintenance Hub "My day" for details.`)}`}>📟 Page {assignedTo(o.id).name}</a>
+                      )}
                       <button className="btn mini" onClick={() => setHandled({ ...handled, [o.id]: true })}>✓ Done</button>
                     </>
                   ) : o.sev >= 5 ? (
@@ -435,6 +524,8 @@ function App() {
                   </span>
                   {miss.length > 0 && !contacted[o.id] && <button className="chip c-missing chipbtn" onClick={() => setTab('followups')}>Missing info: follow up</button>}
                   {o.vendor && <span className="chip c-vendor">Vendor: {o.vendor.vendor}</span>}
+                  {o.ai && <span className="chip c-ai" title={o.ai.reason}>🤖 AI read{o.ai.visit_needed === 'maybe_not' ? ': may not need a visit' : ''}</span>}
+                  {(parts[o.id] || []).length > 0 && <span className="chip">🔩 {parts[o.id].length} part{parts[o.id].length > 1 ? 's' : ''}</span>}
                   {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
                   {t && <span className="chip c-tech">{t.name}</span>}
@@ -455,10 +546,20 @@ function App() {
                     <p className="why">Why: {o.reasons.join('. ')}.</p>
                     <p><b>Entry:</b> {o.entry.text}</p>
                     {o.vendor && <p>Likely outside vendor: {o.vendor.vendor}. {o.vendor.why}. (Assumption. Confirm with McKinley.)</p>}
+                    {o.vendor && <VendorRequest order={o} vendors={vendors} sites={sites} />}
+                    {o.ai && (
+                      <p className="aibox">🤖 <b>AI reading</b>: likely cause: {o.ai.likely_cause}
+                        {o.ai.visit_needed === 'maybe_not' && <> · <b>may not need a visit</b>{o.ai.resident_tip ? `: try "${o.ai.resident_tip}"` : ''}</>}
+                        {o.ai.hidden_risks?.length > 0 && <> · watch for: {o.ai.hidden_risks.join(', ')}</>}
+                        {o.ai.english_translation && <><br />In English: “{o.ai.english_translation}”</>}
+                      </p>
+                    )}
                     {o.flags.map((f) => <p key={f}>⚑ {f}</p>)}
                     <p>Bring: {o.bring.join(', ')} · about {o.mins} min</p>
+                    <PartsList id={o.id} parts={parts} setParts={setParts} suggestions={o.bring} />
                   </div>
                 )}
+                {techDone[o.id] && <ResidentUpdate order={o} siteName={o.community} />}
                 {approved[o.id] && t && (() => {
                   const wt = workTicket(o, t, addressOf(o))
                   const other = wt.lang.code !== 'en'
@@ -523,6 +624,8 @@ function App() {
       )}
       {tab === 'map' && site !== 'all' && site !== 'unassigned' && <SiteMap key={site} site={site} plan={plan} orders={orders} />}
 
+      {tab === 'stats' && <Stats orders={allOrders} siteNames={mySiteNames} techDone={techDone} parts={parts} />}
+
       {tab === 'routes' && (
         <>
           {plan.afterHours && <p className="notice small">📟 After-hours plan for {schedule.day}: on-call technicians only, from 5 PM.</p>}
@@ -581,6 +684,7 @@ function App() {
       {tab === 'teams' && (
         <>
           <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} />
+          <VendorsEditor vendors={vendors} setVendors={setVendors} areas={[...new Set(sites.map((x) => x.market).filter(Boolean))]} formatPhone={formatPhone} />
           <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
           <label>Site
             <SitePicker value={teamSiteEff} onChange={setTeamSite} sites={mySites} countFor={(k) => allTeams.filter((t) => t.sites.includes(k)).length} suffix="technicians" />
@@ -636,6 +740,9 @@ function TechEditor({ t, sites, update, toggle, remove }) {
             {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native === l.name ? l.name : `${l.native} (${l.name})`}</option>)}
           </select>
         </label>
+        <label>Email (for signing in)
+          <input type="email" value={t.email || ''} onChange={(e) => update({ email: e.target.value.trim() })} placeholder="name@mckinley.com" />
+        </label>
         <label>Mobile number (to text work orders)
           <input value={t.phone || ''} onChange={(e) => update({ phone: formatPhone(e.target.value) })} placeholder="067-550-2161"
             inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
@@ -686,7 +793,7 @@ function TechEditor({ t, sites, update, toggle, remove }) {
   )
 }
 
-function RoleChooser({ techs, sups, initialRole, onPick }) {
+function RoleChooser({ techs, sups, initialRole, onPick, email }) {
   const [pick, setPick] = useState(initialRole)
   const [who, setWho] = useState(techs[0]?.id || '')
   const [boss, setBoss] = useState(sups[0]?.id || 'all')
@@ -697,6 +804,7 @@ function RoleChooser({ techs, sups, initialRole, onPick }) {
         <h1>Maintenance Hub</h1>
         <p>Who's using the app?</p>
       </header>
+      {email && <p className="notice small">Signed in as <b>{email}</b>, but that email isn't on a team yet. A supervisor can add it on the Teams tab.</p>}
       <div className={`card rolecard ${pick === 'supervisor' ? 'sel' : ''}`}>
         <button className="rolebtn" onClick={() => setPick('supervisor')}>
           <b>🗂️ Maintenance supervisor</b>
@@ -732,6 +840,47 @@ function RoleChooser({ techs, sups, initialRole, onPick }) {
       </div>
       <p className="small notice">Prototype: anyone can pick either view. A real version would have each person sign in, so technicians only ever see their own work.</p>
     </main>
+  )
+}
+
+function SyncChip({ mode, email }) {
+  const txt = mode === 'online' ? '● Live: shared with your team' : mode === 'local' ? '● Saved on this device only' : '● Connecting…'
+  return (
+    <span className={`chip sync ${mode}`} title={mode === 'local' ? 'Test links and previews can’t share data. On the team’s site, changes reach everyone.' : ''}>
+      {txt}{email ? ` · ${email}` : ''}
+    </span>
+  )
+}
+
+// Technicians' days off this week, with a suggested cover for each.
+function TimeOffPanel({ team, allTeams, day, timeoff, setTimeoff }) {
+  const off = team.filter((t) => t.daysOff?.length)
+  if (!off.length) return null
+  const coverFor = (t, d) =>
+    allTeams
+      .filter((x) => x.id !== t.id && !x.daysOff?.includes(d) && !x.workDays.includes(d) && x.sites.some((s) => t.sites.includes(s)))
+      .map((x) => ({ x, score: x.skills.filter((k) => t.skills.includes(k)).length }))
+      .sort((a, b) => b.score - a.score)[0]?.x ||
+    allTeams.find((x) => x.id !== t.id && !x.daysOff?.includes(d) && x.sites.some((s) => t.sites.includes(s)))
+  return (
+    <section className="card timeoff">
+      <h2>Days off</h2>
+      {off.flatMap((t) =>
+        t.daysOff.map((d) => {
+          const c = t.usualWorkDays.includes(d) ? coverFor(t, d) : null
+          return (
+            <div key={`${t.id}${d}`} className={`row ${d === day ? 'today' : ''}`}>
+              <span className="small"><b>{t.name}</b> off {d}</span>
+              {c ? (
+                c.phone ? <a className="btn mini" href={`sms:${c.phone}?&body=${encodeURIComponent(`Hi ${c.name}, could you cover ${t.name}'s shift on ${d} (${t.sites.join(', ')})?`)}`}>Ask {c.name} to cover</a>
+                  : <span className="small">Cover: {c.name}</span>
+              ) : t.usualWorkDays.includes(d) ? <span className="small warn">No one free to cover</span> : <span className="small">(not a usual work day)</span>}
+              <button className="link" onClick={() => setTimeoff({ ...timeoff, [`${t.id}|${d}`]: undefined })}>Undo</button>
+            </div>
+          )
+        }),
+      )}
+    </section>
   )
 }
 

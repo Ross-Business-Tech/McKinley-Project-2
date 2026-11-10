@@ -116,6 +116,12 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "alertsOn": "🔔 Turn on alerts",
+  "alertsActive": "🔔 Alerts on",
+  "dayOff": "Days off (tap a day to ask for it off)",
+  "partsUsed": "Parts used",
+  "add": "Add",
+  "newJob": "New job",
   "supervisor": "Supervisor",
   "onCall": "📟 On call today, 5 PM to midnight",
   "offToday": "Not scheduled today",
@@ -137,6 +143,12 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "alertsOn": "🔔 Activar alertas",
+  "alertsActive": "🔔 Alertas activadas",
+  "dayOff": "Días libres (toque un día para pedirlo)",
+  "partsUsed": "Piezas usadas",
+  "add": "Agregar",
+  "newJob": "Nuevo trabajo",
   "supervisor": "Supervisor",
   "onCall": "📟 De guardia hoy, de 5 PM a medianoche",
   "offToday": "Hoy no tiene turno",
@@ -158,6 +170,12 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "alertsOn": "🔔 Ativar alertas",
+  "alertsActive": "🔔 Alertas ativados",
+  "dayOff": "Folgas (toque em um dia para pedir folga)",
+  "partsUsed": "Peças usadas",
+  "add": "Adicionar",
+  "newJob": "Novo serviço",
   "supervisor": "Supervisor",
   "onCall": "📟 De plantão hoje, das 17h à meia-noite",
   "offToday": "Sem escala hoje",
@@ -179,6 +197,12 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "alertsOn": "🔔 Activer les alertes",
+  "alertsActive": "🔔 Alertes activées",
+  "dayOff": "Jours de congé (touchez un jour pour le demander)",
+  "partsUsed": "Pièces utilisées",
+  "add": "Ajouter",
+  "newJob": "Nouveau travail",
   "supervisor": "Superviseur",
   "onCall": "📟 D'astreinte aujourd'hui, de 17 h à minuit",
   "offToday": "Pas de service aujourd'hui",
@@ -200,6 +224,12 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "alertsOn": "🔔 Limen alèt yo",
+  "alertsActive": "🔔 Alèt yo limen",
+  "dayOff": "Jou konje (peze sou yon jou pou mande l)",
+  "partsUsed": "Pyès ou itilize",
+  "add": "Ajoute",
+  "newJob": "Nouvo travay",
   "supervisor": "Sipèvizè",
   "onCall": "📟 Ou de gad jodi a, 5 PM rive minwi",
   "offToday": "Ou pa sou orè jodi a",

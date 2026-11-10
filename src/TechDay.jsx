@@ -2,10 +2,21 @@ import { SEVERITY } from './triage/config.js'
 import { fmt } from './triage/engine.js'
 import { workTicket, uiText, fill } from './triage/translate.js'
 import { readPhotos } from './photos.js'
+import { useEffect, useRef, useState } from 'react'
+import { DAYS } from './triage/engine.js'
+import { PartsList, ResidentUpdate } from './JobExtras.jsx'
+
+function canNotify() {
+  try {
+    return 'Notification' in window
+  } catch {
+    return false
+  }
+}
 
 // What one technician sees on their phone: only work orders the manager has approved
 // for them, in route order and in their own language.
-export default function TechDay({ me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos }) {
+export default function TechDay({ me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, parts, setParts, timeoff, setTimeoff }) {
   const t = techs.find((x) => x.id === me)
   const mine = plan.techs.find((x) => x.tech.id === me)
   const stops = mine ? mine.plan.stops : []
@@ -13,8 +24,36 @@ export default function TechDay({ me, techs, plan, approved, techDone, setTechDo
   const waiting = stops.length - ready.length
   const L = uiText(t?.lang)
 
+  // Phone alerts: while this page is open, a newly approved urgent job pops up a notification.
+  const [alerts, setAlerts] = useState(() => canNotify() && Notification.permission === 'granted')
+  const known = useRef(null)
+  useEffect(() => {
+    const ids = ready.map((s) => s.job.id)
+    if (known.current && alerts) {
+      for (const s of ready) {
+        if (!known.current.has(s.job.id) && s.job.sev >= 4) {
+          try {
+            new Notification(`${L.newJob}: ${s.job.label}`, { body: `${s.job.community || ''} ${s.job.resident ? `· Bldg ${s.job.resident.building} · Unit ${s.job.resident.unit}` : ''}`, tag: s.job.id })
+          } catch {
+            /* some phones only allow alerts from an installed app */
+          }
+        }
+      }
+    }
+    known.current = new Set(ids)
+  }, [ready, alerts, L.newJob])
+
   return (
     <>
+      {canNotify() && (
+        <button className={`btn alertbtn ${alerts ? 'done' : ''}`} onClick={async () => {
+          try {
+            setAlerts((await Notification.requestPermission()) === 'granted')
+          } catch {
+            setAlerts(false)
+          }
+        }}>{alerts ? L.alertsActive : L.alertsOn}</button>
+      )}
       {ready.length === 0 && <section className="card"><p>{L.none}</p></section>}
       {ready.map(({ job: o, arrive }, i) => {
         const wt = workTicket(o, t, addressOf(o))
@@ -50,11 +89,24 @@ export default function TechDay({ me, techs, plan, approved, techDone, setTechDo
                 {done ? `✓ ${L.finished}` : L.done}
               </button>
             </div>
+            <PartsList id={o.id} parts={parts} setParts={setParts} suggestions={o.bring} label={L.partsUsed} addLabel={L.add} />
+            {done && <ResidentUpdate order={o} siteName={o.community} />}
           </article>
         )
       })}
       {waiting > 0 && <p className="small">{fill(L.waiting, { n: waiting })}</p>}
-      <p className="small notice">Prototype: this screen shares data with the manager board only on the same phone or computer. Using it on separate phones needs the team's here.now site with saved data.</p>
+      {t && (
+        <section className="card">
+          <p className="small"><b>{L.dayOff}</b></p>
+          <div className="chips">
+            {DAYS.map((d) => {
+              const k = `${t.id}|${d}`
+              return <button key={d} className={`chip chipbtn ${timeoff[k] ? 'sel' : ''}`} onClick={() => setTimeoff({ ...timeoff, [k]: timeoff[k] ? undefined : true })}>{d}{timeoff[k] ? ' ✕' : ''}</button>
+            })}
+          </div>
+        </section>
+      )}
+      <p className="small notice">On the team's here.now site, this screen updates live when your supervisor approves a job, and your Done taps reach them. On test links it's saved on this phone only.</p>
     </>
   )
 }

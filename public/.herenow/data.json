@@ -1,0 +1,14 @@
+{
+  "collections": {
+    "events": {
+      "fields": {
+        "k": { "type": "string", "required": true, "maxLength": 40, "trim": true },
+        "i": { "type": "string", "maxLength": 120 },
+        "v": { "type": "string", "required": true, "maxLength": 15000 },
+        "by": { "type": "string", "maxLength": 80 }
+      },
+      "access": { "read": "public", "insert": "public", "update": "owner", "delete": "owner" },
+      "rateLimit": "600/hour/ip"
+    }
+  }
+}

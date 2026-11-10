@@ -88,7 +88,7 @@ export const VENDOR_RULES = [
   { words: /compressor|replace(ment)? (the )?(ac|unit|hvac)|condenser (is )?(dead|failed)|furnace (is )?dead/i, vendor: 'HVAC vendor', why: 'Major HVAC part or unit replacement' },
   { words: /roof|ceiling (is )?(caving|collaps)|water (stain|coming) (from|through) (the )?ceiling/i, vendor: 'Roofing vendor', why: 'Roof or ceiling water damage' },
   { words: /mold|mildew/i, vendor: 'Mold remediation vendor', why: 'Mold needs certified cleanup' },
-  { words: /roach|cockroach|bed ?bug|rodent|mice|mouse|rats?|termite|ants?/i, vendor: 'Pest control vendor', why: 'Pest treatment, often building-wide' },
+  { words: /\b(roach(es)?|cockroach(es)?|bed ?bugs?|rodents?|mice|mouse|rats?|termites?|ants)\b/i, vendor: 'Pest control vendor', why: 'Pest treatment, often building-wide' },
   { words: /sewer (main|line)|main line|backs? up in (every|all)|tree root/i, vendor: 'Plumbing vendor', why: 'Main sewer line work' },
   { words: /elevator/i, vendor: 'Elevator vendor', why: 'Licensed elevator work only' },
   { words: /carpet (clean|replace)|flooring|replace the carpet/i, vendor: 'Flooring / carpet vendor', why: 'Flooring work' },
