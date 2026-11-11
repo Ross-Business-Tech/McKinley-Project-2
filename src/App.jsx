@@ -21,7 +21,7 @@ import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
 import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
-import { BUILD_PM_HASH, BUILD_PM_EMAILS, hashPass } from './auth.js'
+import { MANAGERS, hashPass, hashEmail, passHashOf } from './auth.js'
 import Access, { MyPin } from './Access.jsx'
 import { PlanningTab, TechPlanned, ResidentNotices, VendorTracker, Scoreboard } from './Planning.jsx'
 import { scoreboard, VENDOR_STATUS, niceDate } from './planning.js'
@@ -69,7 +69,7 @@ define('vendors', 'list', DEFAULT_VENDORS)
 define('sitemaps', 'map', {})
 define('feedback', 'map', {})
 define('progress', 'map', {})
-define('pmHash', 'value', null)
+define('pmHashes', 'map', {})
 define('turns', 'map', {})
 define('pm', 'map', {})
 define('vendorjobs', 'map', {})
@@ -120,8 +120,8 @@ function App() {
   const [photometa, setPhotometa] = useShared('photometa')
   const [photochunks, setPhotochunks] = useShared('photochunks')
   const [progress, setProgress] = useShared('progress')
-  const [pmHashSaved, setPmHash] = useShared('pmHash')
-  const pmHash = pmHashSaved || BUILD_PM_HASH
+  const [pmHashes, setPmHashes] = useShared('pmHashes')
+  const [emailHash, setEmailHash] = useState(null)
   const [rescodes, setRescodes] = useShared('rescodes')
   const [turns, setTurns] = useShared('turns')
   const [pm, setPm] = useShared('pm')
@@ -185,8 +185,17 @@ function App() {
     } else if (b) {
       setRole('supervisor')
       setSupId(b.id)
+    } else {
+      const m = emailHash && MANAGERS.find((x) => x.emailHash === emailHash)
+      if (m) {
+        setRole('supervisor')
+        setSupId(`pm:${m.id}`)
+      }
     }
-  }, [email, role, allTeams, sups])
+  }, [email, emailHash, role, allTeams, sups])
+  useEffect(() => {
+    if (email) hashEmail(email).then(setEmailHash)
+  }, [email])
   const everyOrder = useMemo(() => raw.map((r) => buildOrder(r, state[r.id], aiRes[r.id])), [raw, state, aiRes])
 
   // AI step: read each request once and save the result for everyone. If the AI connection
@@ -214,10 +223,11 @@ function App() {
       cancelled = true
     }
   }, [everyOrder, aiRes, syncMode, setAiRes])
-  // Each supervisor sees only their own properties. "Regional view" sees all of them.
+  // Each supervisor sees only their own properties; each property manager only the properties IT gave them.
   // Requests we couldn't match to a property show for everyone, so none get lost.
   const sup = sups.find((x) => x.id === supId) || null
-  const mySiteNames = useMemo(() => (sup ? sup.sites : sites.map((x) => x.name)), [sup, sites])
+  const mgr = String(supId || '').startsWith('pm:') ? MANAGERS.find((m) => m.id === supId.slice(3)) || null : null
+  const mySiteNames = useMemo(() => (sup ? sup.sites : mgr ? mgr.properties : []), [sup, mgr])
   const mySites = sites.filter((x) => mySiteNames.includes(x.name))
   const allOrders = useMemo(() => everyOrder.filter((o) => !o.community || mySiteNames.includes(o.community)), [everyOrder, mySiteNames])
   // Teams tab opens on: the site you picked, else the one you last edited, else your first site that has a team.
@@ -302,7 +312,7 @@ function App() {
     ['stats', 'Stats'],
     ['teams', 'Teams'],
     ['new', 'Add'],
-    ...(role === 'supervisor' && supId === 'all' ? [['access', 'Access']] : []),
+    ...(role === 'supervisor' && mgr ? [['access', 'Access']] : []),
   ]
 
   const markTechDone = (v) => {
@@ -315,24 +325,24 @@ function App() {
   }
 
   // ---------- Who is using the app? ----------
-  setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (role ? 'Property manager' : null))
-  const isManager = role === 'supervisor' && supId === 'all'
+  setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (mgr ? `${mgr.area} property manager` : null))
+  const isManager = role === 'supervisor' && !!mgr
 
   // Staff views need a staff sign-in: a verified here.now email on the team, or the person's PIN.
   const meTech = allTeams.find((t) => t.id === techId)
   const emailIs = (x) => !!email && (x?.email || '').toLowerCase() === email
   const staffOk =
     role === 'tech' ? !!meTech && (emailIs(meTech) || pinOf(meTech) === staffPin)
-      : role === 'supervisor' ? (supId === 'all' ? staffPin === pmHash || (!!email && BUILD_PM_EMAILS.includes(email)) : !!sup && (emailIs(sup) || pinOf(sup) === staffPin))
+      : role === 'supervisor' ? (mgr ? staffPin === passHashOf(mgr, pmHashes) || (!!emailHash && emailHash === mgr.emailHash) : !!sup && (emailIs(sup) || pinOf(sup) === staffPin))
         : true
   const signOut = () => {
     setRole(null)
     setStaffPin(null)
   }
 
-  if (!role || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
+  if (!role || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && !sup && !mgr) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} email={email} siteNames={sites.map((x) => x.name)} pmHash={pmHash} rescodes={rescodes}
+      <RoleChooser techs={allTeams} sups={sups} email={email} siteNames={sites.map((x) => x.name)} pmHashes={pmHashes} rescodes={rescodes}
         onPick={(r, id, pin) => {
           setRole(r)
           setStaffPin(pin || null)
@@ -418,7 +428,7 @@ function App() {
           <span className="wordmark">mckinley</span>
           <button className="switch" onClick={signOut}>Sign out</button>
         </div>
-        <span className="chip">{sup ? `Supervisor · ${sup.name} · ${mySites.length} properties` : 'Property manager · all properties'} · sample data</span>
+        <span className="chip">{sup ? `Supervisor · ${sup.name}` : `Property manager · ${mgr?.area}`} · {mySites.length} properties · sample data</span>
         <SyncChip mode={syncMode} email={email} />
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
@@ -739,13 +749,13 @@ function App() {
 
       {tab === 'access' && isManager && (
         <Access techs={teamsRaw} setTechs={setTeamsRaw} sups={sups} setSups={setSups} residents={RESIDENTS}
-          rescodes={rescodes} setRescodes={setRescodes} pinOf={pinOf} pmHash={pmHash}
-          setPmHash={(h) => { setPmHash(h); setStaffPin(h) }} />
+          rescodes={rescodes} setRescodes={setRescodes} pinOf={pinOf} siteNames={mySiteNames} pmHash={passHashOf(mgr, pmHashes)}
+          setPmHash={(h) => { setPmHashes({ ...pmHashes, [mgr.id]: h }); setStaffPin(h) }} />
       )}
       {tab === 'access' && !isManager && <p className="notice">Only the property manager can manage PINs.</p>}
 
       {tab === 'planning' && (
-        <PlanningTab siteNames={mySiteNames} sites={sites} techs={allTeams} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} supervisorName={sup?.name || 'Property manager'} />
+        <PlanningTab siteNames={mySiteNames} sites={sites} techs={allTeams} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} supervisorName={sup?.name || `${mgr?.area} property manager`} />
       )}
 
       {tab === 'stats' && <Scoreboard s={scoreboard({ orders: allOrders, approved, progress, techDone, feedback, vendorjobs, plan })} />}
@@ -809,7 +819,7 @@ function App() {
       {tab === 'teams' && (
         <>
           {sup && <MyPin current={pinOf(sup)} onSet={(p) => { setSups(sups.map((x) => (x.id === sup.id ? { ...x, pin: p } : x))); setStaffPin(p) }} />}
-          <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} />
+          <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} onlySites={mySiteNames} />
           <VendorsEditor vendors={vendors} setVendors={setVendors} areas={[...new Set(sites.map((x) => x.market).filter(Boolean))]} formatPhone={formatPhone} />
           <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
           <label>Site
@@ -937,7 +947,7 @@ function pinOf(x) {
 }
 
 // The front door. Residents sign in by default; staff use a separate sign-in with a PIN.
-function RoleChooser({ techs, sups, onPick, email, siteNames, pmHash, rescodes }) {
+function RoleChooser({ techs, sups, onPick, email, siteNames, pmHashes, rescodes }) {
   const [staff, setStaff] = useState(false)
   const [kind, setKind] = useState('supervisor')
   const [who, setWho] = useState('')
@@ -952,11 +962,12 @@ function RoleChooser({ techs, sups, onPick, email, siteNames, pmHash, rescodes }
     if (fails >= 5) return setErr('Too many tries. Ask your property manager to reset your PIN.')
     if (kind === 'manager') {
       const h = await hashPass(pass)
-      if (h !== pmHash) {
+      const m = MANAGERS.find((x) => passHashOf(x, pmHashes) === h)
+      if (!m) {
         setFails(fails + 1)
         return setErr('That passcode is not right.')
       }
-      return onPick('supervisor', 'all', h)
+      return onPick('supervisor', `pm:${m.id}`, h)
     }
     const ok = pinOf(people.find((x) => x.id === chosen)) === pin
     if (!ok) {
@@ -1058,7 +1069,7 @@ function TimeOffPanel({ team, allTeams, day, timeoff, setTimeoff }) {
   )
 }
 
-function SupervisorsEditor({ sups, setSups, sites }) {
+function SupervisorsEditor({ sups, setSups, sites, onlySites }) {
   const [open, setOpen] = useState(null)
   const markets = [...new Set(sites.map((x) => x.market || x.city))]
   const upd = (id, p) => setSups(sups.map((x) => (x.id === id ? { ...x, ...p } : x)))
@@ -1066,7 +1077,7 @@ function SupervisorsEditor({ sups, setSups, sites }) {
     <section className="card">
       <h2>Supervisors</h2>
       <p className="small">Each supervisor sees only the properties they oversee. Technicians see their supervisor's name and number.</p>
-      {sups.map((x) => (
+      {sups.filter((x) => !onlySites || !x.sites.length || x.sites.some((n) => onlySites.includes(n))).map((x) => (
         <div key={x.id} className="tech">
           <div className="row between">
             <b>{x.name}</b>

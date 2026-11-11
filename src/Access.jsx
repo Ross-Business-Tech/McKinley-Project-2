@@ -31,28 +31,30 @@ function PinRow({ name, detail, current, onSet }) {
   )
 }
 
-export default function Access({ techs, setTechs, sups, setSups, residents, rescodes, setRescodes, pinOf, pmHash, setPmHash }) {
+export default function Access({ techs, setTechs, sups, setSups, residents, rescodes, setRescodes, pinOf, pmHash, setPmHash, siteNames }) {
   const [q, setQ] = useState('')
   const [cur, setCur] = useState('')
   const [n1, setN1] = useState('')
   const [n2, setN2] = useState('')
   const [pmMsg, setPmMsg] = useState('')
-  const res = residents.filter((r) => !q || `${r.community} ${r.unit}`.toLowerCase().includes(q.toLowerCase()))
+  // Only people at this manager's properties.
+  const mine = (list) => list.filter((x) => (x.sites || []).some((n) => siteNames.includes(n)))
+  const res = residents.filter((r) => siteNames.includes(r.community) && (!q || `${r.community} ${r.unit}`.toLowerCase().includes(q.toLowerCase())))
 
   return (
     <>
-      <p className="small notice">Only the property manager sees this tab. Set a PIN, or tap Reset to make a random one and give it to the person privately. Everyone can also change their own PIN from their screen.</p>
+      <p className="small notice">Only property managers see this tab, and only for their own properties. Set a PIN, or tap Reset to make a random one and give it to the person privately. Everyone can also change their own PIN from their screen.</p>
       <div className="cardgrid">
         <section className="card">
           <h2>Supervisors</h2>
-          {sups.map((x) => (
+          {mine(sups).map((x) => (
             <PinRow key={x.id} name={x.name} detail={`${x.sites.length} properties`} current={pinOf(x)}
               onSet={(p) => setSups(sups.map((y) => (y.id === x.id ? { ...y, pin: p } : y)))} />
           ))}
         </section>
         <section className="card">
           <h2>Technicians</h2>
-          {techs.map((t) => (
+          {mine(techs).map((t) => (
             <PinRow key={t.id} name={t.name} detail={t.sites.join(', ')} current={pinOf(t)}
               onSet={(p) => setTechs(techs.map((y) => (y.id === t.id ? { ...y, pin: p } : y)))} />
           ))}
@@ -68,15 +70,15 @@ export default function Access({ techs, setTechs, sups, setSups, residents, resc
           ))}
         </section>
         <section className="card">
-          <h2>Property manager passcode</h2>
-          <p className="small">At least 8 characters. Only a fingerprint (hash) of it is saved. IT can also set it when the site is built.</p>
+          <h2>My passcode</h2>
+          <p className="small">For signing in without your work email (demos or a shared tablet). At least 8 characters; only a scrambled fingerprint is saved. On the team's site you sign in with your work email instead.</p>
           <form onSubmit={async (e) => {
             e.preventDefault()
             if ((await hashPass(cur)) !== pmHash) return setPmMsg('Current passcode is not right.')
             if (n1.length < 8) return setPmMsg('New passcode must be at least 8 characters.')
             if (n1 !== n2) return setPmMsg("New passcodes don't match.")
             setPmHash(await hashPass(n1))
-            setPmMsg('Passcode changed. Other manager sign-ins will need the new one.')
+            setPmMsg('Passcode changed.')
             setCur('')
             setN1('')
             setN2('')
