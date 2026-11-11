@@ -15,7 +15,9 @@
   "phone": "555-0101",
   "email": "marisol.quenby@example.com",
   "noCallBefore": null,
-  "building": "5531"
+  "building": "5531",
+  "leaseEnd": "2027-03-14",
+  "renewal": "renewed"
  },
  {
   "id": "R002",
@@ -33,7 +35,9 @@
   "phone": "555-0102",
   "email": "theo.brannigan@example.com",
   "noCallBefore": null,
-  "building": "004"
+  "building": "004",
+  "leaseEnd": "2027-07-31",
+  "renewal": "renewed"
  },
  {
   "id": "R003",
@@ -51,7 +55,9 @@
   "phone": "555-0103",
   "email": "jordan.pellingham@example.com",
   "noCallBefore": 10,
-  "building": "6012"
+  "building": "6012",
+  "leaseEnd": "2026-11-30",
+  "renewal": "offer sent"
  },
  {
   "id": "R004",
@@ -69,7 +75,9 @@
   "phone": "555-0104",
   "email": "keiko.ashdown@example.com",
   "noCallBefore": null,
-  "building": "2107"
+  "building": "2107",
+  "leaseEnd": "2027-09-11",
+  "renewal": "new resident - not yet up"
  },
  {
   "id": "R005",
@@ -87,7 +95,9 @@
   "phone": "555-0105",
   "email": "malik.thornbury@example.com",
   "noCallBefore": null,
-  "building": "2908"
+  "building": "2908",
+  "leaseEnd": "2027-02-28",
+  "renewal": "undecided"
  },
  {
   "id": "R006",
@@ -105,7 +115,9 @@
   "phone": "555-0106",
   "email": "sofia.marchetti@example.com",
   "noCallBefore": null,
-  "building": "4409"
+  "building": "4409",
+  "leaseEnd": "2027-09-30",
+  "renewal": "renewed"
  },
  {
   "id": "R007",
@@ -123,7 +135,9 @@
   "phone": "555-0107",
   "email": "hana.whitlock@example.com",
   "noCallBefore": null,
-  "building": "011"
+  "building": "011",
+  "leaseEnd": "2027-03-31",
+  "renewal": "undecided"
  },
  {
   "id": "R008",
@@ -141,7 +155,9 @@
   "phone": "555-0108",
   "email": "desmond.achterberg@example.com",
   "noCallBefore": null,
-  "building": "5545"
+  "building": "5545",
+  "leaseEnd": "2027-06-14",
+  "renewal": "renewed"
  },
  {
   "id": "R009",
@@ -159,7 +175,9 @@
   "phone": "555-0109",
   "email": "owen.castellucci@example.com",
   "noCallBefore": null,
-  "building": "2108"
+  "building": "2108",
+  "leaseEnd": "2027-04-30",
+  "renewal": "undecided"
  },
  {
   "id": "R010",
@@ -177,7 +195,9 @@
   "phone": "555-0110",
   "email": "leah.brightwater@example.com",
   "noCallBefore": null,
-  "building": "5946"
+  "building": "5946",
+  "leaseEnd": "2027-04-14",
+  "renewal": "renewed"
  },
  {
   "id": "R011",
@@ -195,7 +215,9 @@
   "phone": "555-0111",
   "email": "devon.rushworth@example.com",
   "noCallBefore": null,
-  "building": "2924"
+  "building": "2924",
+  "leaseEnd": "2027-01-31",
+  "renewal": "offer sent"
  },
  {
   "id": "R012",
@@ -213,7 +235,9 @@
   "phone": "555-0112",
   "email": "valeria.montesinos@example.com",
   "noCallBefore": null,
-  "building": "4423"
+  "building": "4423",
+  "leaseEnd": "2027-07-31",
+  "renewal": "renewed"
  },
  {
   "id": "R013",
@@ -231,7 +255,9 @@
   "phone": "555-0113",
   "email": "callum.ostrander@example.com",
   "noCallBefore": null,
-  "building": "004"
+  "building": "004",
+  "leaseEnd": "2027-03-31",
+  "renewal": "undecided"
  },
  {
   "id": "R014",
@@ -249,7 +275,9 @@
   "phone": "555-0114",
   "email": "nadia.kellerman@example.com",
   "noCallBefore": null,
-  "building": "5513"
+  "building": "5513",
+  "leaseEnd": "2027-06-14",
+  "renewal": "renewed"
  },
  {
   "id": "R015",
@@ -267,7 +295,9 @@
   "phone": "555-0115",
   "email": "rafael.quintanilla@example.com",
   "noCallBefore": null,
-  "building": "5798"
+  "building": "5798",
+  "leaseEnd": "2027-10-31",
+  "renewal": "renewed"
  },
  {
   "id": "R016",
@@ -285,7 +315,10 @@
   "phone": "555-0116",
   "email": "lena.haverford@example.com",
   "noCallBefore": null,
-  "building": "2129"
+  "building": "2129",
+  "leaseEnd": "2026-11-30",
+  "renewal": "notice given",
+  "moveOut": "2026-11-30"
  },
  {
   "id": "R017",
@@ -303,7 +336,9 @@
   "phone": "555-0117",
   "email": "imani.fairbanks@example.com",
   "noCallBefore": null,
-  "building": "2942"
+  "building": "2942",
+  "leaseEnd": "2027-08-31",
+  "renewal": "renewed"
  },
  {
   "id": "R018",
@@ -321,7 +356,9 @@
   "phone": "555-0118",
   "email": "gabriel.northcott@example.com",
   "noCallBefore": null,
-  "building": "4411"
+  "building": "4411",
+  "leaseEnd": "2027-05-31",
+  "renewal": "new resident - not yet up"
  },
  {
   "id": "R019",
@@ -339,7 +376,9 @@
   "phone": "555-0119",
   "email": "ezra.whitcombe@example.com",
   "noCallBefore": null,
-  "building": "011"
+  "building": "011",
+  "leaseEnd": "2027-07-31",
+  "renewal": "renewed"
  },
  {
   "id": "R020",
@@ -357,6 +396,8 @@
   "phone": "555-0120",
   "email": "simone.halloway@example.com",
   "noCallBefore": null,
-  "building": "5525"
+  "building": "5525",
+  "leaseEnd": "2026-12-31",
+  "renewal": "offer sent"
  }
 ]

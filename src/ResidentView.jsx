@@ -40,7 +40,7 @@ const T = {
   },
 }
 
-export default function ResidentView({ me, orders, setRaw, fullPlan, approved, techDone, state, setState, feedback, setFeedback, replies, setReplies, photos, addPhotos, progress, syncChip, onSwitch }) {
+export default function ResidentView({ me, orders, setRaw, fullPlan, approved, techDone, state, setState, feedback, setFeedback, replies, setReplies, photos, addPhotos, progress, notices, syncChip, onSwitch }) {
   const L = me.lang === 'Spanish' ? T.es : T.en
   const [tab, setTab] = useState('mine')
   const [text, setText] = useState('')
@@ -106,6 +106,7 @@ export default function ResidentView({ me, orders, setRaw, fullPlan, approved, t
       {tab === 'mine' && (
         <>
           {done && <p className="notice">{L.submitted}</p>}
+          {notices}
           {mine.length === 0 && <section className="card"><p>{L.none}</p></section>}
           {mine.map((o) => {
             const stop = stopOf(o.id)

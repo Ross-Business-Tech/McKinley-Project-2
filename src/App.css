@@ -246,3 +246,18 @@ form.rolecard .primary{width:100%;margin-top:4px}form.rolecard{cursor:default}
 .accmsg{grid-column:1 / -1;margin:0}
 .mypin{padding:10px 14px}
 .seg button{white-space:nowrap}
+
+/* Planning, scoreboard, vendor tracking, notices */
+.planrow{justify-content:space-between;flex-wrap:nowrap;padding:8px 0;border-top:1px dashed var(--line)}.planrow>button{flex:none}
+.turn h2{font-size:1rem}
+.pbar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden;margin:8px 0 4px}.pbar span{display:block;height:100%;background:var(--green);border-radius:0 4px 4px 0}
+.checklist{list-style:none;padding:0;margin:8px 0 0}.checklist li{padding:6px 0;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;gap:6px;justify-content:space-between;align-items:center}
+.checklist li.done>.chk span{text-decoration:line-through;color:var(--mute)}
+.chk{display:flex;gap:8px;align-items:flex-start;margin:0;font-weight:500;color:var(--ink);flex:1 1 220px}.chk input{width:auto;margin-top:3px}
+select.mini{width:auto;padding:4px 8px;font-size:.82rem}
+.planpm{padding:8px 0;border-top:1px dashed var(--line)}.planpm p{margin:0 0 6px}
+.scoretiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.scoretiles div{background:var(--soft);border-radius:12px;padding:10px}.scoretiles b{display:block;font-size:1.35rem}
+.scoretiles span{display:block;font-size:.78rem;color:var(--mute)}.scoretiles em{font-size:.7rem;color:var(--mute)}
+.vtrack{border-top:1px dashed var(--line);margin-top:8px;padding-top:6px}
+.notices ul{margin:6px 0 0;padding-left:18px}.notices li{margin:4px 0}

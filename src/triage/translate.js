@@ -116,6 +116,9 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "planned": "Planned work",
+  "turnFor": "Move-out turn",
+  "tapUnit": "tap each unit when finished",
   "changePin": "Change my PIN",
   "onway": "🚐 On my way",
   "started": "🔧 Started",
@@ -148,6 +151,9 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "planned": "Trabajo programado",
+  "turnFor": "Preparación por mudanza",
+  "tapUnit": "toque cada unidad al terminar",
   "changePin": "Cambiar mi PIN",
   "onway": "🚐 En camino",
   "started": "🔧 Empecé",
@@ -180,6 +186,9 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "planned": "Trabalho programado",
+  "turnFor": "Preparação de mudança",
+  "tapUnit": "toque em cada unidade ao terminar",
   "changePin": "Mudar meu PIN",
   "onway": "🚐 A caminho",
   "started": "🔧 Comecei",
@@ -212,6 +221,9 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "planned": "Travaux planifiés",
+  "turnFor": "Remise en état après départ",
+  "tapUnit": "touchez chaque logement une fois terminé",
   "changePin": "Changer mon code PIN",
   "onway": "🚐 En route",
   "started": "🔧 Commencé",
@@ -244,6 +256,9 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "planned": "Travay ki planifye",
+  "turnFor": "Preparasyon apre demenajman",
+  "tapUnit": "peze chak inite lè ou fini",
   "changePin": "Chanje PIN mwen",
   "onway": "🚐 M ap vini",
   "started": "🔧 M kòmanse",

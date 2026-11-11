@@ -23,6 +23,8 @@ import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from
 import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
 import { BUILD_PM_HASH, BUILD_PM_EMAILS, hashPass } from './auth.js'
 import Access, { MyPin } from './Access.jsx'
+import { PlanningTab, TechPlanned, ResidentNotices, VendorTracker, Scoreboard } from './Planning.jsx'
+import { scoreboard, VENDOR_STATUS, niceDate } from './planning.js'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
@@ -68,6 +70,9 @@ define('sitemaps', 'map', {})
 define('feedback', 'map', {})
 define('progress', 'map', {})
 define('pmHash', 'value', null)
+define('turns', 'map', {})
+define('pm', 'map', {})
+define('vendorjobs', 'map', {})
 define('rescodes', 'map', {})
 define('photometa', 'map', {})
 define('photochunks', 'map', {}, 'id', { persist: false })
@@ -118,6 +123,9 @@ function App() {
   const [pmHashSaved, setPmHash] = useShared('pmHash')
   const pmHash = pmHashSaved || BUILD_PM_HASH
   const [rescodes, setRescodes] = useShared('rescodes')
+  const [turns, setTurns] = useShared('turns')
+  const [pm, setPm] = useShared('pm')
+  const [vendorjobs, setVendorjobs] = useShared('vendorjobs')
   // Photos are shared with the team (in pieces, see photos.js) on the team's site.
   const photos = useMemo(() => assemblePhotos(photometa, photochunks), [photometa, photochunks])
   const [newPhotos, setNewPhotos] = useState([])
@@ -290,6 +298,7 @@ function App() {
     ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
     ['routes', 'Routes'],
     ['map', 'Map'],
+    ['planning', 'Planning'],
     ['stats', 'Stats'],
     ['teams', 'Teams'],
     ['new', 'Add'],
@@ -343,6 +352,7 @@ function App() {
       <ResidentView me={RESIDENTS.find((r) => r.id === residentId)} orders={everyOrder} setRaw={setRaw} fullPlan={fullPlan}
         approved={approved} techDone={techDone} state={state} setState={setState} feedback={feedback} setFeedback={setFeedback}
         replies={replies} setReplies={setReplies} photos={photos} addPhotos={addPhotos} progress={progress}
+        notices={<ResidentNotices me={RESIDENTS.find((r) => r.id === residentId)} turns={turns} pm={pm} vendorjobs={vendorjobs} myOrderIds={everyOrder.filter((o) => o.resident?.id === residentId).map((o) => o.id)} />}
         syncChip={<SyncChip mode={syncMode} email={email} />} onSwitch={signOut} />
     )
   }
@@ -381,6 +391,7 @@ function App() {
             <button key={k} className={techTab === k ? 'on' : ''} onClick={() => setTechTab(k)}>{l}</button>
           ))}
         </nav>
+        {techTab === 'day' && <TechPlanned tech={me} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} L={L} />}
         {techTab === 'day' && (
           <TechDay myPin={pinOf(me)} onPin={(p) => { setTeamsRaw(teamsRaw.map((x) => (x.id === me.id ? { ...x, pin: p } : x))); setStaffPin(p) }} me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
             addressOf={addressOf} photos={photos} addPhotos={addPhotos} progress={progress} setProgress={setProgress} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
@@ -567,6 +578,7 @@ function App() {
 
       {tab === 'queue' && (
         <>
+          {isManager && <Scoreboard s={scoreboard({ orders: allOrders, approved, progress, techDone, feedback, vendorjobs, plan })} />}
           <button className="link" onClick={() => setShowScale(!showScale)}>{showScale ? 'Hide' : 'Show'} severity scale</button>
           {showScale && (
             <ul className="scale">
@@ -614,6 +626,7 @@ function App() {
                   </span>
                   {miss.length > 0 && !contacted[o.id] && <button className="chip c-missing chipbtn" onClick={() => setTab('followups')}>Missing info: follow up</button>}
                   {o.vendor && <span className="chip c-vendor">Vendor: {o.vendor.vendor}</span>}
+                  {vendorjobs[o.id]?.status && <span className="chip c-vendor">Vendor {VENDOR_STATUS[vendorjobs[o.id].status]?.toLowerCase()}{vendorjobs[o.id].date ? ` · ${niceDate(vendorjobs[o.id].date)}` : ''}</span>}
                   {o.ai && <span className="chip c-ai" title={o.ai.reason}>🤖 AI read{o.ai.visit_needed === 'maybe_not' ? ': may not need a visit' : ''}</span>}
                   {(parts[o.id] || []).length > 0 && <span className="chip">🔩 {parts[o.id].length} part{parts[o.id].length > 1 ? 's' : ''}</span>}
                   {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
@@ -646,6 +659,7 @@ function App() {
                     <p><b>Entry:</b> {o.entry.text}</p>
                     {o.vendor && <p>Likely outside vendor: {o.vendor.vendor}. {o.vendor.why}. (Assumption. Confirm with McKinley.)</p>}
                     {o.vendor && <VendorRequest order={o} vendors={vendors} sites={sites} />}
+                    {o.vendor && <VendorTracker orderId={o.id} vendorjobs={vendorjobs} setVendorjobs={setVendorjobs} vendors={vendors} />}
                     {o.ai && (
                       <p className="aibox">🤖 <b>AI reading</b>: likely cause: {o.ai.likely_cause}
                         {o.ai.visit_needed === 'maybe_not' && <> · <b>may not need a visit</b>{o.ai.resident_tip ? `: try "${o.ai.resident_tip}"` : ''}</>}
@@ -699,7 +713,7 @@ function App() {
                   {o.entry.status === 'hold' && (
                     <button onClick={() => patch(o.id, { okReceived: !o.okReceived })}>{o.okReceived ? 'OK received ✓' : 'Resident said OK'}</button>
                   )}
-                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => setApproved({ ...approved, [o.id]: !approved[o.id] })}>
+                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => setApproved({ ...approved, [o.id]: approved[o.id] ? undefined : new Date().toISOString() })}>
                     {approved[o.id] ? 'Approved ✓' : 'Approve'}
                   </button>
                 </div>
@@ -730,6 +744,11 @@ function App() {
       )}
       {tab === 'access' && !isManager && <p className="notice">Only the property manager can manage PINs.</p>}
 
+      {tab === 'planning' && (
+        <PlanningTab siteNames={mySiteNames} sites={sites} techs={allTeams} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} supervisorName={sup?.name || 'Property manager'} />
+      )}
+
+      {tab === 'stats' && <Scoreboard s={scoreboard({ orders: allOrders, approved, progress, techDone, feedback, vendorjobs, plan })} />}
       {tab === 'stats' && <Stats orders={allOrders} siteNames={mySiteNames} techDone={techDone} parts={parts} />}
 
       {tab === 'routes' && (
