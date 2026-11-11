@@ -261,3 +261,7 @@ select.mini{width:auto;padding:4px 8px;font-size:.82rem}
 .scoretiles span{display:block;font-size:.78rem;color:var(--mute)}.scoretiles em{font-size:.7rem;color:var(--mute)}
 .vtrack{border-top:1px dashed var(--line);margin-top:8px;padding-top:6px}
 .notices ul{margin:6px 0 0;padding-left:18px}.notices li{margin:4px 0}
+.planform{background:var(--soft);border-radius:12px;padding:10px 12px;margin:10px 0}
+.tasklabel{flex:1 1 220px;font-weight:600}
+input.mini{width:auto;padding:4px 8px;font-size:.82rem}
+.addtask{flex-wrap:nowrap;width:100%}.addtask input:first-child{flex:1;min-width:0}.addtask button{flex:none}
