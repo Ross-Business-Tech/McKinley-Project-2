@@ -193,3 +193,10 @@ i.work{display:inline-block;width:12px;height:12px;border-radius:3px;background:
 .vendorreq .row{margin:6px 0}.resupdate{margin-top:8px}
 .timeoff .row{padding:4px 0;border-top:1px dashed var(--line)}.timeoff .row.today{background:var(--soft)}
 .alertbtn{width:100%;margin:0 0 10px}
+
+/* Site map upload and marking */
+.mappick{margin:10px 0}.mappick .photobtn{display:inline-flex;width:100%}
+.mapthumb{display:block;width:100%;max-height:260px;object-fit:contain;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:#fff}
+.mapsetup{margin:10px 0;padding:10px;border:1px dashed var(--line);border-radius:12px}
+.mapsetup .seg{margin:8px 0}.mapsetup .mapwrap{margin:8px 0;cursor:crosshair}.mapsetup svg{display:block;width:100%;height:auto}
+button:disabled{opacity:.5;cursor:not-allowed}

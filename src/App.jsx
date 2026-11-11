@@ -10,7 +10,9 @@ import Stats from './Stats.jsx'
 import { VendorsEditor, VendorRequest } from './Vendors.jsx'
 import { DEFAULT_VENDORS } from './vendorsData.js'
 import { PartsList, ResidentUpdate } from './JobExtras.jsx'
-import { mapFor } from './triage/geo.js'
+import { mapFor, setCustomMaps, buildingsFor, SITE_GEO } from './triage/geo.js'
+import { AddSite, MapEditor } from './MapSetup.jsx'
+import { mapRecords, assembleMaps } from './mapStore.js'
 import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
@@ -57,6 +59,8 @@ define('teams', 'list', TECHS)
 define('sups', 'list', DEFAULT_SUPERVISORS)
 define('sites', 'list', DEFAULT_SITES, 'name')
 define('vendors', 'list', DEFAULT_VENDORS)
+define('sitemaps', 'map', {})
+define('mapchunks', 'map', {})
 connect()
 
 function App() {
@@ -70,6 +74,16 @@ function App() {
   const [parts, setParts] = useShared('parts')
   const [timeoff, setTimeoff] = useShared('timeoff')
   const [vendors, setVendors] = useShared('vendors')
+  const [sitemaps, setSitemaps] = useShared('sitemaps')
+  const [mapchunks, setMapchunks] = useShared('mapchunks')
+  // Site maps uploaded in the app for new properties, rebuilt from their saved pieces.
+  const customMaps = useMemo(() => assembleMaps(sitemaps, mapchunks), [sitemaps, mapchunks])
+  setCustomMaps(customMaps)
+  const saveMap = (name, img) => {
+    const { meta, chunkEntries } = mapRecords(name, img, sitemaps[name])
+    setMapchunks((c) => ({ ...c, ...chunkEntries }))
+    setSitemaps((m) => ({ ...m, [name]: meta }))
+  }
   const [email, setEmail] = useState(null)
   const [tab, setTab] = useState('queue')
   const [msg, setMsg] = useState('')
@@ -174,8 +188,12 @@ function App() {
     [allOrders, site],
   )
   const team = useMemo(() => allTeams.filter((t) => (site === 'all' ? t.sites.some((x) => mySiteNames.includes(x)) : t.sites.includes(site))), [allTeams, site, mySiteNames])
-  const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule])
-  const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule])
+  // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule, customMaps])
+  // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule, customMaps])
   const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
@@ -697,7 +715,10 @@ function App() {
                   <button className="link" onClick={() => { setSites(sites.filter((x) => x.name !== s.name)); setTeamsRaw(teamsRaw.map((t) => ({ ...t, sites: t.sites.filter((x) => x !== s.name) }))); setTeamSite('Evergreen') }}>Remove site</button>
                 )}
               </div>
-              {s.address && <p className="small">{s.address}, {s.city} {s.zip}{s.beds ? ` · ${s.beds}` : ''}</p>}
+              {s.address && <p className="small">{s.address}, {s.city} {s.zip || ''}{s.beds ? ` · ${s.beds}` : ''}</p>}
+              <MapEditor siteName={s.name} map={customMaps[s.name]} builtIn={SITE_GEO[s.name]?.map ? buildingsFor(s.name).length : 0}
+                onUpload={(img) => saveMap(s.name, img)}
+                onSave={(p) => setSitemaps({ ...sitemaps, [s.name]: { ...sitemaps[s.name], ...p } })} />
               <div className="two">
                 <label>Leasing office phone
                   <input value={s.phone || ''} onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, phone: e.target.value } : x)))} inputMode="tel" />
@@ -715,7 +736,13 @@ function App() {
               <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', lang: '', phone: '', workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: [], sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
             </section>
           ))}
-          <AddSite onAdd={(s) => { setSites([...sites, s]); setTeamSite(s.name) }} existing={sites} />
+          <AddSite existing={sites} markets={[...new Set(sites.map((x) => x.market).filter(Boolean))]}
+            onAdd={(s, img) => {
+              setSites([...sites, s])
+              saveMap(s.name, img)
+              if (sup) setSups(sups.map((x) => (x.id === sup.id ? { ...x, sites: [...x.sites, s.name] } : x)))
+              setTeamSite(s.name)
+            }} />
           <button className="link" onClick={() => { setSites(DEFAULT_SITES); setTeamsRaw(TECHS) }}>Reset sites and teams to the sample setup</button>
         </>
       )}
@@ -948,23 +975,6 @@ function SitePicker({ value, onChange, sites, countFor, extra = [], suffix = 're
         </optgroup>
       ))}
     </select>
-  )
-}
-
-function AddSite({ onAdd, existing }) {
-  const [name, setName] = useState('')
-  const [city, setCity] = useState('')
-  const dup = existing.some((s) => s.name.toLowerCase() === name.trim().toLowerCase())
-  return (
-    <form className="card" onSubmit={(e) => { e.preventDefault(); if (name.trim() && !dup) { onAdd({ name: name.trim(), market: city.trim(), city: city.trim(), phone: '', email: '' }); setName(''); setCity('') } }}>
-      <h2>Add a property not on the list</h2>
-      <div className="two">
-        <label>Property name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Heron Lake" /></label>
-        <label>City<input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Ann Arbor, MI" /></label>
-      </div>
-      {dup && <p className="small warn">That property is already on the list.</p>}
-      <button className="primary" type="submit">Add property</button>
-    </form>
   )
 }
 
