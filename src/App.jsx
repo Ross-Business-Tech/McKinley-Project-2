@@ -19,7 +19,7 @@ import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
-import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
+import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS, REGIONAL_PIN } from './triage/config.js'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
@@ -108,6 +108,7 @@ function App() {
   const [newPhotos, setNewPhotos] = useState([])
   const [techDone, setTechDone] = useShared('techDone')
   const [role, setRole] = useState(() => load('mk-role', null))
+  const [staffPin, setStaffPin] = useState(() => load('mk-staff-pin', null))
   const [techId, setTechId] = useState(() => load('mk-tech', null))
   const [supId, setSupId] = useState(() => load('mk-sup', null))
   const [sups, setSups] = useShared('sups')
@@ -130,6 +131,7 @@ function App() {
     signedInEmail().then(setEmail)
   }, [])
   useEffect(() => save('mk-role', role), [role])
+  useEffect(() => save('mk-staff-pin', staffPin), [staffPin])
   useEffect(() => save('mk-tech', techId), [techId])
   useEffect(() => save('mk-sup', supId), [supId])
   useEffect(() => save('mk-resident', residentId), [residentId])
@@ -284,11 +286,24 @@ function App() {
   // ---------- Who is using the app? ----------
   setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (role ? 'Regional view' : null))
 
-  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
+  // Staff views need a staff sign-in: a verified here.now email on the team, or the person's PIN.
+  const meTech = allTeams.find((t) => t.id === techId)
+  const emailIs = (x) => !!email && (x?.email || '').toLowerCase() === email
+  const staffOk =
+    role === 'tech' ? !!meTech && (emailIs(meTech) || pinOf(meTech) === staffPin)
+      : role === 'supervisor' ? (supId === 'all' ? staffPin === REGIONAL_PIN : !!sup && (emailIs(sup) || pinOf(sup) === staffPin))
+        : true
+  const signOut = () => {
+    setRole(null)
+    setStaffPin(null)
+  }
+
+  if (!role || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} initialRole={role} email={email} siteNames={sites.map((x) => x.name)}
-        onPick={(r, id) => {
+      <RoleChooser techs={allTeams} sups={sups} email={email} siteNames={sites.map((x) => x.name)}
+        onPick={(r, id, pin) => {
           setRole(r)
+          setStaffPin(pin || null)
           if (r === 'tech') setTechId(id)
           else if (r === 'resident') setResidentId(id)
           else setSupId(id)
@@ -305,7 +320,7 @@ function App() {
       <ResidentView me={RESIDENTS.find((r) => r.id === residentId)} orders={everyOrder} setRaw={setRaw} fullPlan={fullPlan}
         approved={approved} techDone={techDone} state={state} setState={setState} feedback={feedback} setFeedback={setFeedback}
         replies={replies} setReplies={setReplies} photos={photos} addPhotos={addPhotos}
-        syncChip={<SyncChip mode={syncMode} email={email} />} onSwitch={() => setRole(null)} />
+        syncChip={<SyncChip mode={syncMode} email={email} />} onSwitch={signOut} />
     )
   }
 
@@ -322,7 +337,7 @@ function App() {
         <header className="hero hero-tech">
           <div className="row between">
             <span className="wordmark">mckinley</span>
-            <button className="switch" onClick={() => setRole(null)}>Switch user</button>
+            <button className="switch" onClick={signOut}>Sign out</button>
           </div>
           <SyncChip mode={syncMode} email={email} />
           <h1>{L.myDay} · {me.name}</h1>
@@ -367,7 +382,7 @@ function App() {
       <header className="hero">
         <div className="row between">
           <span className="wordmark">mckinley</span>
-          <button className="switch" onClick={() => setRole(null)}>Switch user</button>
+          <button className="switch" onClick={signOut}>Sign out</button>
         </div>
         <span className="chip">Supervisor · {sup ? `${sup.name} · ${mySites.length} properties` : 'Regional view · all properties'} · sample data</span>
         <SyncChip mode={syncMode} email={email} />
@@ -809,6 +824,9 @@ function TechEditor({ t, sites, update, toggle, remove }) {
         <label>Email (for signing in)
           <input type="email" value={t.email || ''} onChange={(e) => update({ email: e.target.value.trim() })} placeholder="name@mckinley.com" />
         </label>
+        <label>Sign-in PIN (4 digits)
+          <input type="password" inputMode="numeric" autoComplete="new-password" value={t.pin || ''} placeholder="sample PIN in use" onChange={(e) => update({ pin: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
+        </label>
         <label>Mobile number (to text work orders)
           <input value={t.phone || ''} onChange={(e) => update({ phone: formatPhone(e.target.value) })} placeholder="067-550-2161"
             inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
@@ -859,61 +877,75 @@ function TechEditor({ t, sites, update, toggle, remove }) {
   )
 }
 
-function RoleChooser({ techs, sups, initialRole, onPick, email, siteNames }) {
-  const [pick, setPick] = useState(initialRole)
-  const [who, setWho] = useState(techs[0]?.id || '')
-  const [boss, setBoss] = useState(sups[0]?.id || 'all')
+const TECH_PINS = Object.fromEntries(TECHS.map((t) => [t.id, t.pin]))
+const SUP_PINS = Object.fromEntries(DEFAULT_SUPERVISORS.map((x) => [x.id, x.pin]))
+// A person's PIN: the one set on the Teams tab, else the sample default.
+function pinOf(x) {
+  return x?.pin || TECH_PINS[x?.id] || SUP_PINS[x?.id] || null
+}
+
+// The front door. Residents sign in by default; staff use a separate sign-in with a PIN.
+function RoleChooser({ techs, sups, onPick, email, siteNames }) {
+  const [staff, setStaff] = useState(false)
+  const [kind, setKind] = useState('supervisor')
+  const [who, setWho] = useState('')
+  const [pin, setPin] = useState('')
+  const [err, setErr] = useState('')
+  const [fails, setFails] = useState(0)
+  const people = kind === 'tech' ? techs : sups
+  const chosen = who || (kind === 'tech' ? techs[0]?.id : sups[0]?.id) || ''
+  const submit = (e) => {
+    e.preventDefault()
+    if (fails >= 5) return setErr('Too many tries. Ask your supervisor or the office to check your PIN.')
+    const ok = chosen === 'all' ? pin === REGIONAL_PIN : pinOf(people.find((x) => x.id === chosen)) === pin
+    if (!ok) {
+      setFails(fails + 1)
+      setErr('That PIN is not right.')
+      return
+    }
+    onPick(kind, chosen, pin)
+  }
   return (
     <main className="app">
       <header className="hero">
         <span className="wordmark">mckinley</span>
-        <h1>Maintenance Hub</h1>
-        <p>Who's using the app?</p>
+        <h1>{staff ? 'Staff sign-in' : 'Maintenance requests'}</h1>
+        <p>{staff ? 'For McKinley supervisors and technicians.' : 'Send a request and see where yours stand.'}</p>
       </header>
-      {email && <p className="notice small">Signed in as <b>{email}</b>, but that email isn't on a team yet. A supervisor can add it on the Teams tab.</p>}
-      <div className={`card rolecard ${pick === 'supervisor' ? 'sel' : ''}`}>
-        <button className="rolebtn" onClick={() => setPick('supervisor')}>
-          <b>🗂️ Maintenance supervisor</b>
-          <span>Every request at the properties you oversee: priorities, follow-ups, routes, site maps, approvals and teams.</span>
-        </button>
-        {pick === 'supervisor' && (
-          <div className="rolepick">
-            <label>Your name
-              <select value={boss} onChange={(e) => setBoss(e.target.value)}>
-                {sups.map((x) => <option key={x.id} value={x.id}>{x.name} · {x.sites.length} properties</option>)}
-                <option value="all">Regional view (all properties)</option>
-              </select>
-            </label>
-            <button className="primary" onClick={() => onPick('supervisor', boss)}>Open my sites</button>
-          </div>
-        )}
-      </div>
-      <div className={`card rolecard ${pick === 'tech' ? 'sel' : ''}`}>
-        <button className="rolebtn" onClick={() => setPick('tech')}>
-          <b>🔧 Maintenance technician</b>
-          <span>Just your approved jobs for today, in order and in your language.</span>
-        </button>
-        {pick === 'tech' && (
-          <div className="rolepick">
-            <label>Your name
-              <select value={who} onChange={(e) => setWho(e.target.value)}>
-                {techs.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.sites.join(', ')}</option>)}
-              </select>
-            </label>
-            <button className="primary" onClick={() => onPick('tech', who)}>Start my day</button>
-          </div>
-        )}
-      </div>
-      <div className={`card rolecard ${pick === 'resident' ? 'sel' : ''}`}>
-        <button className="rolebtn" onClick={() => setPick('resident')}>
-          <b>🏠 Resident</b>
-          <span>Send a maintenance request and see where each of yours stands.</span>
-        </button>
-        {pick === 'resident' && (
+      {email && <p className="notice small">Signed in as <b>{email}</b>, but that email isn't on a team or lease yet.</p>}
+
+      {!staff && (
+        <div className="card rolecard sel">
+          <b>🏠 Resident sign-in</b>
           <ResidentLogin siteNames={siteNames} onSuccess={(id) => onPick('resident', id)} />
-        )}
-      </div>
-      <p className="small notice">Prototype: anyone can pick any view. A real version would have each person sign in, so technicians and residents only ever see their own work.</p>
+        </div>
+      )}
+
+      {staff && (
+        <form className="card rolecard sel" onSubmit={submit}>
+          <div className="seg">
+            <button type="button" className={kind === 'supervisor' ? 'on' : ''} onClick={() => { setKind('supervisor'); setWho(''); setErr('') }}>🗂️ Supervisor</button>
+            <button type="button" className={kind === 'tech' ? 'on' : ''} onClick={() => { setKind('tech'); setWho(''); setErr('') }}>🔧 Technician</button>
+          </div>
+          <label>Your name
+            <select value={chosen} onChange={(e) => setWho(e.target.value)}>
+              {people.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              {kind === 'supervisor' && <option value="all">Regional view (all properties)</option>}
+            </select>
+          </label>
+          <label>PIN
+            <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 digits" required />
+          </label>
+          {err && <p className="small warn">{err}</p>}
+          <button className="primary" type="submit">Sign in</button>
+          <p className="small demo">Demo PINs: Luis M. 1203 · Terrence 2109 · Regional 9000</p>
+        </form>
+      )}
+
+      <button className="link staffswitch" onClick={() => { setStaff(!staff); setErr('') }}>
+        {staff ? '← Resident sign-in' : 'McKinley staff? Sign in here'}
+      </button>
+      <p className="small notice">Each person only sees their own view: residents their own requests, technicians their own jobs, supervisors their own properties.</p>
     </main>
   )
 }
@@ -982,7 +1014,12 @@ function SupervisorsEditor({ sups, setSups, sites }) {
                   <input value={x.phone || ''} onChange={(e) => upd(x.id, { phone: formatPhone(e.target.value) })} inputMode="numeric" placeholder="067-550-2161" maxLength={12} />
                 </label>
               </div>
-              <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
+              <div className="two">
+                <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
+                <label>Sign-in PIN (4 digits)
+                  <input type="password" inputMode="numeric" autoComplete="new-password" value={x.pin || ''} placeholder="sample PIN in use" onChange={(e) => upd(x.id, { pin: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
+                </label>
+              </div>
               <p className="small">Oversees (tap ✕ to remove)</p>
               <div className="chips">
                 {x.sites.map((n) => <button key={n} className="chip chipbtn sel" onClick={() => upd(x.id, { sites: x.sites.filter((y) => y !== n) })}>{n} ✕</button>)}

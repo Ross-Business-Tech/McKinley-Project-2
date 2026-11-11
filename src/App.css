@@ -214,3 +214,5 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .pastlist{padding-left:18px;font-size:.9rem}.pastlist li{margin:4px 0}
 .notice.warn{color:var(--red);font-weight:600}
 .demo{color:var(--mute);font-style:italic;margin-top:8px}
+.staffswitch{display:block;margin:4px auto 12px}
+form.rolecard .primary{width:100%;margin-top:4px}form.rolecard{cursor:default}
