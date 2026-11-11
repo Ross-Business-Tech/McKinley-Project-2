@@ -43,13 +43,13 @@ export default function ResidentApp() {
 
   const orders = useMemo(() => raw.map((r) => buildOrder(r, state[r.id], aiRes[r.id])), [raw, state, aiRes])
   // Today's plan (regular hours or on-call, from the clock) so residents see who is coming and when.
-  const plan = useMemo(() => {
+  const [schedule] = useState(() => {
     const now = new Date()
     const day = DAYS[now.getDay()]
     const h = now.getHours()
-    const team = teams.map((t) => ({ ...t, home: t.sites[0] || '' }))
-    return buildPlan(orders, assign, team, { day, afterHours: h < 8 || h >= 17 || day === 'Sat' || day === 'Sun' })
-  }, [orders, assign, teams])
+    return { day, afterHours: h < 8 || h >= 17 || day === 'Sat' || day === 'Sun' }
+  })
+  const plan = useMemo(() => buildPlan(orders, assign, teams.map((t) => ({ ...t, home: t.sites[0] || '' })), schedule), [orders, assign, teams, schedule])
   const photos = useMemo(() => assemblePhotos(photometa, photochunks), [photometa, photochunks])
   const addPhotos = (id, list) => {
     if (!list.filter(Boolean).length) return

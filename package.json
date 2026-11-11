@@ -9,7 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "smoke": "node scripts/smoke-test.cjs",
-    "publish:preview": "node scripts/herenow-publish.mjs preview"
+    "publish:preview": "node scripts/herenow-publish.mjs preview",
+    "test": "node src/triage/tests.mjs && vite build && node tests/journeys.cjs",
+    "test:rules": "node src/triage/tests.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

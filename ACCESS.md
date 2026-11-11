@@ -1,5 +1,17 @@
 # Sign-in and who sees what
 
+There are two separate apps built from the same code:
+
+- **Staff app** at `/` (property managers, supervisors, technicians). It opens on the staff sign-in.
+- **Resident app** at `/resident/`. It contains only the resident sign-in and resident screens; none of the
+  staff screens or staff sign-in code is in it. Give residents this link.
+
+For real use, publish them as two sites: the staff app on a members-only here.now site (here.now itself blocks
+anyone not invited) and the resident app on a public one, connected to the same data through a small server.
+
+Run `npm test` to check the main journeys in a real browser (resident request → supervisor approval →
+technician progress → resident confirms) plus the sign-in rules.
+
 | Role | Sees | Signs in with |
 |---|---|---|
 | **Property manager** (one per property; one person can manage several) | Only their own properties: requests, routes, maps, planning, stats, their supervisors' and technicians' PINs, residents' codes | Work email (on the team's here.now site), or a passcode for demos and shared tablets |
