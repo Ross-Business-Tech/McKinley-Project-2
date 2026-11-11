@@ -5,80 +5,31 @@ import TechDay from './TechDay.jsx'
 import TeamHours from './TeamHours.jsx'
 import { readPhotos, photoRecords, assemblePhotos } from './photos.js'
 import { statusOf, STATUS_LABEL, timeOf } from './progress.js'
-import { define, useShared, useSyncMode, connect, setWho, signedInEmail } from './shared.js'
+import { useShared, useSyncMode, setWho, signedInEmail } from './shared.js'
+import './store.js'
+import { formatPhone, load, save } from './util.js'
+import { TechEditor, SupervisorsEditor } from './staff/TeamEditors.jsx'
+import { RoleChooser } from './staff/StaffSignIn.jsx'
+import { pinOf } from './staff/pins.js'
+import { SyncChip, TimeOffPanel, SitePicker } from './staff/Bits.jsx'
 import { aiRead } from './ai.js'
 import Stats from './Stats.jsx'
-import ResidentView from './ResidentView.jsx'
-import ResidentLogin from './ResidentLogin.jsx'
 import { VendorsEditor, VendorRequest } from './Vendors.jsx'
-import { DEFAULT_VENDORS } from './vendorsData.js'
 import { PartsList, ResidentUpdate } from './JobExtras.jsx'
 import { mapFor, setCustomMaps, buildingsFor, SITE_GEO } from './triage/geo.js'
 import { AddSite, MapEditor } from './MapSetup.jsx'
 import { mapRecords, assembleMaps } from './mapStore.js'
 import { parseLocation } from './triage/location.js'
-import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
-import { TEST_ORDERS } from './triage/testOrders.js'
+import { langInfo, workTicket, uiText } from './triage/translate.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
-import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
-import { MANAGERS, hashPass, hashEmail, passHashOf } from './auth.js'
+import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
+import { MANAGERS, hashEmail, passHashOf } from './auth.js'
 import Access, { MyPin } from './Access.jsx'
-import { PlanningTab, TechPlanned, ResidentNotices, VendorTracker, Scoreboard } from './Planning.jsx'
+import { PlanningTab, TechPlanned, VendorTracker, Scoreboard } from './Planning.jsx'
 import { scoreboard, VENDOR_STATUS, niceDate } from './planning.js'
-import { SKILLS, missingInfo, drafts } from './triage/followup.js'
+import { missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
-// Phone numbers: digits only, 10 of them, dashes added as you type (123-456-7890).
-const formatPhone = (v) => {
-  const d = v.replace(/\D/g, '').slice(0, 10)
-  return [d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).join('-')
-}
-
-function load(key, fallback) {
-  try {
-    const v = JSON.parse(localStorage.getItem(key))
-    return v || fallback
-  } catch {
-    return fallback
-  }
-}
-function save(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* private mode: fine, just don't remember */
-  }
-}
-
-// Everything below is shared with the whole team when the app runs on the team's here.now site
-// (see shared.js); on a test link it is saved in this browser only.
-define('orders', 'list', TEST_ORDERS)
-define('state', 'map', {})
-define('assign', 'map', {})
-define('approved', 'map', {})
-define('contacted', 'map', {})
-define('handled', 'map', {})
-define('techDone', 'map', {})
-define('ai', 'map', {})
-define('parts', 'map', {})
-define('timeoff', 'map', {})
-define('teams', 'list', TECHS)
-define('sups', 'list', DEFAULT_SUPERVISORS)
-define('sites', 'list', DEFAULT_SITES, 'name')
-define('vendors', 'list', DEFAULT_VENDORS)
-define('sitemaps', 'map', {})
-define('feedback', 'map', {})
-define('progress', 'map', {})
-define('pmHashes', 'map', {})
-define('turns', 'map', {})
-define('pm', 'map', {})
-define('vendorjobs', 'map', {})
-define('rescodes', 'map', {})
-define('photometa', 'map', {})
-define('photochunks', 'map', {}, 'id', { persist: false })
-define('replies', 'map', {})
-define('mapchunks', 'map', {})
-connect()
 
 function App() {
   const syncMode = useSyncMode()
@@ -92,9 +43,8 @@ function App() {
   const [timeoff, setTimeoff] = useShared('timeoff')
   const [vendors, setVendors] = useShared('vendors')
   const [sitemaps, setSitemaps] = useShared('sitemaps')
-  const [feedback, setFeedback] = useShared('feedback')
-  const [replies, setReplies] = useShared('replies')
-  const [residentId, setResidentId] = useState(() => load('mk-resident', null))
+  const [feedback] = useShared('feedback')
+  const [replies] = useShared('replies')
   const [mapchunks, setMapchunks] = useShared('mapchunks')
   // Site maps uploaded in the app for new properties, rebuilt from their saved pieces.
   const customMaps = useMemo(() => assembleMaps(sitemaps, mapchunks), [sitemaps, mapchunks])
@@ -157,7 +107,6 @@ function App() {
   useEffect(() => save('mk-staff-pin', staffPin), [staffPin])
   useEffect(() => save('mk-tech', techId), [techId])
   useEffect(() => save('mk-sup', supId), [supId])
-  useEffect(() => save('mk-resident', residentId), [residentId])
 
   // Days off (requested by technicians) take that weekday out of their shifts and on-call days.
   const allTeams = useMemo(
@@ -175,13 +124,9 @@ function App() {
     if (!email || role) return
     const t = allTeams.find((x) => (x.email || '').toLowerCase() === email)
     const b = sups.find((x) => (x.email || '').toLowerCase() === email)
-    const res = RESIDENTS.find((x) => (x.email || '').toLowerCase() === email)
     if (t) {
       setRole('tech')
       setTechId(t.id)
-    } else if (res) {
-      setRole('resident')
-      setResidentId(res.id)
     } else if (b) {
       setRole('supervisor')
       setSupId(b.id)
@@ -247,7 +192,7 @@ function App() {
   const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule, customMaps])
   const addPhotos = (id, list) => {
     if (!list.filter(Boolean).length) return
-    const { meta, chunks } = photoRecords(id, list, photometa[id], role === 'tech' ? 'technician' : role === 'resident' ? 'resident' : 'supervisor')
+    const { meta, chunks } = photoRecords(id, list, photometa[id], role === 'tech' ? 'technician' : 'supervisor')
     setPhotochunks((c) => ({ ...c, ...chunks }))
     setPhotometa((m) => ({ ...m, [id]: meta }))
   }
@@ -340,30 +285,18 @@ function App() {
     setStaffPin(null)
   }
 
-  if (!role || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && !sup && !mgr) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
+  if (!role || role === 'resident' || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && !sup && !mgr)) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} email={email} siteNames={sites.map((x) => x.name)} pmHashes={pmHashes} rescodes={rescodes}
+      <RoleChooser techs={allTeams} sups={sups} email={email} pmHashes={pmHashes}
         onPick={(r, id, pin) => {
           setRole(r)
           setStaffPin(pin || null)
           if (r === 'tech') setTechId(id)
-          else if (r === 'resident') setResidentId(id)
           else setSupId(id)
           setSite('all')
           setTab('queue')
           setTechTab('day')
         }} />
-    )
-  }
-
-  // ---------- Resident layer: only their own requests and where each one stands ----------
-  if (role === 'resident') {
-    return (
-      <ResidentView me={RESIDENTS.find((r) => r.id === residentId)} orders={everyOrder} setRaw={setRaw} fullPlan={fullPlan}
-        approved={approved} techDone={techDone} state={state} setState={setState} feedback={feedback} setFeedback={setFeedback}
-        replies={replies} setReplies={setReplies} photos={photos} addPhotos={addPhotos} progress={progress}
-        notices={<ResidentNotices me={RESIDENTS.find((r) => r.id === residentId)} turns={turns} pm={pm} vendorjobs={vendorjobs} myOrderIds={everyOrder.filter((o) => o.resident?.id === residentId).map((o) => o.id)} />}
-        syncChip={<SyncChip mode={syncMode} email={email} />} onSwitch={signOut} />
     )
   }
 
@@ -868,271 +801,6 @@ function App() {
       </div>
       </div>
     </main>
-  )
-}
-
-function TechEditor({ t, sites, update, toggle, remove }) {
-  return (
-    <div className="tech">
-      <div className="row between">
-        <input className="name" value={t.name} onChange={(e) => update({ name: e.target.value })} aria-label="Technician name" />
-        <button className="link" onClick={remove}>Remove</button>
-      </div>
-      <div className="two">
-        <label className={t.lang ? '' : 'ask'}>{t.lang ? 'Primary language' : 'Ask them: what is your primary language?'}
-          <select value={t.lang || ''} onChange={(e) => update({ lang: e.target.value })}>
-            <option value="">Choose…</option>
-            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native === l.name ? l.name : `${l.native} (${l.name})`}</option>)}
-          </select>
-        </label>
-        <label>Email (for signing in)
-          <input type="email" value={t.email || ''} onChange={(e) => update({ email: e.target.value.trim() })} placeholder="name@mckinley.com" />
-        </label>
-
-        <label>Mobile number (to text work orders)
-          <input value={t.phone || ''} onChange={(e) => update({ phone: formatPhone(e.target.value) })} placeholder="067-550-2161"
-            inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
-          {t.phone && t.phone.replace(/\D/g, '').length < 10 && <span className="small warn">Enter all 10 digits</span>}
-        </label>
-      </div>
-      <p className="small">Works on</p>
-      <div className="chips">
-        {DAYS.map((d) => (
-          <button key={d} className={`chip chipbtn ${isWorking(t, d) ? 'sel' : ''}`} onClick={() => update({ workDays: toggle(t.workDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], d) })}>{d}</button>
-        ))}
-      </div>
-      <p className="small">📟 On call (after hours, 5 PM to midnight)</p>
-      <div className="chips">
-        {DAYS.map((d) => (
-          <button key={d} className={`chip chipbtn ${isOnCall(t, d) ? 'sel oncallchip' : ''}`} onClick={() => update({ onCallDays: toggle(t.onCallDays || [], d) })}>{d}</button>
-        ))}
-      </div>
-      <p className="small">Strengths</p>
-      <div className="chips">
-        {SKILLS.map((k) => (
-          <button key={k} className={`chip chipbtn ${t.skills.includes(k) ? 'sel' : ''}`} onClick={() => update({ skills: toggle(t.skills, k) })}>{k}</button>
-        ))}
-      </div>
-      <p className="small">Works at</p>
-      <div className="chips">
-        {t.sites.map((n) => (
-          <button key={n} className="chip chipbtn sel" title="Tap to remove" onClick={() => update({ sites: t.sites.filter((x) => x !== n) })}>{n} ✕</button>
-        ))}
-      </div>
-      <select aria-label="Add a site" value="" onChange={(e) => e.target.value && update({ sites: [...t.sites, e.target.value] })}>
-        <option value="">+ Also covers another site…</option>
-        {sites.filter((x) => !t.sites.includes(x.name)).map((x) => <option key={x.name} value={x.name}>{x.name} ({x.city})</option>)}
-      </select>
-      <div className="two">
-        <label>Shift starts
-          <select value={t.shift[0]} onChange={(e) => update({ shift: [Number(e.target.value), t.shift[1]] })}>
-            {[6, 7, 8, 9, 10].map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
-          </select>
-        </label>
-        <label>Shift ends
-          <select value={t.shift[1]} onChange={(e) => update({ shift: [t.shift[0], Number(e.target.value)] })}>
-            {[14, 15, 16, 17, 18, 19, 20].map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
-          </select>
-        </label>
-      </div>
-    </div>
-  )
-}
-
-const TECH_PINS = Object.fromEntries(TECHS.map((t) => [t.id, t.pin]))
-const SUP_PINS = Object.fromEntries(DEFAULT_SUPERVISORS.map((x) => [x.id, x.pin]))
-// A person's PIN: the one set on the Teams tab, else the sample default.
-function pinOf(x) {
-  return x?.pin || TECH_PINS[x?.id] || SUP_PINS[x?.id] || null
-}
-
-// The front door. Residents sign in by default; staff use a separate sign-in with a PIN.
-function RoleChooser({ techs, sups, onPick, email, siteNames, pmHashes, rescodes }) {
-  const [staff, setStaff] = useState(false)
-  const [kind, setKind] = useState('supervisor')
-  const [who, setWho] = useState('')
-  const [pin, setPin] = useState('')
-  const [err, setErr] = useState('')
-  const [fails, setFails] = useState(0)
-  const people = kind === 'tech' ? techs : sups
-  const chosen = who || (kind === 'tech' ? techs[0]?.id : sups[0]?.id) || ''
-  const [pass, setPass] = useState('')
-  const submit = async (e) => {
-    e.preventDefault()
-    if (fails >= 5) return setErr('Too many tries. Ask your property manager to reset your PIN.')
-    if (kind === 'manager') {
-      const h = await hashPass(pass)
-      const m = MANAGERS.find((x) => passHashOf(x, pmHashes) === h)
-      if (!m) {
-        setFails(fails + 1)
-        return setErr('That passcode is not right.')
-      }
-      return onPick('supervisor', `pm:${m.id}`, h)
-    }
-    const ok = pinOf(people.find((x) => x.id === chosen)) === pin
-    if (!ok) {
-      setFails(fails + 1)
-      setErr('That PIN is not right.')
-      return
-    }
-    onPick(kind, chosen, pin)
-  }
-  return (
-    <main className="app">
-      <header className="hero">
-        <span className="wordmark">mckinley</span>
-        <h1>{staff ? 'Staff sign-in' : 'Maintenance requests'}</h1>
-        <p>{staff ? 'For McKinley property managers, supervisors and technicians.' : 'Send a request and see where yours stand.'}</p>
-      </header>
-      {email && <p className="notice small">Signed in as <b>{email}</b>, but that email isn't on a team or lease yet.</p>}
-
-      {!staff && (
-        <div className="card rolecard sel">
-          <b>🏠 Resident sign-in</b>
-          <ResidentLogin siteNames={siteNames} rescodes={rescodes} onSuccess={(id) => onPick('resident', id)} />
-        </div>
-      )}
-
-      {staff && (
-        <form className="card rolecard sel" onSubmit={submit}>
-          <div className="seg">
-            <button type="button" className={kind === 'supervisor' ? 'on' : ''} onClick={() => { setKind('supervisor'); setWho(''); setErr('') }}>🗂️ Supervisor</button>
-            <button type="button" className={kind === 'tech' ? 'on' : ''} onClick={() => { setKind('tech'); setWho(''); setErr('') }}>🔧 Technician</button>
-            <button type="button" className={kind === 'manager' ? 'on' : ''} onClick={() => { setKind('manager'); setErr('') }}>🏢 Manager</button>
-          </div>
-          {kind === 'manager' ? (
-            <label>Property manager passcode
-              <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="current-password" required />
-            </label>
-          ) : (<>
-          <label>Your name
-            <select value={chosen} onChange={(e) => setWho(e.target.value)}>
-              {people.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-            </select>
-          </label>
-          <label>PIN
-            <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 digits" required />
-          </label>
-          </>)}
-          {err && <p className="small warn">{err}</p>}
-          <button className="primary" type="submit">Sign in</button>
-          <p className="small">Forgot your PIN? Ask your property manager to reset it.</p>
-        </form>
-      )}
-
-      <button className="link staffswitch" onClick={() => { setStaff(!staff); setErr('') }}>
-        {staff ? '← Resident sign-in' : 'McKinley staff? Sign in here'}
-      </button>
-      <p className="small notice">Each person only sees their own view: residents their own requests, technicians their own jobs, supervisors their own properties.</p>
-    </main>
-  )
-}
-
-function SyncChip({ mode, email }) {
-  const txt = mode === 'online' ? '● Live: shared with your team' : mode === 'local' ? '● Saved on this device only' : '● Connecting…'
-  return (
-    <span className={`chip sync ${mode}`} title={mode === 'local' ? 'Test links and previews can’t share data. On the team’s site, changes reach everyone.' : ''}>
-      {txt}{email ? ` · ${email}` : ''}
-    </span>
-  )
-}
-
-// Technicians' days off this week, with a suggested cover for each.
-function TimeOffPanel({ team, allTeams, day, timeoff, setTimeoff }) {
-  const off = team.filter((t) => t.daysOff?.length)
-  if (!off.length) return null
-  const coverFor = (t, d) =>
-    allTeams
-      .filter((x) => x.id !== t.id && !x.daysOff?.includes(d) && !x.workDays.includes(d) && x.sites.some((s) => t.sites.includes(s)))
-      .map((x) => ({ x, score: x.skills.filter((k) => t.skills.includes(k)).length }))
-      .sort((a, b) => b.score - a.score)[0]?.x ||
-    allTeams.find((x) => x.id !== t.id && !x.daysOff?.includes(d) && x.sites.some((s) => t.sites.includes(s)))
-  return (
-    <section className="card timeoff">
-      <h2>Days off</h2>
-      {off.flatMap((t) =>
-        t.daysOff.map((d) => {
-          const c = t.usualWorkDays.includes(d) ? coverFor(t, d) : null
-          return (
-            <div key={`${t.id}${d}`} className={`row ${d === day ? 'today' : ''}`}>
-              <span className="small"><b>{t.name}</b> off {d}</span>
-              {c ? (
-                c.phone ? <a className="btn mini" href={`sms:${c.phone}?&body=${encodeURIComponent(`Hi ${c.name}, could you cover ${t.name}'s shift on ${d} (${t.sites.join(', ')})?`)}`}>Ask {c.name} to cover</a>
-                  : <span className="small">Cover: {c.name}</span>
-              ) : t.usualWorkDays.includes(d) ? <span className="small warn">No one free to cover</span> : <span className="small">(not a usual work day)</span>}
-              <button className="link" onClick={() => setTimeoff({ ...timeoff, [`${t.id}|${d}`]: undefined })}>Undo</button>
-            </div>
-          )
-        }),
-      )}
-    </section>
-  )
-}
-
-function SupervisorsEditor({ sups, setSups, sites, onlySites }) {
-  const [open, setOpen] = useState(null)
-  const markets = [...new Set(sites.map((x) => x.market || x.city))]
-  const upd = (id, p) => setSups(sups.map((x) => (x.id === id ? { ...x, ...p } : x)))
-  return (
-    <section className="card">
-      <h2>Supervisors</h2>
-      <p className="small">Each supervisor sees only the properties they oversee. Technicians see their supervisor's name and number.</p>
-      {sups.filter((x) => !onlySites || !x.sites.length || x.sites.some((n) => onlySites.includes(n))).map((x) => (
-        <div key={x.id} className="tech">
-          <div className="row between">
-            <b>{x.name}</b>
-            <span className="small">{x.sites.length} properties</span>
-            <button className="link" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Close' : 'Edit'}</button>
-          </div>
-          {open === x.id && (
-            <>
-              <div className="two">
-                <label>Name<input value={x.name} onChange={(e) => upd(x.id, { name: e.target.value })} /></label>
-                <label>Phone
-                  <input value={x.phone || ''} onChange={(e) => upd(x.id, { phone: formatPhone(e.target.value) })} inputMode="numeric" placeholder="067-550-2161" maxLength={12} />
-                </label>
-              </div>
-              <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
-              <p className="small">Oversees (tap ✕ to remove)</p>
-              <div className="chips">
-                {x.sites.map((n) => <button key={n} className="chip chipbtn sel" onClick={() => upd(x.id, { sites: x.sites.filter((y) => y !== n) })}>{n} ✕</button>)}
-              </div>
-              <div className="two">
-                <select aria-label="Add a property" value="" onChange={(e) => e.target.value && upd(x.id, { sites: [...x.sites, e.target.value] })}>
-                  <option value="">+ Add one property…</option>
-                  {sites.filter((y) => !x.sites.includes(y.name)).map((y) => <option key={y.name} value={y.name}>{y.name} ({y.city})</option>)}
-                </select>
-                <select aria-label="Add a whole area" value="" onChange={(e) => e.target.value && upd(x.id, { sites: [...new Set([...x.sites, ...sites.filter((y) => (y.market || y.city) === e.target.value).map((y) => y.name)])] })}>
-                  <option value="">+ Add a whole area…</option>
-                  {markets.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <button className="link" onClick={() => setSups(sups.filter((y) => y.id !== x.id))}>Remove supervisor</button>
-            </>
-          )}
-        </div>
-      ))}
-      <button onClick={() => { const id = `SUP-${Date.now()}`; setSups([...sups, { id, name: 'New supervisor', phone: '', email: '', sites: [] }]); setOpen(id) }}>+ Add supervisor</button>
-      {(() => {
-        const covered = new Set(sups.flatMap((x) => x.sites))
-        const gap = sites.filter((y) => !covered.has(y.name))
-        return gap.length ? <p className="small warn">No supervisor yet for: {gap.map((y) => y.name).join(', ')}</p> : null
-      })()}
-    </section>
-  )
-}
-
-function SitePicker({ value, onChange, sites, countFor, extra = [], suffix = 'requests' }) {
-  const markets = [...new Set(sites.map((s) => s.market || s.city))]
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}>
-      {extra.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-      {markets.map((m) => (
-        <optgroup key={m} label={m}>
-          {sites.filter((s) => (s.market || s.city) === m).map((s) => <option key={s.name} value={s.name}>{s.name} ({countFor(s.name)} {suffix})</option>)}
-        </optgroup>
-      ))}
-    </select>
   )
 }
 
