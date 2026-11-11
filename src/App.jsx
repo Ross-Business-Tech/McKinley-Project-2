@@ -8,6 +8,7 @@ import { define, useShared, useSyncMode, connect, setWho, signedInEmail } from '
 import { aiRead } from './ai.js'
 import Stats from './Stats.jsx'
 import ResidentView from './ResidentView.jsx'
+import ResidentLogin from './ResidentLogin.jsx'
 import { VendorsEditor, VendorRequest } from './Vendors.jsx'
 import { DEFAULT_VENDORS } from './vendorsData.js'
 import { PartsList, ResidentUpdate } from './JobExtras.jsx'
@@ -94,6 +95,10 @@ function App() {
   const [tab, setTab] = useState('queue')
   const [msg, setMsg] = useState('')
   const [resId, setResId] = useState('')
+  const [chatSite, setChatSite] = useState('')
+  const [chatUnit, setChatUnit] = useState('')
+  const matchUnit = (site, unit) =>
+    RESIDENTS.find((r) => r.community === site && String(r.unit).replace(/^0+/, '') === String(unit).trim().replace(/^0+/, ''))?.id || ''
   const [reqPhone, setReqPhone] = useState('')
   const [reqEmail, setReqEmail] = useState('')
   const [showScale, setShowScale] = useState(false)
@@ -241,10 +246,12 @@ function App() {
     setNewPhotos([])
     setRaw([
       ...raw,
-      { id: newId, residentId: resId || null, received: '10:30', text: msg.trim(), phone: reqPhone.trim(), email: reqEmail.trim() },
+      { id: newId, residentId: resId || null, received: '10:30', text: resId || !chatSite ? msg.trim() : `${chatSite} unit ${chatUnit}: ${msg.trim()}`, phone: reqPhone.trim(), email: reqEmail.trim() },
     ])
     setMsg('')
     setResId('')
+    setChatSite('')
+    setChatUnit('')
     setReqPhone('')
     setReqEmail('')
     setTab('followups')
@@ -279,7 +286,7 @@ function App() {
 
   if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} initialRole={role} email={email}
+      <RoleChooser techs={allTeams} sups={sups} initialRole={role} email={email} siteNames={sites.map((x) => x.name)}
         onPick={(r, id) => {
           setRole(r)
           if (r === 'tech') setTechId(id)
@@ -440,12 +447,17 @@ function App() {
             })()}
           </div>
           <div className="chat-form">
-            <label>Your name and apartment
-              <select value={resId} onChange={(e) => setResId(e.target.value)} required>
-                <option value="">Choose your name and apartment</option>
-                {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
-              </select>
-            </label>
+            <div className="two">
+              <label>Property
+                <select value={chatSite} onChange={(e) => { setChatSite(e.target.value); setResId(matchUnit(e.target.value, chatUnit)) }} required>
+                  <option value="">Choose…</option>
+                  {mySites.map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+                </select>
+              </label>
+              <label>Unit number
+                <input value={chatUnit} onChange={(e) => { setChatUnit(e.target.value.slice(0, 8)); setResId(matchUnit(chatSite, e.target.value)) }} inputMode="numeric" required />
+              </label>
+            </div>
             <div className="two">
               <label>Best phone number
                 <input value={reqPhone} onChange={(e) => setReqPhone(formatPhone(e.target.value))} placeholder="067-550-2161" inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" required />
@@ -847,11 +859,10 @@ function TechEditor({ t, sites, update, toggle, remove }) {
   )
 }
 
-function RoleChooser({ techs, sups, initialRole, onPick, email }) {
+function RoleChooser({ techs, sups, initialRole, onPick, email, siteNames }) {
   const [pick, setPick] = useState(initialRole)
   const [who, setWho] = useState(techs[0]?.id || '')
   const [boss, setBoss] = useState(sups[0]?.id || 'all')
-  const [resWho, setResWho] = useState(RESIDENTS[0]?.id || '')
   return (
     <main className="app">
       <header className="hero">
@@ -899,14 +910,7 @@ function RoleChooser({ techs, sups, initialRole, onPick, email }) {
           <span>Send a maintenance request and see where each of yours stands.</span>
         </button>
         {pick === 'resident' && (
-          <div className="rolepick">
-            <label>Your name and apartment (sample residents)
-              <select value={resWho} onChange={(e) => setResWho(e.target.value)}>
-                {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.name} · {r.community} · Unit {r.unit}</option>)}
-              </select>
-            </label>
-            <button className="primary" onClick={() => onPick('resident', resWho)}>See my requests</button>
-          </div>
+          <ResidentLogin siteNames={siteNames} onSuccess={(id) => onPick('resident', id)} />
         )}
       </div>
       <p className="small notice">Prototype: anyone can pick any view. A real version would have each person sign in, so technicians and residents only ever see their own work.</p>

@@ -19,8 +19,8 @@ const T = {
     needInfo: 'We need a bit more information:', reply: 'Reply to our team', send: 'Send', sent: 'Sent. Thank you!',
     fixed: 'Is it fixed?', yes: 'Yes, all good', no: 'Still a problem', thanksYes: 'Great, thank you for letting us know!', thanksNo: "Sorry about that. We've told your maintenance team.",
     describe: "What's wrong? Where in your home is it?", photos: '📷 Add photos (optional)', submit: 'Send to maintenance',
-    submitted: "Thanks! Your request was sent. You'll see its status here.", unit: 'Unit', bldg: 'Bldg', switch: 'Switch user',
-    note: 'Prototype with sample residents. In a real version you would sign in with your own email.',
+    submitted: "Thanks! Your request was sent. You'll see its status here.", unit: 'Unit', bldg: 'Bldg', switch: 'Sign out',
+    note: 'Only you can see your requests after signing in. Prototype with sample residents.',
   },
   es: {
     title: 'Mis solicitudes de mantenimiento', newReq: 'Nueva solicitud', mine: 'Mis solicitudes', past: 'Solicitudes anteriores',
@@ -33,8 +33,8 @@ const T = {
     needInfo: 'Necesitamos un poco más de información:', reply: 'Responder a nuestro equipo', send: 'Enviar', sent: '¡Enviado. Gracias!',
     fixed: '¿Quedó reparado?', yes: 'Sí, todo bien', no: 'Sigue el problema', thanksYes: '¡Excelente, gracias por avisarnos!', thanksNo: 'Lo sentimos. Ya le avisamos a su equipo de mantenimiento.',
     describe: '¿Qué pasa? ¿En qué parte de su casa?', photos: '📷 Agregar fotos (opcional)', submit: 'Enviar a mantenimiento',
-    submitted: '¡Gracias! Su solicitud fue enviada. Verá su estado aquí.', unit: 'Unidad', bldg: 'Edif.', switch: 'Cambiar usuario',
-    note: 'Prototipo con residentes de ejemplo. En una versión real usted iniciaría sesión con su propio correo.',
+    submitted: '¡Gracias! Su solicitud fue enviada. Verá su estado aquí.', unit: 'Unidad', bldg: 'Edif.', switch: 'Cerrar sesión',
+    note: 'Solo usted puede ver sus solicitudes después de iniciar sesión. Prototipo con residentes de ejemplo.',
   },
 }
 
@@ -78,7 +78,7 @@ export default function ResidentView({ me, orders, setRaw, fullPlan, approved, t
         </div>
         {syncChip}
         <h1>{L.title}</h1>
-        <p>{me.name} · {me.community} · {L.bldg} {me.building} · {L.unit} {me.unit}</p>
+        <p>{me.community} · {L.unit} {me.unit}</p>
       </header>
 
       <nav className="tabs">

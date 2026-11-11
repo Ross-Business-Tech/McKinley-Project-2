@@ -213,3 +213,4 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .replies{margin:6px 0;padding-left:18px;font-size:.88rem;color:var(--mute)}.reply{margin:2px 0}
 .pastlist{padding-left:18px;font-size:.9rem}.pastlist li{margin:4px 0}
 .notice.warn{color:var(--red);font-weight:600}
+.demo{color:var(--mute);font-style:italic;margin-top:8px}
