@@ -116,6 +116,10 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "onway": "🚐 On my way",
+  "started": "🔧 Started",
+  "waitParts": "📦 Waiting on parts",
+  "status": "Status",
   "alertsOn": "🔔 Turn on alerts",
   "alertsActive": "🔔 Alerts on",
   "dayOff": "Days off (tap a day to ask for it off)",
@@ -143,6 +147,10 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "onway": "🚐 En camino",
+  "started": "🔧 Empecé",
+  "waitParts": "📦 Esperando piezas",
+  "status": "Estado",
   "alertsOn": "🔔 Activar alertas",
   "alertsActive": "🔔 Alertas activadas",
   "dayOff": "Días libres (toque un día para pedirlo)",
@@ -170,6 +178,10 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "onway": "🚐 A caminho",
+  "started": "🔧 Comecei",
+  "waitParts": "📦 Aguardando peças",
+  "status": "Status",
   "alertsOn": "🔔 Ativar alertas",
   "alertsActive": "🔔 Alertas ativados",
   "dayOff": "Folgas (toque em um dia para pedir folga)",
@@ -197,6 +209,10 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "onway": "🚐 En route",
+  "started": "🔧 Commencé",
+  "waitParts": "📦 En attente de pièces",
+  "status": "Statut",
   "alertsOn": "🔔 Activer les alertes",
   "alertsActive": "🔔 Alertes activées",
   "dayOff": "Jours de congé (touchez un jour pour le demander)",
@@ -224,6 +240,10 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "onway": "🚐 M ap vini",
+  "started": "🔧 M kòmanse",
+  "waitParts": "📦 M ap tann pyès",
+  "status": "Estati",
   "alertsOn": "🔔 Limen alèt yo",
   "alertsActive": "🔔 Alèt yo limen",
   "dayOff": "Jou konje (peze sou yon jou pou mande l)",

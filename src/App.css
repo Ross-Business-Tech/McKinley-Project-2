@@ -229,3 +229,12 @@ form.rolecard .primary{width:100%;margin-top:4px}form.rolecard{cursor:default}
 .tabs{flex-wrap:wrap;overflow-x:visible}
 .tabs button{flex:1 0 auto}
 .sites{flex-wrap:wrap;overflow-x:visible}
+
+/* Job progress */
+.steps li{font-size:.68rem;padding-top:8px}
+.progbtns{margin-top:10px;gap:6px}.progbtns>*{flex:1 1 auto}
+.chip.status-onway{background:#e6eeff;color:#1d4ed8;border-color:#c5d6ff}
+.chip.status-started{background:#e4f6ec;color:#17703f;border-color:#b9e4cb}
+.chip.status-parts{background:#fff4d6;color:#8a5b00;border-color:#f3dc9a}
+.chip.status-scheduled,.chip.status-approved{background:var(--soft);color:var(--ink)}
+.route .chip{font-size:.7rem;padding:1px 8px;vertical-align:1px}

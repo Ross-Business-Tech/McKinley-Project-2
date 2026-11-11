@@ -30,8 +30,10 @@ function notify() {
 }
 
 // type: 'map' (object keyed by id), 'list' (array of objects with an id field), 'value' (anything)
-export function define(key, type, initial, idField = 'id') {
-  defs[key] = { type, initial, idField }
+// opts.persist = false: don't keep a copy in this browser's storage (used for photo pieces,
+// which are big; they're still shared with the team on the team's site).
+export function define(key, type, initial, idField = 'id', opts = {}) {
+  defs[key] = { type, initial, idField, persist: opts.persist !== false }
   if (!(key in values)) values[key] = initial
 }
 
@@ -50,7 +52,8 @@ function loadLocal() {
 }
 function saveLocal() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(values))
+    const keep = Object.fromEntries(Object.entries(values).filter(([k]) => defs[k]?.persist !== false))
+    localStorage.setItem(LS_KEY, JSON.stringify(keep))
   } catch {
     /* storage full or blocked: keep going in memory */
   }

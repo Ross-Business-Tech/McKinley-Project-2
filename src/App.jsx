@@ -3,7 +3,8 @@ import './App.css'
 import SiteMap from './SiteMap.jsx'
 import TechDay from './TechDay.jsx'
 import TeamHours from './TeamHours.jsx'
-import { readPhotos } from './photos.js'
+import { readPhotos, photoRecords, assemblePhotos } from './photos.js'
+import { statusOf, STATUS_LABEL, timeOf } from './progress.js'
 import { define, useShared, useSyncMode, connect, setWho, signedInEmail } from './shared.js'
 import { aiRead } from './ai.js'
 import Stats from './Stats.jsx'
@@ -63,6 +64,9 @@ define('sites', 'list', DEFAULT_SITES, 'name')
 define('vendors', 'list', DEFAULT_VENDORS)
 define('sitemaps', 'map', {})
 define('feedback', 'map', {})
+define('progress', 'map', {})
+define('photometa', 'map', {})
+define('photochunks', 'map', {}, 'id', { persist: false })
 define('replies', 'map', {})
 define('mapchunks', 'map', {})
 connect()
@@ -104,7 +108,11 @@ function App() {
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
   const [handled, setHandled] = useShared('handled')
-  const [photos, setPhotos] = useState({})
+  const [photometa, setPhotometa] = useShared('photometa')
+  const [photochunks, setPhotochunks] = useShared('photochunks')
+  const [progress, setProgress] = useShared('progress')
+  // Photos are shared with the team (in pieces, see photos.js) on the team's site.
+  const photos = useMemo(() => assemblePhotos(photometa, photochunks), [photometa, photochunks])
   const [newPhotos, setNewPhotos] = useState([])
   const [techDone, setTechDone] = useShared('techDone')
   const [role, setRole] = useState(() => load('mk-role', null))
@@ -212,7 +220,13 @@ function App() {
   // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule, customMaps])
-  const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
+  const addPhotos = (id, list) => {
+    if (!list.filter(Boolean).length) return
+    const { meta, chunks } = photoRecords(id, list, photometa[id], role === 'tech' ? 'technician' : role === 'resident' ? 'resident' : 'supervisor')
+    setPhotochunks((c) => ({ ...c, ...chunks }))
+    setPhotometa((m) => ({ ...m, [id]: meta }))
+  }
+  const statusFor = (o) => statusOf(o.id, { approved, techDone, progress, scheduled: fullPlan.techs.some((t) => t.plan.stops.some((st) => st.job.id === o.id)) })
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
   const ranked = [...orders].sort((a, b) => (handled[a.id] ? 1 : 0) - (handled[b.id] ? 1 : 0) || b.sev - a.sev || a.received.localeCompare(b.received))
@@ -244,7 +258,7 @@ function App() {
     e.preventDefault()
     if (!msg.trim()) return
     const newId = `W${Date.now().toString(36).toUpperCase()}`
-    if (newPhotos.length) setPhotos((p) => ({ ...p, [newId]: newPhotos }))
+    if (newPhotos.length) addPhotos(newId, newPhotos)
     setNewPhotos([])
     setRaw([
       ...raw,
@@ -319,7 +333,7 @@ function App() {
     return (
       <ResidentView me={RESIDENTS.find((r) => r.id === residentId)} orders={everyOrder} setRaw={setRaw} fullPlan={fullPlan}
         approved={approved} techDone={techDone} state={state} setState={setState} feedback={feedback} setFeedback={setFeedback}
-        replies={replies} setReplies={setReplies} photos={photos} addPhotos={addPhotos}
+        replies={replies} setReplies={setReplies} photos={photos} addPhotos={addPhotos} progress={progress}
         syncChip={<SyncChip mode={syncMode} email={email} />} onSwitch={signOut} />
     )
   }
@@ -360,7 +374,7 @@ function App() {
         </nav>
         {techTab === 'day' && (
           <TechDay me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
-            addressOf={addressOf} photos={photos} addPhotos={addPhotos} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
+            addressOf={addressOf} photos={photos} addPhotos={addPhotos} progress={progress} setProgress={setProgress} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
         )}
         {techTab === 'map' && (
           <>
@@ -596,7 +610,11 @@ function App() {
                   {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
                   {t && <span className="chip c-tech">{t.name}</span>}
-                  {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}</span>}
+                  {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}{techDone[o.id].at ? ` · ${timeOf(techDone[o.id].at)}` : ''}</span>}
+                  {!techDone[o.id] && approved[o.id] && (() => {
+                    const st = statusFor(o)
+                    return <span className={`chip status-${st.key}`}>{STATUS_LABEL[st.key]}{st.at ? ` · ${timeOf(st.at)}` : ''}</span>
+                  })()}
                   {feedback[o.id] && (feedback[o.id].ok
                     ? <span className="chip e-ok">Resident: fixed ✓</span>
                     : <span className="chip e-emergency">Resident: still a problem</span>)}
@@ -607,7 +625,7 @@ function App() {
                   {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
                 </div>
                 {(photos[o.id] || []).length > 0 && (
-                  <div className="thumbs">{photos[o.id].map((p, i) => <a key={i} href={p.src} target="_blank" rel="noreferrer"><img src={p.src} alt={`Photo ${i + 1}`} /></a>)}</div>
+                  <div className="thumbs">{photos[o.id].map((p, i) => <a key={i} href={p.src} target="_blank" rel="noreferrer" title={p.by ? `Added by ${p.by}` : ''}><img src={p.src} alt={`Photo ${i + 1}${p.by ? ` from ${p.by}` : ''}`} /></a>)}</div>
                 )}
                 <label className="link photolink">📷 Add photo
                   <input type="file" accept="image/*" multiple onChange={async (e) => { addPhotos(o.id, await readPhotos(e.target.files)); e.target.value = '' }} />
@@ -711,7 +729,7 @@ function App() {
                 {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
                   <li key={job.id} className={tag(job.sev).color}>
                     <span className={`pill ${tag(job.sev).color}`}>{job.sev}</span>
-                    <b>{fmt(arrive)}</b> {job.resident?.building ? `Bldg ${job.resident.building} · ` : ''}Unit {job.resident?.unit || '?'} · {job.label}
+                    <b>{fmt(arrive)}</b> {approved[job.id] && <span className={`chip status-${statusFor(job).key}`}>{STATUS_LABEL[statusFor(job).key]}</span>} {job.resident?.building ? `Bldg ${job.resident.building} · ` : ''}Unit {job.resident?.unit || '?'} · {job.label}
                     <div className="small">{job.community || 'Unknown community'} · {travel} min {travel <= 12 ? 'walk' : 'drive'}{wait > 1 ? ` + ${Math.round(wait)} min wait for resident window` : ''} · until {fmt(done)}</div>
                     {late && <div className="small warn">Runs past end of shift: carry to tomorrow unless the manager says otherwise</div>}
                     {job.vendor && <div className="small">Needs {job.vendor.vendor}: schedule the vendor, tech does the first look only</div>}

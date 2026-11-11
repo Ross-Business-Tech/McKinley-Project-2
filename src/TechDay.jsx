@@ -16,7 +16,7 @@ function canNotify() {
 
 // What one technician sees on their phone: only work orders the manager has approved
 // for them, in route order and in their own language.
-export default function TechDay({ me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, parts, setParts, timeoff, setTimeoff }) {
+export default function TechDay({ me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, progress, setProgress, parts, setParts, timeoff, setTimeoff }) {
   const t = techs.find((x) => x.id === me)
   const mine = plan.techs.find((x) => x.tech.id === me)
   const stops = mine ? mine.plan.stops : []
@@ -78,6 +78,20 @@ export default function TechDay({ me, techs, plan, approved, techDone, setTechDo
                 {pics.map((p, j) => <a key={j} href={p.src} target="_blank" rel="noreferrer"><img src={p.src} alt={`${L.photos} ${j + 1}`} /></a>)}
               </div>
             )}
+            {!done && (
+              <div className="row progbtns" aria-label={L.status}>
+                {[['onway', L.onway], ['started', L.started], ['parts', L.waitParts]].map(([k, l]) => {
+                  const p = progress[o.id] || {}
+                  const on = !!p[k]
+                  return (
+                    <button key={k} type="button" className={`btn mini ${on ? 'done' : ''}`}
+                      onClick={() => setProgress({ ...progress, [o.id]: { ...p, [k]: on && k === 'parts' ? null : new Date().toISOString(), by: t.name } })}>
+                      {l}{on && k !== 'parts' ? ' ✓' : ''}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             <div className="row techbtns">
               {addr && <a className="btn primary" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}&travelmode=driving`} target="_blank" rel="noreferrer">📍 {L.directions}</a>}
               {phone && <a className="btn" href={`tel:${phone}`}>{L.call}</a>}
@@ -85,7 +99,7 @@ export default function TechDay({ me, techs, plan, approved, techDone, setTechDo
               <label className="btn photobtn">📷 {L.addPhoto}
                 <input type="file" accept="image/*" capture="environment" multiple onChange={async (e) => { addPhotos(o.id, await readPhotos(e.target.files)); e.target.value = '' }} />
               </label>
-              <button className={done ? 'done' : 'primary'} onClick={() => setTechDone({ ...techDone, [o.id]: done ? undefined : { by: t.name } })}>
+              <button className={done ? 'done' : 'primary'} onClick={() => setTechDone({ ...techDone, [o.id]: done ? undefined : { by: t.name, at: new Date().toISOString() } })}>
                 {done ? `✓ ${L.finished}` : L.done}
               </button>
             </div>

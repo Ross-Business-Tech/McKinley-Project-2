@@ -10,7 +10,8 @@ import { readPhotos } from './photos.js'
 const T = {
   en: {
     title: 'My maintenance requests', newReq: 'New request', mine: 'My requests', past: 'Past requests',
-    none: "You don't have any open requests.", steps: ['Received', 'Approved', 'Scheduled', 'Fixed'],
+    none: "You don't have any open requests.", steps: ['Received', 'Approved', 'Scheduled', 'On the way', 'Working', 'Fixed'],
+    onway: (n) => `${n} is on the way to your home.`, started: (n) => `${n} is working on it now.`, parts: 'Waiting on a part. We will come back to finish as soon as it arrives.',
     received: "We've got your request and are reviewing it.", approved: 'Approved. We are lining up the right technician.',
     scheduled: (name, time) => `${name} is scheduled to come around ${time}.`, done: 'Your repair is finished.',
     emergency: 'Emergency: if you smell gas or see smoke or fire, leave your home and call 911. Our team is on the way.',
@@ -24,7 +25,8 @@ const T = {
   },
   es: {
     title: 'Mis solicitudes de mantenimiento', newReq: 'Nueva solicitud', mine: 'Mis solicitudes', past: 'Solicitudes anteriores',
-    none: 'No tiene solicitudes abiertas.', steps: ['Recibida', 'Aprobada', 'Programada', 'Reparada'],
+    none: 'No tiene solicitudes abiertas.', steps: ['Recibida', 'Aprobada', 'Programada', 'En camino', 'Trabajando', 'Reparada'],
+    onway: (n) => `${n} va en camino a su casa.`, started: (n) => `${n} está trabajando en ello ahora.`, parts: 'Esperando una pieza. Regresaremos a terminar en cuanto llegue.',
     received: 'Recibimos su solicitud y la estamos revisando.', approved: 'Aprobada. Estamos asignando al técnico adecuado.',
     scheduled: (name, time) => `${name} tiene programado llegar alrededor de las ${time}.`, done: 'Su reparación está terminada.',
     emergency: 'Emergencia: si huele a gas o ve humo o fuego, salga de su casa y llame al 911. Nuestro equipo va en camino.',
@@ -38,7 +40,7 @@ const T = {
   },
 }
 
-export default function ResidentView({ me, orders, setRaw, fullPlan, approved, techDone, state, setState, feedback, setFeedback, replies, setReplies, photos, addPhotos, syncChip, onSwitch }) {
+export default function ResidentView({ me, orders, setRaw, fullPlan, approved, techDone, state, setState, feedback, setFeedback, replies, setReplies, photos, addPhotos, progress, syncChip, onSwitch }) {
   const L = me.lang === 'Spanish' ? T.es : T.en
   const [tab, setTab] = useState('mine')
   const [text, setText] = useState('')
@@ -108,7 +110,10 @@ export default function ResidentView({ me, orders, setRaw, fullPlan, approved, t
           {mine.map((o) => {
             const stop = stopOf(o.id)
             const isDone = !!techDone[o.id]
-            const step = isDone ? 3 : approved[o.id] && stop ? 2 : approved[o.id] ? 1 : 0
+            const pr = progress[o.id] || {}
+            const latest = ['onway', 'started', 'parts'].filter((k) => pr[k]).sort((a, b) => (pr[a] > pr[b] ? -1 : 1))[0]
+            const step = isDone ? 5 : latest === 'started' || latest === 'parts' ? 4 : latest === 'onway' ? 3 : approved[o.id] && stop ? 2 : approved[o.id] ? 1 : 0
+            const techName = pr.by || stop?.name || ''
             const needOk = o.entry.status === 'hold' && !o.okReceived
             const missing = missingInfo(o).filter((m) => m.key !== 'entry')
             const fb = feedback[o.id]
@@ -120,7 +125,7 @@ export default function ResidentView({ me, orders, setRaw, fullPlan, approved, t
                   {L.steps.map((s, i) => <li key={s} className={i <= step ? 'on' : ''}>{s}</li>)}
                 </ol>
                 <p className="status">
-                  {isDone ? L.done : step === 2 ? L.scheduled(stop.name, fmt(stop.arrive)) : step === 1 ? L.approved : L.received}
+                  {isDone ? L.done : latest === 'parts' ? L.parts : step === 4 ? L.started(techName) : step === 3 ? L.onway(techName) : step === 2 ? L.scheduled(stop.name, fmt(stop.arrive)) : step === 1 ? L.approved : L.received}
                 </p>
                 {o.sev >= 5 && !isDone && <p className="notice warn">{L.emergency}</p>}
                 {o.vendor && !isDone && <p className="small">{L.vendor}</p>}
@@ -173,7 +178,7 @@ export default function ResidentView({ me, orders, setRaw, fullPlan, approved, t
             <section className="card">
               <h2>{L.past}</h2>
               <ul className="pastlist">
-                {past.map((h) => <li key={h.id}><b>{h.subject}</b> · {h.at.slice(0, 10)} · ✓ {L.steps[3]}</li>)}
+                {past.map((h) => <li key={h.id}><b>{h.subject}</b> · {h.at.slice(0, 10)} · ✓ {L.steps[5]}</li>)}
               </ul>
             </section>
           )}
