@@ -53,26 +53,26 @@ function NewTurnForm({ siteNames, onAdd }) {
 }
 
 // Add a preventive maintenance task by hand.
-function NewPmForm({ siteNames, techs, onAdd }) {
-  const [site, setSite] = useState(siteNames[0] || '')
-  const [title, setTitle] = useState('')
-  const [skill, setSkill] = useState('general')
-  const [due, setDue] = useState(addDays(todayISO(), 14))
-  const [tech, setTech] = useState('')
+function NewPmForm({ siteNames, techs, onAdd, initial = null, submitLabel = 'Schedule', onCancel }) {
+  const [site, setSite] = useState(initial?.site || siteNames[0] || '')
+  const [title, setTitle] = useState(initial?.title || '')
+  const [skill, setSkill] = useState(initial?.skill || 'general')
+  const [due, setDue] = useState(initial?.due || addDays(todayISO(), 14))
+  const [tech, setTech] = useState(initial?.tech || '')
   const units = RESIDENTS.filter((r) => r.community === site)
-  const [picked, setPicked] = useState(null) // null = all units
+  const [picked, setPicked] = useState(initial?.units || null) // null = all units
   const chosen = picked || units.map((u) => u.id)
   return (
     <form className="planform" onSubmit={(e) => {
       e.preventDefault()
       if (!title.trim() || !site || !due) return
-      onAdd({ site, title: title.trim().slice(0, 120), skill, due, tech: tech || pickTechFor(techs)(site, skill), units: chosen, why: 'Added by hand.' })
+      onAdd({ site, title: title.trim().slice(0, 120), skill, due, tech: tech || pickTechFor(techs)(site, skill), units: chosen, why: initial?.why || 'Added by hand.' })
       setTitle('')
       setPicked(null)
     }}>
-      <p className="small"><b>Add preventive maintenance</b></p>
+      <p className="small"><b>{initial ? 'Adjust before scheduling' : 'Add preventive maintenance'}</b></p>
       <div className="two">
-        <label>Property<select value={site} onChange={(e) => { setSite(e.target.value); setPicked(null) }}>{siteNames.map((n) => <option key={n}>{n}</option>)}</select></label>
+        <label>Property<select value={site} disabled={!!initial} onChange={(e) => { setSite(e.target.value); setPicked(null) }}>{siteNames.map((n) => <option key={n}>{n}</option>)}</select></label>
         <label>Task<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Dryer vent cleaning" required /></label>
         <label>Skill<select value={skill} onChange={(e) => setSkill(e.target.value)}>{Object.entries(SKILL_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
         <label>Due date<input type="date" value={due} onChange={(e) => setDue(e.target.value)} required /></label>
@@ -86,8 +86,62 @@ function NewPmForm({ siteNames, techs, onAdd }) {
         ))}
         {units.length === 0 && <span className="small">No units on file for this property yet.</span>}
       </div>
-      <button className="primary" type="submit" disabled={!chosen.length}>Schedule</button>
+      <div className="row">
+        <button className="primary" type="submit" disabled={!chosen.length}>{submitLabel}</button>
+        {onCancel && <button type="button" onClick={onCancel}>Cancel</button>}
+      </div>
     </form>
+  )
+}
+
+// Adjust a move-out's dates and checklist before creating it.
+function TurnDraft({ initial, techs, onSave, onCancel }) {
+  const [t, setT] = useState(initial)
+  const [nl, setNl] = useState('')
+  const pick = pickTechFor(techs)
+  const upd = (k, patch) => setT({ ...t, tasks: t.tasks.map((x) => (x.k === k ? { ...x, ...patch } : x)) })
+  return (
+    <div className="planform">
+      <p className="small"><b>Adjust before planning</b> · {t.site} · Unit {t.unit}</p>
+      <div className="two">
+        <label>Move-out date
+          <input type="date" value={t.moveOut} onChange={(e) => {
+            const v = e.target.value
+            if (!v) return
+            const diff = daysUntil(v) - daysUntil(t.moveOut)
+            setT({ ...t, moveOut: v, moveIn: addDays(t.moveIn, diff), tasks: t.tasks.map((x) => ({ ...x, due: addDays(x.due, diff) })) })
+          }} />
+        </label>
+        <label>Ready for move-in<input type="date" value={t.moveIn} min={t.moveOut} onChange={(e) => e.target.value && setT({ ...t, moveIn: e.target.value })} /></label>
+      </div>
+      <ul className="checklist">
+        {t.tasks.map((x) => (
+          <li key={x.k}>
+            <input className="tasklabel" value={x.label} onChange={(e) => upd(x.k, { label: e.target.value.slice(0, 120) })} aria-label="Task" />
+            <span className="row">
+              <input type="date" className="mini" value={x.due} onChange={(e) => e.target.value && upd(x.k, { due: e.target.value })} aria-label="Due date" />
+              {x.supervisor ? <span className="small">Supervisor</span> : <TechSelect techs={techs} site={t.site} value={x.tech} onChange={(v) => upd(x.k, { tech: v })} />}
+              <button type="button" className="link" onClick={() => setT({ ...t, tasks: t.tasks.filter((y) => y.k !== x.k) })} aria-label="Remove task">✕</button>
+            </span>
+          </li>
+        ))}
+        <li>
+          <form className="row addtask" onSubmit={(e) => {
+            e.preventDefault()
+            if (!nl.trim()) return
+            setT({ ...t, tasks: [...t.tasks, { k: `c${Date.now().toString(36)}`, label: nl.trim().slice(0, 120), skill: 'general', due: t.moveOut, tech: pick(t.site, 'general'), done: null }] })
+            setNl('')
+          }}>
+            <input value={nl} onChange={(e) => setNl(e.target.value)} placeholder="Add a task" aria-label="New task" />
+            <button type="submit">Add</button>
+          </form>
+        </li>
+      </ul>
+      <div className="row">
+        <button className="primary" onClick={() => onSave(t)}>Plan turn</button>
+        <button onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
   )
 }
 
@@ -97,6 +151,7 @@ export function PlanningTab({ siteNames, sites, techs, turns, setTurns, pm, setP
   const [edit, setEdit] = useState({})
   const [adding, setAdding] = useState(null)
   const [newTask, setNewTask] = useState({})
+  const [drafting, setDrafting] = useState(null) // resident id or suggestion key being adjusted
   const pick = pickTechFor(techs)
   const cands = moveOutCandidates(siteNames)
   const hasTurn = (rid) => Object.values(turns).some((t) => t && t.residentId === rid)
@@ -119,12 +174,20 @@ export function PlanningTab({ siteNames, sites, techs, turns, setTurns, pm, setP
         </div>
         <p className="small">Residents who gave notice or whose lease ends soon without a renewal. Planning a turn creates the whole checklist, assigned to the right technicians. Everything can be edited afterwards.</p>
         {adding === 'turn' && <NewTurnForm siteNames={siteNames} onAdd={(r, o, i) => { addTurn(r, o, i); setAdding(null) }} />}
-        {cands.filter((c) => !hasTurn(c.r.id)).map((c) => (
-          <div key={c.r.id} className="row planrow">
-            <span><b>{c.r.community} · Unit {c.r.unit}</b><br /><span className="small">{c.why}{c.sure ? '' : ' (possible)'}</span></span>
-            <button className="primary" onClick={() => addTurn(c.r, c.date)}>Plan turn</button>
-          </div>
-        ))}
+        {cands.filter((c) => !hasTurn(c.r.id)).map((c) =>
+          drafting === c.r.id ? (
+            <TurnDraft key={c.r.id} initial={makeTurn(c.r, c.date, pick)} techs={techs} onCancel={() => setDrafting(null)}
+              onSave={(t) => { setTurns({ ...turns, [`T-${c.r.id}|${t.moveOut}`]: t }); setDrafting(null) }} />
+          ) : (
+            <div key={c.r.id} className="row planrow">
+              <span><b>{c.r.community} · Unit {c.r.unit}</b><br /><span className="small">{c.why}{c.sure ? '' : ' (possible)'}</span></span>
+              <span className="row planbtns">
+                <button onClick={() => setDrafting(c.r.id)}>Edit</button>
+                <button className="primary" onClick={() => addTurn(c.r, c.date)}>Plan turn</button>
+              </span>
+            </div>
+          ),
+        )}
         {cands.length === 0 && adding !== 'turn' && <p className="small">No move-outs coming up at your properties.</p>}
       </section>
 
@@ -210,12 +273,20 @@ export function PlanningTab({ siteNames, sites, techs, turns, setTurns, pm, setP
         </div>
         <p className="small">Suggested from each property's region and repair history, or add your own. Scheduling one puts it on the technician's day and tells the affected residents when to expect a visit.</p>
         {adding === 'pm' && <NewPmForm siteNames={siteNames} techs={techs} onAdd={(t) => { setPm({ ...pm, [`P-${Date.now().toString(36)}`]: { ...t, done: {} } }); setAdding(null) }} />}
-        {sugg.map((s) => (
-          <div key={s.key} className="row planrow">
-            <span><b>{s.site}: {s.title}</b><br /><span className="small">{s.units.length} unit(s) · due {niceDate(s.due)} · {s.why}</span></span>
-            <button className="primary" onClick={() => setPm({ ...pm, [s.key]: { ...s, tech: pick(s.site, s.skill), done: {} } })}>Schedule</button>
-          </div>
-        ))}
+        {sugg.map((s) =>
+          drafting === s.key ? (
+            <NewPmForm key={s.key} siteNames={siteNames} techs={techs} initial={{ ...s, tech: pick(s.site, s.skill) }} onCancel={() => setDrafting(null)}
+              onAdd={(t) => { setPm({ ...pm, [s.key]: { ...t, key: s.key, done: {} } }); setDrafting(null) }} />
+          ) : (
+            <div key={s.key} className="row planrow">
+              <span><b>{s.site}: {s.title}</b><br /><span className="small">{s.units.length} unit(s) · due {niceDate(s.due)} · {s.why}</span></span>
+              <span className="row planbtns">
+                <button onClick={() => setDrafting(s.key)}>Edit</button>
+                <button className="primary" onClick={() => setPm({ ...pm, [s.key]: { ...s, tech: pick(s.site, s.skill), done: {} } })}>Schedule</button>
+              </span>
+            </div>
+          ),
+        )}
         {sugg.length === 0 && adding !== 'pm' && <p className="small">All suggestions are scheduled.</p>}
       </section>
       <div className="cardgrid">

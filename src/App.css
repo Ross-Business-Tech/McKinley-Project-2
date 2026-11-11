@@ -265,3 +265,4 @@ select.mini{width:auto;padding:4px 8px;font-size:.82rem}
 .tasklabel{flex:1 1 220px;font-weight:600}
 input.mini{width:auto;padding:4px 8px;font-size:.82rem}
 .addtask{flex-wrap:nowrap;width:100%}.addtask input:first-child{flex:1;min-width:0}.addtask button{flex:none}
+.planbtns{flex:none;flex-wrap:nowrap;gap:6px}
