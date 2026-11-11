@@ -7,6 +7,7 @@ import { readPhotos } from './photos.js'
 import { define, useShared, useSyncMode, connect, setWho, signedInEmail } from './shared.js'
 import { aiRead } from './ai.js'
 import Stats from './Stats.jsx'
+import ResidentView from './ResidentView.jsx'
 import { VendorsEditor, VendorRequest } from './Vendors.jsx'
 import { DEFAULT_VENDORS } from './vendorsData.js'
 import { PartsList, ResidentUpdate } from './JobExtras.jsx'
@@ -60,6 +61,8 @@ define('sups', 'list', DEFAULT_SUPERVISORS)
 define('sites', 'list', DEFAULT_SITES, 'name')
 define('vendors', 'list', DEFAULT_VENDORS)
 define('sitemaps', 'map', {})
+define('feedback', 'map', {})
+define('replies', 'map', {})
 define('mapchunks', 'map', {})
 connect()
 
@@ -75,6 +78,9 @@ function App() {
   const [timeoff, setTimeoff] = useShared('timeoff')
   const [vendors, setVendors] = useShared('vendors')
   const [sitemaps, setSitemaps] = useShared('sitemaps')
+  const [feedback, setFeedback] = useShared('feedback')
+  const [replies, setReplies] = useShared('replies')
+  const [residentId, setResidentId] = useState(() => load('mk-resident', null))
   const [mapchunks, setMapchunks] = useShared('mapchunks')
   // Site maps uploaded in the app for new properties, rebuilt from their saved pieces.
   const customMaps = useMemo(() => assembleMaps(sitemaps, mapchunks), [sitemaps, mapchunks])
@@ -121,6 +127,7 @@ function App() {
   useEffect(() => save('mk-role', role), [role])
   useEffect(() => save('mk-tech', techId), [techId])
   useEffect(() => save('mk-sup', supId), [supId])
+  useEffect(() => save('mk-resident', residentId), [residentId])
 
   // Days off (requested by technicians) take that weekday out of their shifts and on-call days.
   const allTeams = useMemo(
@@ -138,9 +145,13 @@ function App() {
     if (!email || role) return
     const t = allTeams.find((x) => (x.email || '').toLowerCase() === email)
     const b = sups.find((x) => (x.email || '').toLowerCase() === email)
+    const res = RESIDENTS.find((x) => (x.email || '').toLowerCase() === email)
     if (t) {
       setRole('tech')
       setTechId(t.id)
+    } else if (res) {
+      setRole('resident')
+      setResidentId(res.id)
     } else if (b) {
       setRole('supervisor')
       setSupId(b.id)
@@ -225,8 +236,7 @@ function App() {
   function addOrder(e) {
     e.preventDefault()
     if (!msg.trim()) return
-    const n = raw.length + 1
-    const newId = `W${String(n).padStart(2, '0')}`
+    const newId = `W${Date.now().toString(36).toUpperCase()}`
     if (newPhotos.length) setPhotos((p) => ({ ...p, [newId]: newPhotos }))
     setNewPhotos([])
     setRaw([
@@ -267,17 +277,28 @@ function App() {
   // ---------- Who is using the app? ----------
   setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (role ? 'Regional view' : null))
 
-  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup)) {
+  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
     return (
       <RoleChooser techs={allTeams} sups={sups} initialRole={role} email={email}
         onPick={(r, id) => {
           setRole(r)
           if (r === 'tech') setTechId(id)
+          else if (r === 'resident') setResidentId(id)
           else setSupId(id)
           setSite('all')
           setTab('queue')
           setTechTab('day')
         }} />
+    )
+  }
+
+  // ---------- Resident layer: only their own requests and where each one stands ----------
+  if (role === 'resident') {
+    return (
+      <ResidentView me={RESIDENTS.find((r) => r.id === residentId)} orders={everyOrder} setRaw={setRaw} fullPlan={fullPlan}
+        approved={approved} techDone={techDone} state={state} setState={setState} feedback={feedback} setFeedback={setFeedback}
+        replies={replies} setReplies={setReplies} photos={photos} addPhotos={addPhotos}
+        syncChip={<SyncChip mode={syncMode} email={email} />} onSwitch={() => setRole(null)} />
     )
   }
 
@@ -531,6 +552,7 @@ function App() {
                 </div>
                 <p className="small label">{o.label}{o.sev >= 5 && addressOf(o) && !handled[o.id] ? ` · ${addressOf(o)}` : ''}</p>
                 <p className="text">“{o.text}”</p>
+                {(replies[o.id] || []).map((r, i) => <p key={i} className="small reply">💬 Resident: “{r.text}”</p>)}
                 <p className="unit">
                   {o.resident ? <>{o.resident.building && <>Bldg <b>{o.resident.building}</b> · </>}Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : o.loc?.building || o.loc?.unit
                     ? <><b className="warn">Not in our records</b> · read as {[o.loc.site, o.loc.building && `Building ${o.loc.building}`, o.loc.unit && `Unit ${o.loc.unit}`].filter(Boolean).join(', ')}</>
@@ -548,6 +570,11 @@ function App() {
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
                   {t && <span className="chip c-tech">{t.name}</span>}
                   {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}</span>}
+                  {feedback[o.id] && (feedback[o.id].ok
+                    ? <span className="chip e-ok">Resident: fixed ✓</span>
+                    : <span className="chip e-emergency">Resident: still a problem</span>)}
+                  {(replies[o.id] || []).length > 0 && <span className="chip c-missing">💬 {replies[o.id].length} resident repl{replies[o.id].length > 1 ? 'ies' : 'y'}</span>}
+                  {o.from === 'resident' && <span className="chip">From resident app</span>}
                   {plan.deferred.some((x) => x.id === o.id) && <span className="chip">Waits for regular hours</span>}
                   {plan.unstaffed.some((x) => x.id === o.id) && <span className="chip e-emergency">No one scheduled{o.sev >= 4 && supervisorOf(o.community) ? `: ${supervisorOf(o.community).name} decides` : ''}</span>}
                   {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
@@ -824,6 +851,7 @@ function RoleChooser({ techs, sups, initialRole, onPick, email }) {
   const [pick, setPick] = useState(initialRole)
   const [who, setWho] = useState(techs[0]?.id || '')
   const [boss, setBoss] = useState(sups[0]?.id || 'all')
+  const [resWho, setResWho] = useState(RESIDENTS[0]?.id || '')
   return (
     <main className="app">
       <header className="hero">
@@ -865,7 +893,23 @@ function RoleChooser({ techs, sups, initialRole, onPick, email }) {
           </div>
         )}
       </div>
-      <p className="small notice">Prototype: anyone can pick either view. A real version would have each person sign in, so technicians only ever see their own work.</p>
+      <div className={`card rolecard ${pick === 'resident' ? 'sel' : ''}`}>
+        <button className="rolebtn" onClick={() => setPick('resident')}>
+          <b>🏠 Resident</b>
+          <span>Send a maintenance request and see where each of yours stands.</span>
+        </button>
+        {pick === 'resident' && (
+          <div className="rolepick">
+            <label>Your name and apartment (sample residents)
+              <select value={resWho} onChange={(e) => setResWho(e.target.value)}>
+                {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.name} · {r.community} · Unit {r.unit}</option>)}
+              </select>
+            </label>
+            <button className="primary" onClick={() => onPick('resident', resWho)}>See my requests</button>
+          </div>
+        )}
+      </div>
+      <p className="small notice">Prototype: anyone can pick any view. A real version would have each person sign in, so technicians and residents only ever see their own work.</p>
     </main>
   )
 }

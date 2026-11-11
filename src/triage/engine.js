@@ -32,7 +32,7 @@ const PATTERNS = [
   ['toilet', /toilet|clog|plunger/i],
   ['appliance', /dishwasher|stove|oven|burner|washer|dryer|microwave|disposal|range hood/i],
   ['pest', /roach|cockroach|bed ?bug|mice|mouse|rodent|\brats?\b|ants?\b|pest|termite|wasp/i],
-  ['electrical', /outlet|light(s)?\b|breaker|switch|bulb|ceiling fan|doorbell/i],
+  ['electrical', /outlet|light(s)?\b|breaker|switch|bulb|\bfan\b|exhaust|doorbell/i],
   ['other', /mold|mildew/i],
   ['amenity', /gate|pool|gym|fitness|clubhouse|mailbox|dumpster|parking|hallway|laundry room|elevator/i],
   ['cosmetic', /paint|caulk|scuff|stain on (the )?wall|nail hole/i],
