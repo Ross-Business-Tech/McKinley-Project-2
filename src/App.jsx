@@ -20,7 +20,9 @@ import { parseLocation } from './triage/location.js'
 import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
 import { TEST_ORDERS } from './triage/testOrders.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
-import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS, REGIONAL_PIN } from './triage/config.js'
+import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
+import { BUILD_PM_HASH, BUILD_PM_EMAILS, hashPass } from './auth.js'
+import Access, { MyPin } from './Access.jsx'
 import { SKILLS, missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
@@ -65,6 +67,8 @@ define('vendors', 'list', DEFAULT_VENDORS)
 define('sitemaps', 'map', {})
 define('feedback', 'map', {})
 define('progress', 'map', {})
+define('pmHash', 'value', null)
+define('rescodes', 'map', {})
 define('photometa', 'map', {})
 define('photochunks', 'map', {}, 'id', { persist: false })
 define('replies', 'map', {})
@@ -111,6 +115,9 @@ function App() {
   const [photometa, setPhotometa] = useShared('photometa')
   const [photochunks, setPhotochunks] = useShared('photochunks')
   const [progress, setProgress] = useShared('progress')
+  const [pmHashSaved, setPmHash] = useShared('pmHash')
+  const pmHash = pmHashSaved || BUILD_PM_HASH
+  const [rescodes, setRescodes] = useShared('rescodes')
   // Photos are shared with the team (in pieces, see photos.js) on the team's site.
   const photos = useMemo(() => assemblePhotos(photometa, photochunks), [photometa, photochunks])
   const [newPhotos, setNewPhotos] = useState([])
@@ -286,6 +293,7 @@ function App() {
     ['stats', 'Stats'],
     ['teams', 'Teams'],
     ['new', 'Add'],
+    ...(role === 'supervisor' && supId === 'all' ? [['access', 'Access']] : []),
   ]
 
   const markTechDone = (v) => {
@@ -298,14 +306,15 @@ function App() {
   }
 
   // ---------- Who is using the app? ----------
-  setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (role ? 'Regional view' : null))
+  setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (role ? 'Property manager' : null))
+  const isManager = role === 'supervisor' && supId === 'all'
 
   // Staff views need a staff sign-in: a verified here.now email on the team, or the person's PIN.
   const meTech = allTeams.find((t) => t.id === techId)
   const emailIs = (x) => !!email && (x?.email || '').toLowerCase() === email
   const staffOk =
     role === 'tech' ? !!meTech && (emailIs(meTech) || pinOf(meTech) === staffPin)
-      : role === 'supervisor' ? (supId === 'all' ? staffPin === REGIONAL_PIN : !!sup && (emailIs(sup) || pinOf(sup) === staffPin))
+      : role === 'supervisor' ? (supId === 'all' ? staffPin === pmHash || (!!email && BUILD_PM_EMAILS.includes(email)) : !!sup && (emailIs(sup) || pinOf(sup) === staffPin))
         : true
   const signOut = () => {
     setRole(null)
@@ -314,7 +323,7 @@ function App() {
 
   if (!role || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup) || (role === 'resident' && !RESIDENTS.some((r) => r.id === residentId))) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} email={email} siteNames={sites.map((x) => x.name)}
+      <RoleChooser techs={allTeams} sups={sups} email={email} siteNames={sites.map((x) => x.name)} pmHash={pmHash} rescodes={rescodes}
         onPick={(r, id, pin) => {
           setRole(r)
           setStaffPin(pin || null)
@@ -373,7 +382,7 @@ function App() {
           ))}
         </nav>
         {techTab === 'day' && (
-          <TechDay me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
+          <TechDay myPin={pinOf(me)} onPin={(p) => { setTeamsRaw(teamsRaw.map((x) => (x.id === me.id ? { ...x, pin: p } : x))); setStaffPin(p) }} me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
             addressOf={addressOf} photos={photos} addPhotos={addPhotos} progress={progress} setProgress={setProgress} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
         )}
         {techTab === 'map' && (
@@ -398,7 +407,7 @@ function App() {
           <span className="wordmark">mckinley</span>
           <button className="switch" onClick={signOut}>Sign out</button>
         </div>
-        <span className="chip">Supervisor · {sup ? `${sup.name} · ${mySites.length} properties` : 'Regional view · all properties'} · sample data</span>
+        <span className="chip">{sup ? `Supervisor · ${sup.name} · ${mySites.length} properties` : 'Property manager · all properties'} · sample data</span>
         <SyncChip mode={syncMode} email={email} />
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
@@ -714,6 +723,13 @@ function App() {
       )}
       {tab === 'map' && site !== 'all' && site !== 'unassigned' && <SiteMap key={site} site={site} plan={plan} orders={orders} />}
 
+      {tab === 'access' && isManager && (
+        <Access techs={teamsRaw} setTechs={setTeamsRaw} sups={sups} setSups={setSups} residents={RESIDENTS}
+          rescodes={rescodes} setRescodes={setRescodes} pinOf={pinOf} pmHash={pmHash}
+          setPmHash={(h) => { setPmHash(h); setStaffPin(h) }} />
+      )}
+      {tab === 'access' && !isManager && <p className="notice">Only the property manager can manage PINs.</p>}
+
       {tab === 'stats' && <Stats orders={allOrders} siteNames={mySiteNames} techDone={techDone} parts={parts} />}
 
       {tab === 'routes' && (
@@ -773,6 +789,7 @@ function App() {
 
       {tab === 'teams' && (
         <>
+          {sup && <MyPin current={pinOf(sup)} onSet={(p) => { setSups(sups.map((x) => (x.id === sup.id ? { ...x, pin: p } : x))); setStaffPin(p) }} />}
           <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} />
           <VendorsEditor vendors={vendors} setVendors={setVendors} areas={[...new Set(sites.map((x) => x.market).filter(Boolean))]} formatPhone={formatPhone} />
           <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
@@ -842,9 +859,7 @@ function TechEditor({ t, sites, update, toggle, remove }) {
         <label>Email (for signing in)
           <input type="email" value={t.email || ''} onChange={(e) => update({ email: e.target.value.trim() })} placeholder="name@mckinley.com" />
         </label>
-        <label>Sign-in PIN (4 digits)
-          <input type="password" inputMode="numeric" autoComplete="new-password" value={t.pin || ''} placeholder="sample PIN in use" onChange={(e) => update({ pin: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
-        </label>
+
         <label>Mobile number (to text work orders)
           <input value={t.phone || ''} onChange={(e) => update({ phone: formatPhone(e.target.value) })} placeholder="067-550-2161"
             inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
@@ -903,7 +918,7 @@ function pinOf(x) {
 }
 
 // The front door. Residents sign in by default; staff use a separate sign-in with a PIN.
-function RoleChooser({ techs, sups, onPick, email, siteNames }) {
+function RoleChooser({ techs, sups, onPick, email, siteNames, pmHash, rescodes }) {
   const [staff, setStaff] = useState(false)
   const [kind, setKind] = useState('supervisor')
   const [who, setWho] = useState('')
@@ -912,10 +927,19 @@ function RoleChooser({ techs, sups, onPick, email, siteNames }) {
   const [fails, setFails] = useState(0)
   const people = kind === 'tech' ? techs : sups
   const chosen = who || (kind === 'tech' ? techs[0]?.id : sups[0]?.id) || ''
-  const submit = (e) => {
+  const [pass, setPass] = useState('')
+  const submit = async (e) => {
     e.preventDefault()
-    if (fails >= 5) return setErr('Too many tries. Ask your supervisor or the office to check your PIN.')
-    const ok = chosen === 'all' ? pin === REGIONAL_PIN : pinOf(people.find((x) => x.id === chosen)) === pin
+    if (fails >= 5) return setErr('Too many tries. Ask your property manager to reset your PIN.')
+    if (kind === 'manager') {
+      const h = await hashPass(pass)
+      if (h !== pmHash) {
+        setFails(fails + 1)
+        return setErr('That passcode is not right.')
+      }
+      return onPick('supervisor', 'all', h)
+    }
+    const ok = pinOf(people.find((x) => x.id === chosen)) === pin
     if (!ok) {
       setFails(fails + 1)
       setErr('That PIN is not right.')
@@ -928,14 +952,14 @@ function RoleChooser({ techs, sups, onPick, email, siteNames }) {
       <header className="hero">
         <span className="wordmark">mckinley</span>
         <h1>{staff ? 'Staff sign-in' : 'Maintenance requests'}</h1>
-        <p>{staff ? 'For McKinley supervisors and technicians.' : 'Send a request and see where yours stand.'}</p>
+        <p>{staff ? 'For McKinley property managers, supervisors and technicians.' : 'Send a request and see where yours stand.'}</p>
       </header>
       {email && <p className="notice small">Signed in as <b>{email}</b>, but that email isn't on a team or lease yet.</p>}
 
       {!staff && (
         <div className="card rolecard sel">
           <b>🏠 Resident sign-in</b>
-          <ResidentLogin siteNames={siteNames} onSuccess={(id) => onPick('resident', id)} />
+          <ResidentLogin siteNames={siteNames} rescodes={rescodes} onSuccess={(id) => onPick('resident', id)} />
         </div>
       )}
 
@@ -944,19 +968,25 @@ function RoleChooser({ techs, sups, onPick, email, siteNames }) {
           <div className="seg">
             <button type="button" className={kind === 'supervisor' ? 'on' : ''} onClick={() => { setKind('supervisor'); setWho(''); setErr('') }}>🗂️ Supervisor</button>
             <button type="button" className={kind === 'tech' ? 'on' : ''} onClick={() => { setKind('tech'); setWho(''); setErr('') }}>🔧 Technician</button>
+            <button type="button" className={kind === 'manager' ? 'on' : ''} onClick={() => { setKind('manager'); setErr('') }}>🏢 Manager</button>
           </div>
+          {kind === 'manager' ? (
+            <label>Property manager passcode
+              <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="current-password" required />
+            </label>
+          ) : (<>
           <label>Your name
             <select value={chosen} onChange={(e) => setWho(e.target.value)}>
               {people.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-              {kind === 'supervisor' && <option value="all">Regional view (all properties)</option>}
             </select>
           </label>
           <label>PIN
             <input type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4 digits" required />
           </label>
+          </>)}
           {err && <p className="small warn">{err}</p>}
           <button className="primary" type="submit">Sign in</button>
-          <p className="small demo">Demo PINs: Luis M. 1203 · Terrence 2109 · Regional 9000</p>
+          <p className="small">Forgot your PIN? Ask your property manager to reset it.</p>
         </form>
       )}
 
@@ -1032,12 +1062,7 @@ function SupervisorsEditor({ sups, setSups, sites }) {
                   <input value={x.phone || ''} onChange={(e) => upd(x.id, { phone: formatPhone(e.target.value) })} inputMode="numeric" placeholder="067-550-2161" maxLength={12} />
                 </label>
               </div>
-              <div className="two">
-                <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
-                <label>Sign-in PIN (4 digits)
-                  <input type="password" inputMode="numeric" autoComplete="new-password" value={x.pin || ''} placeholder="sample PIN in use" onChange={(e) => upd(x.id, { pin: e.target.value.replace(/\D/g, '').slice(0, 4) })} />
-                </label>
-              </div>
+              <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
               <p className="small">Oversees (tap ✕ to remove)</p>
               <div className="chips">
                 {x.sites.map((n) => <button key={n} className="chip chipbtn sel" onClick={() => upd(x.id, { sites: x.sites.filter((y) => y !== n) })}>{n} ✕</button>)}

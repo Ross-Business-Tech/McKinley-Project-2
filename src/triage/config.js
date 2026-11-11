@@ -22,8 +22,7 @@ export const DEFAULT_SITES = properties.map((p) => ({
 
 // Made-up maintenance supervisors, one per area. Each one oversees the properties listed.
 const inMarket = (...m) => DEFAULT_SITES.filter((x) => m.includes(x.market)).map((x) => x.name)
-// Staff sign-in PINs (sample values, changeable on the Teams tab). Regional view has its own PIN.
-export const REGIONAL_PIN = '9000'
+// Staff sign-in PINs below are sample values. The property manager sets and resets them on the Access tab.
 
 export const DEFAULT_SUPERVISORS = [
   { id: 'SUP-AA', pin: '1201', name: 'Karen W.', phone: '734-555-0181', email: 'supervisor-annarbor@example.com', sites: inMarket('Ann Arbor') },

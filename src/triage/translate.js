@@ -116,6 +116,7 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "changePin": "Change my PIN",
   "onway": "🚐 On my way",
   "started": "🔧 Started",
   "waitParts": "📦 Waiting on parts",
@@ -147,6 +148,7 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "changePin": "Cambiar mi PIN",
   "onway": "🚐 En camino",
   "started": "🔧 Empecé",
   "waitParts": "📦 Esperando piezas",
@@ -178,6 +180,7 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "changePin": "Mudar meu PIN",
   "onway": "🚐 A caminho",
   "started": "🔧 Comecei",
   "waitParts": "📦 Aguardando peças",
@@ -209,6 +212,7 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "changePin": "Changer mon code PIN",
   "onway": "🚐 En route",
   "started": "🔧 Commencé",
   "waitParts": "📦 En attente de pièces",
@@ -240,6 +244,7 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "changePin": "Chanje PIN mwen",
   "onway": "🚐 M ap vini",
   "started": "🔧 M kòmanse",
   "waitParts": "📦 M ap tann pyès",

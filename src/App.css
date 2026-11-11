@@ -238,3 +238,11 @@ form.rolecard .primary{width:100%;margin-top:4px}form.rolecard{cursor:default}
 .chip.status-parts{background:#fff4d6;color:#8a5b00;border-color:#f3dc9a}
 .chip.status-scheduled,.chip.status-approved{background:var(--soft);color:var(--ink)}
 .route .chip{font-size:.7rem;padding:1px 8px;vertical-align:1px}
+
+/* Access tab */
+.accrow{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}
+.accwho b{display:block}.pin{font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.1em}
+.accset{grid-column:1 / -1;flex-wrap:nowrap}.accset input{flex:1;min-width:0}.accset button{flex:none}
+.accmsg{grid-column:1 / -1;margin:0}
+.mypin{padding:10px 14px}
+.seg button{white-space:nowrap}

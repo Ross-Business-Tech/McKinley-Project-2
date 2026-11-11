@@ -23,7 +23,7 @@ function saveLock(v) {
   }
 }
 
-export default function ResidentLogin({ siteNames, onSuccess }) {
+export default function ResidentLogin({ siteNames, onSuccess, rescodes = {} }) {
   const [site, setSite] = useState('')
   const [unit, setUnit] = useState('')
   const [code, setCode] = useState('')
@@ -36,7 +36,7 @@ export default function ResidentLogin({ siteNames, onSuccess }) {
       setErr(`Too many tries. Please wait ${Math.ceil((lock.until - Date.now()) / 60000)} minutes, or call your leasing office.`)
       return
     }
-    const r = RESIDENTS.find((x) => x.community === site && sameUnit(x.unit, unit) && digits(x.phone).slice(-4) === digits(code))
+    const r = RESIDENTS.find((x) => x.community === site && sameUnit(x.unit, unit) && (rescodes[x.id] || digits(x.phone).slice(-4)) === digits(code))
     if (!r) {
       const fails = lock.fails + 1
       saveLock(fails >= 5 ? { fails: 0, until: Date.now() + 5 * 60000 } : { fails, until: 0 })
@@ -63,7 +63,7 @@ export default function ResidentLogin({ siteNames, onSuccess }) {
           <input value={code} onChange={(e) => setCode(digits(e.target.value).slice(0, 4))} inputMode="numeric" type="password" autoComplete="off" placeholder="4 digits" required />
         </label>
       </div>
-      <p className="small">Your code is the last 4 digits of the phone number on your lease.</p>
+      <p className="small">Your code is the last 4 digits of the phone number on your lease, unless your property manager gave you a different one.</p>
       {err && <p className="small warn">{err}</p>}
       <button className="primary" type="submit">Sign in</button>
       <p className="small demo">Demo: Bella Casa · unit 150 · code 0108</p>

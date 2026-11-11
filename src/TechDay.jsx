@@ -5,6 +5,7 @@ import { readPhotos } from './photos.js'
 import { useEffect, useRef, useState } from 'react'
 import { DAYS } from './triage/engine.js'
 import { PartsList, ResidentUpdate } from './JobExtras.jsx'
+import { MyPin } from './Access.jsx'
 
 function canNotify() {
   try {
@@ -16,7 +17,7 @@ function canNotify() {
 
 // What one technician sees on their phone: only work orders the manager has approved
 // for them, in route order and in their own language.
-export default function TechDay({ me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, progress, setProgress, parts, setParts, timeoff, setTimeoff }) {
+export default function TechDay({ myPin, onPin, me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, progress, setProgress, parts, setParts, timeoff, setTimeoff }) {
   const t = techs.find((x) => x.id === me)
   const mine = plan.techs.find((x) => x.tech.id === me)
   const stops = mine ? mine.plan.stops : []
@@ -120,6 +121,7 @@ export default function TechDay({ me, techs, plan, approved, techDone, setTechDo
           </div>
         </section>
       )}
+      <MyPin current={myPin} onSet={onPin} labels={{ title: L.changePin, save: '✓' }} />
       <p className="small notice">On the team's here.now site, this screen updates live when your supervisor approves a job, and your Done taps reach them. On test links it's saved on this phone only.</p>
     </>
   )
