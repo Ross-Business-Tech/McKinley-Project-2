@@ -216,3 +216,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .demo{color:var(--mute);font-style:italic;margin-top:8px}
 .staffswitch{display:block;margin:4px auto 12px}
 form.rolecard .primary{width:100%;margin-top:4px}form.rolecard{cursor:default}
+
+/* Show full text instead of cutting it off with "..." */
+.blabel{white-space:normal;overflow:visible;text-overflow:clip}
+@media (max-width:520px){
+  .bars li{grid-template-columns:1fr auto;row-gap:2px}
+  .bars .blabel{grid-column:1 / -1}
+  /* work-order dropdowns each get a full row so their text isn't clipped */
+  .actions>select{flex:1 1 100%}
+}
+/* All tabs visible: wrap onto a second row instead of scrolling sideways */
+.tabs{flex-wrap:wrap;overflow-x:visible}
+.tabs button{flex:1 0 auto}
+.sites{flex-wrap:wrap;overflow-x:visible}

@@ -663,7 +663,7 @@ function App() {
                 <div className="row actions">
                   <select aria-label="Change priority" value={state[o.id]?.sevOverride || o.sev}
                     onChange={(e) => patch(o.id, { sevOverride: Number(e.target.value) })}>
-                    {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>Priority {n}: {tag(n).label}</option>)}
+                    {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} · {tag(n).label}</option>)}
                   </select>
                   <select aria-label="Reassign" value={tech[o.id] || ''} onChange={(e) => setTech({ ...tech, [o.id]: e.target.value || undefined })}>
                     <option value="">{t ? `Auto: ${t.name}` : 'Auto-assign'}</option>
@@ -740,7 +740,7 @@ function App() {
             <section className="card">
               <h2>Unit not found ({plan.unknown.length})</h2>
               <p className="small">No site team yet. Use the Follow-ups tab to reach the requester or alert the leasing office.</p>
-              <ul>{plan.unknown.map((o) => <li key={o.id}>{o.label}: “{o.text.slice(0, 60)}…”</li>)}</ul>
+              <ul>{plan.unknown.map((o) => <li key={o.id}>{o.label}: “{o.text}”</li>)}</ul>
             </section>
           )}
           {plan.held.length > 0 && (
