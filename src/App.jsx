@@ -304,7 +304,7 @@ function StepBody({ n, scenario, r, ctx }) {
 function Scorecard({ r, ctx }) {
   const p = r.planScore
   const h = r.handScore
-  const delta = r.final === null ? null : r.final - r.handPts.total
+  const delta = r.final === null ? null : Math.round((r.final - r.handPts.total) * 10) / 10
   return (
     <div className="stack">
       {r.final !== null ? (
