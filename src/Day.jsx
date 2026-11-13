@@ -12,7 +12,7 @@ function download(name, obj) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-export default function Day({ day, setDay }) {
+export default function Day({ day, setDay, onLoadMany }) {
   const { ctx } = day
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -35,6 +35,25 @@ export default function Day({ day, setDay }) {
       load(await f.text())
     } catch {
       setError('I could not read that file.')
+    }
+  }
+
+  async function onFiles(e) {
+    const files = [...(e.target.files || [])]
+    e.target.value = ''
+    if (!files.length) return
+    try {
+      const items = await Promise.all(
+        files.map(async (f) => {
+          const r = parseCase(await f.text())
+          return r.error ? { name: f.name, error: r.error } : { name: f.name, ctx: r.ctx, loaded: r.loaded }
+        }),
+      )
+      setError('')
+      onLoadMany(items)
+      setOpen(false)
+    } catch {
+      setError('I could not read one of those files.')
     }
   }
 
@@ -61,6 +80,10 @@ export default function Day({ day, setDay }) {
           <label className="filebtn">
             Load a case file
             <input type="file" accept=".json,application/json" onChange={onFile} />
+          </label>
+          <label className="filebtn">
+            Load several case files
+            <input type="file" accept=".json,application/json" multiple onChange={onFiles} />
           </label>
           <button onClick={() => download(`${safeName}.json`, exportCase(ctx))}>Download this day</button>
           <button onClick={() => download(`${safeName}-with-plan.json`, exportCase(ctx, { planner: 'Rule-based planner (example)', plan: livePlan(ctx), urgency: {} }))}>

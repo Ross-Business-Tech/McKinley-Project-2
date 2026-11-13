@@ -5,6 +5,7 @@ import { BONUS_JOBS_MAX, BONUS_ROUTE_MAX, GATE_CAP, fmt, measureRows, runEvaluat
 import { liveScenario } from './planner.js'
 import { sampleDay } from './casefile.js'
 import Day from './Day.jsx'
+import Rollup from './Rollup.jsx'
 import { Pill, Timelines } from './parts.jsx'
 import { URGENCY, urgClass } from './urg.js'
 
@@ -23,6 +24,8 @@ const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.(
 
 export default function App() {
   const [day, setDay] = useState(() => ({ ctx: sampleDay(), loaded: null }))
+  const [batch, setBatch] = useState(null) // several case files loaded together
+  const [rollupOpen, setRollupOpen] = useState(false)
   const [scenarioId, setScenarioId] = useState('live')
   const [status, setStatus] = useState('idle') // idle | running | done
   const [step, setStep] = useState(0) // number of finished steps
@@ -112,7 +115,37 @@ export default function App() {
         </p>
       </header>
 
-      <Day day={day} setDay={changeDay} />
+      <Day
+        day={day}
+        setDay={(d) => {
+          setBatch(null)
+          setRollupOpen(false)
+          changeDay(d)
+        }}
+        onLoadMany={(items) => {
+          setBatch(items)
+          setRollupOpen(true)
+        }}
+      />
+
+      {batch && rollupOpen && (
+        <Rollup
+          items={batch}
+          onOpen={(g) => {
+            setRollupOpen(false)
+            changeDay({ ctx: g.ctx, loaded: g.loaded })
+          }}
+        />
+      )}
+
+      {batch && !rollupOpen && (
+        <div className="actions">
+          <button onClick={() => setRollupOpen(true)}>← Back to all {batch.length} files</button>
+        </div>
+      )}
+
+      {!(batch && rollupOpen) && (
+        <>
 
       <section className="panel stack" aria-label="Choose a planner to test">
         <h2>1. Pick a planner to test</h2>
@@ -159,6 +192,8 @@ export default function App() {
             )
           })}
         </ol>
+      )}
+        </>
       )}
       <footer className="note">The built-in sample day comes from the sprint's sample resident spreadsheet. Every value in it is synthetic, so no real resident, property or technician is shown.</footer>
     </main>

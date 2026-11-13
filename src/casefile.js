@@ -78,6 +78,9 @@ export function normalizeCase(d) {
   if (!d || typeof d !== 'object') return bad('A case file should be a JSON object.')
   const comms = {}
   for (const [code, c] of Object.entries(d.communities || {})) comms[code] = { name: c?.name || code, region: c?.region || 'Region' }
+  if (!Object.keys(comms).length && d.communities && typeof d.communities === 'object' && !Array.isArray(d.communities)) {
+    return bad('This file has no properties, technicians or schedulable requests in it (for example a supervisor with no crew), so there is nothing to grade.')
+  }
   if (!Object.keys(comms).length) return bad('The case file needs a "communities" section, for example {"HL": {"name": "Heron Lake", "region": "Orlando"}}.')
   const shift = [toMin(d.shift?.start ?? '08:00'), toMin(d.shift?.end ?? '16:00')]
   if (!(shift[0] < shift[1])) return bad('The "shift" start must be earlier than its end, for example "08:00" to "16:00".')
