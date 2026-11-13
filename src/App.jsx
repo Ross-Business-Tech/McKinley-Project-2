@@ -252,7 +252,8 @@ function StepBody({ n, scenario, r, ctx }) {
             <ol className="rules">{scenario.rules.map((r) => <li key={r}>{r}</li>)}</ol>
           </>
         )}
-        {!scenario.rules && <p className="note">This plan is a scripted example, written by hand to show one kind of mistake.</p>}
+        {!scenario.rules && scenario.id === 'file' && <p className="note">This plan came from the case file you loaded, made by whatever planner wrote it. The evaluator only grades it.</p>}
+        {!scenario.rules && scenario.id !== 'file' && <p className="note">This plan is a scripted example, written by hand to show one kind of mistake.</p>}
       </div>
     )
   }
