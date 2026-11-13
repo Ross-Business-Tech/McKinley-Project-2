@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SCENARIOS } from './data.js'
-import { GATE_CAP, fmt, runEvaluation, verdictFor } from './evaluate.js'
+import { GATE_CAP, fmt, measureRows, runEvaluation, verdictFor } from './evaluate.js'
 import { liveScenario } from './planner.js'
 import { sampleDay } from './casefile.js'
 import Day from './Day.jsx'
@@ -173,15 +173,7 @@ function Skipped() {
 
 
 function Metrics({ plan, hand }) {
-  const rows = [
-    ['Drive time', `${plan.driveMin} min`, `${hand.driveMin} min`, plan.driveMin <= hand.driveMin],
-    ['Jobs finished', `${plan.finished} of ${plan.total}`, `${hand.finished} of ${hand.total}`, plan.finished >= hand.finished],
-    ['Wasted trips', plan.wasted, hand.wasted, plan.wasted <= hand.wasted],
-    ['Avg. wait for an urgent job', `${Math.round(plan.response)} min`, `${Math.round(hand.response)} min`, plan.response <= hand.response],
-    ['Important notes reached the tech', `${plan.notes} of ${plan.notesTotal}`, `${hand.notes} of ${hand.notesTotal}`, plan.notes >= hand.notes],
-    ['Right skill for the job', `${plan.skill} of ${plan.total}`, `${hand.skill} of ${hand.total}`, plan.skill >= hand.skill],
-    ['Estimated cost', `$${plan.cost}`, `$${hand.cost}`, plan.cost <= hand.cost],
-  ]
+  const rows = measureRows(plan, hand)
   return (
     <div className="scroll">
       <table>
@@ -189,11 +181,11 @@ function Metrics({ plan, hand }) {
           <tr><th>Measure</th><th>Planner</th><th>By hand</th></tr>
         </thead>
         <tbody>
-          {rows.map(([label, a, b, better]) => (
-            <tr key={label}>
-              <td>{label}</td>
-              <td className={better ? 'have' : 'miss'}>{a}</td>
-              <td>{b}</td>
+          {rows.map((r) => (
+            <tr key={r.key}>
+              <td>{r.label}</td>
+              <td className={r.cmp > 0 ? 'have' : r.cmp < 0 ? 'miss' : ''}>{r.plan}{r.note && <><br /><span className="note">{r.note}</span></>}</td>
+              <td>{r.hand}</td>
             </tr>
           ))}
         </tbody>
@@ -323,13 +315,25 @@ function Scorecard({ r, ctx }) {
           </div>
           <div>
             <b>{r.pass ? verdictFor(r.final) : 'Fails a must-pass check'}</b>
-            <p>By hand: {r.handPts.total} / 100 · {delta >= 0 ? '+' : '−'}{Math.abs(delta)} {delta >= 0 ? 'better' : 'worse'} than by hand</p>
+            <p>By hand: {r.handPts.total} / 100 · {delta === 0 ? 'the same as by hand' : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${delta > 0 ? 'better' : 'worse'} than by hand`}</p>
             {r.capped && <p>The plan earned {r.planPts.total} on the rubric, but a must-pass gate failed, so the score is capped at {GATE_CAP}.</p>}
           </div>
         </div>
       ) : (
         <p className="banner fail" role="status">NOT SCORED: this plan could not work in real life. By hand scores {r.handPts.total} / 100.</p>
       )}
+      {p && (() => {
+        const rows = measureRows(p, h)
+        const better = rows.filter((x) => x.cmp > 0)
+        const worse = rows.filter((x) => x.cmp < 0)
+        return (
+          <div className="stack">
+            <b>Compared with by hand: better on {better.length}, worse on {worse.length}, same or not comparable on {rows.length - better.length - worse.length} of {rows.length} measures</b>
+            {better.length > 0 && <ul className="list good">{better.map((x) => <li key={x.key}>{x.say(1)}</li>)}</ul>}
+            {worse.length > 0 && <ul className="list bad">{worse.map((x) => <li key={x.key}>Worse: {x.say(-1)}</li>)}</ul>}
+          </div>
+        )
+      })()}
       {ctx.held.length > 0 && (
         <div className="stack">
           <b>On hold, not scheduled ({ctx.held.length})</b>

@@ -89,3 +89,6 @@ select { font: inherit; font-size: 14px; padding: 8px; border-radius: 6px; borde
 .score-num { font-family: var(--mono); font-size: 52px; font-weight: 500; line-height: 1; }
 .score-of { font-family: var(--mono); font-size: 16px; }
 tr.na td { opacity: .55; }
+.list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.list.good { color: var(--ok); }
+.list.bad { color: var(--crit); }

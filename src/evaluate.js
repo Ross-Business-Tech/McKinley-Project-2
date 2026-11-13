@@ -42,12 +42,14 @@ export function simulate(ctx, plan, { ignoreWindows = false } = {}) {
 
 // The "by hand" plan: a naive manager. Requests are worked in the order they came in (the order in the file),
 // each goes to the first technician who has the right skill and works that site, with no balancing,
-// no grouping and no waiting for entry windows. Urgency is not used to reorder anything.
+// no grouping and no waiting for entry windows. If nobody at that site has the skill, the naive manager still
+// sends the first person who works there (the wrong skill), as the board does, rather than skipping the job.
+// Urgency is not used to reorder anything.
 export function handPlan(ctx) {
   const state = Object.fromEntries(ctx.crew.map((t) => [t.id, { time: ctx.shift[0], loc: t.base, list: [] }]))
   for (const job of ctx.jobs) {
-    const tech = ctx.crew.find((t) => t.skills.includes(job.skill) && ctx.canServe(t, job))
-    if (!tech) continue // nobody could do it by hand either
+    const tech = ctx.crew.find((t) => t.skills.includes(job.skill) && ctx.canServe(t, job)) || ctx.crew.find((t) => ctx.canServe(t, job))
+    if (!tech) continue // nobody works at that site, so nobody could do it by hand either
     const s = state[tech.id]
     s.time += ctx.travel(s.loc, job.comm) + job.dur
     s.loc = job.comm
@@ -85,6 +87,7 @@ export function score(ctx, timelines, urgencyMap) {
   const notes = keyed.filter((s) => s.note.toLowerCase().includes(s.job.key.toLowerCase())).length
   const notesTotal = ctx.jobs.filter((j) => j.key).length
   const skill = stops.filter((s) => !s.skillMismatch).length
+  const scheduled = stops.length
   const work = stops.reduce((n, s) => n + s.job.dur, 0)
   let cost = wasted * 25
   for (const tl of timelines) {
@@ -93,7 +96,7 @@ export function score(ctx, timelines, urgencyMap) {
     else cost += ((tl.tech.rate ?? 38) * mine.reduce((n, s) => n + s.job.dur + (Number.isFinite(s.drive) ? s.drive : 0), 0)) / 60
   }
   const downgraded = ctx.jobs.filter((j) => j.urgency !== null && (urgencyMap[j.id] ?? j.urgency) < j.urgency)
-  return { driveMin, work, urgentCount: urgent.length, wasted, finished, response, notes, notesTotal, skill, cost: Math.round(cost), total: ctx.jobs.length, downgraded }
+  return { driveMin, work, scheduled, urgentCount: urgent.length, wasted, finished, response, notes, notesTotal, skill, cost: Math.round(cost), total: ctx.jobs.length, downgraded }
 }
 
 export function gates(ctx, planScore, handScore) {
@@ -101,7 +104,8 @@ export function gates(ctx, planScore, handScore) {
   const worse = []
   if (planScore.finished < handScore.finished) worse.push('finishes fewer jobs')
   if (planScore.wasted > handScore.wasted) worse.push('wastes more trips')
-  if (planScore.cost > handScore.cost) worse.push('costs more')
+  // Costing more only counts against a plan that does not get more jobs finished for the extra money.
+  if (planScore.cost > handScore.cost && planScore.finished <= handScore.finished) worse.push('costs more')
   return [
     {
       label: 'No emergency treated as less urgent than it is',
@@ -114,9 +118,42 @@ export function gates(ctx, planScore, handScore) {
     {
       label: 'Plan is not worse than the by-hand plan',
       ok: !worse.length,
-      detail: worse.length ? `The plan ${worse.join(' and ')} than the by-hand plan.` : 'Jobs finished, wasted trips and cost are all as good as or better than by hand.',
+      detail: worse.length ? `The plan ${worse.join(' and ')} than the by-hand plan.` : 'Jobs finished, wasted trips and cost are all as good as or better than by hand (or cost more only because more jobs got done).',
     },
   ]
+}
+
+// ---------- Side-by-side measures: plan against by hand. cmp: 1 = plan better, 0 = same or not comparable, -1 = plan worse. ----------
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+export function measureRows(p, h) {
+  const sign = (x) => (x > 0 ? 1 : x < 0 ? -1 : 0)
+  const moreDone = p.finished > h.finished
+  const perVisit = (s) => (s.scheduled ? s.driveMin / s.scheduled : 0)
+  const left = (s) => s.total - s.scheduled
+  const rows = []
+  rows.push({ key: 'finished', label: 'Jobs finished', plan: `${p.finished} of ${p.total}`, hand: `${h.finished} of ${h.total}`, cmp: sign(p.finished - h.finished),
+    say: (c) => (c > 0 ? `${plural(p.finished - h.finished, 'more job', 'more jobs')} finished` : `${plural(h.finished - p.finished, 'fewer job', 'fewer jobs')} finished`) })
+  rows.push({ key: 'wasted', label: 'Wasted trips', plan: p.wasted, hand: h.wasted, cmp: sign(h.wasted - p.wasted),
+    say: (c) => (c > 0 ? plural(h.wasted - p.wasted, 'fewer wasted trip', 'fewer wasted trips') : plural(p.wasted - h.wasted, 'more wasted trip', 'more wasted trips')) })
+  const both = p.urgentCount > 0 && h.urgentCount > 0
+  rows.push({ key: 'wait', label: 'Avg. wait for an urgent job', plan: both ? `${Math.round(p.response)} min` : '–', hand: both ? `${Math.round(h.response)} min` : '–', cmp: both ? sign(Math.round(h.response) - Math.round(p.response)) : 0,
+    say: (c) => (c > 0 ? `urgent jobs reached ${Math.round(h.response - p.response)} min sooner` : `urgent jobs reached ${Math.round(p.response - h.response)} min later`) })
+  rows.push({ key: 'notes', label: 'Important notes reached the tech', plan: p.notesTotal ? `${p.notes} of ${p.notesTotal}` : '–', hand: h.notesTotal ? `${h.notes} of ${h.notesTotal}` : '–', cmp: p.notesTotal ? sign(p.notes - h.notes) : 0,
+    say: (c) => (c > 0 ? `${plural(p.notes - h.notes, 'more note', 'more notes')} reached the technician` : `${plural(h.notes - p.notes, 'fewer note', 'fewer notes')} reached the technician`) })
+  rows.push({ key: 'skill', label: 'Right skill for the job', plan: `${p.skill} of ${p.scheduled} visits`, hand: `${h.skill} of ${h.scheduled} visits`, cmp: sign(p.skill - h.skill),
+    say: (c) => (c > 0 ? `${plural(p.skill - h.skill, 'more visit', 'more visits')} by the right skill` : `${plural(h.skill - p.skill, 'fewer visit', 'fewer visits')} by the right skill`) })
+  rows.push({ key: 'unplanned', label: 'Jobs nobody was sent to', plan: left(p), hand: left(h), cmp: sign(left(h) - left(p)),
+    say: (c) => (c > 0 ? `${plural(left(h) - left(p), 'job', 'jobs')} the by-hand plan left with nobody` : `${plural(left(p) - left(h), 'more job', 'more jobs')} left with nobody`) })
+  // More driving or cost is not "worse" when it comes with more jobs done, so those cases show as neutral.
+  const driveCmp = p.driveMin < h.driveMin ? 1 : p.driveMin === h.driveMin ? 0 : moreDone || perVisit(p) <= perVisit(h) ? 0 : -1
+  rows.push({ key: 'drive', label: 'Drive time', plan: `${p.driveMin} min`, hand: `${h.driveMin} min`, cmp: driveCmp,
+    note: p.driveMin > h.driveMin && driveCmp === 0 ? 'More driving, but more jobs done' : '',
+    say: (c) => (c > 0 ? `${h.driveMin - p.driveMin} min less driving` : `${p.driveMin - h.driveMin} min more driving`) })
+  const costCmp = p.cost < h.cost ? 1 : p.cost === h.cost ? 0 : moreDone ? 0 : -1
+  rows.push({ key: 'cost', label: 'Estimated cost (not in the score)', plan: '$' + p.cost, hand: '$' + h.cost, cmp: costCmp,
+    note: p.cost > h.cost && costCmp === 0 ? 'Costs more, but more jobs done' : '',
+    say: (c) => (c > 0 ? '$' + (h.cost - p.cost) + ' cheaper' : '$' + (p.cost - h.cost) + ' more expensive') })
+  return rows
 }
 
 // ---------- The 0-100 score. Plan and by-hand plan are scored on the same rubric. ----------
@@ -127,7 +164,7 @@ export function points(s) {
   const pct = (a, b) => (b ? a / b : 0)
   const parts = [
     { key: 'done', label: 'Jobs done on time, inside entry windows and hours', weight: 35, frac: pct(s.finished, s.total), detail: `${s.finished} of ${s.total}` },
-    { key: 'skill', label: 'Right skill sent to each job', weight: 15, frac: pct(s.skill, s.total), detail: `${s.skill} of ${s.total}` },
+    { key: 'skill', label: 'Right skill sent to each job', weight: 15, frac: pct(s.skill, s.total), detail: `${s.skill} of ${s.scheduled} visits had the right skill${s.scheduled < s.total ? `; ${s.total - s.scheduled} jobs got nobody` : ''}` },
     { key: 'urgent', label: 'Urgent jobs reached quickly', weight: 20, frac: clamp(1 - (s.response - 60) / 300), detail: `${Math.round(s.response)} min average wait`, na: s.urgentCount === 0 },
     { key: 'notes', label: 'Resident notes reached the technician', weight: 15, frac: pct(s.notes, s.notesTotal), detail: `${s.notes} of ${s.notesTotal}`, na: s.notesTotal === 0 },
     { key: 'drive', label: 'Time spent working, not driving', weight: 15, frac: s.work + s.driveMin ? s.work / (s.work + s.driveMin) : 0, detail: `${Math.round((s.work / Math.max(1, s.work + s.driveMin)) * 100)}% of on-the-clock time` },
