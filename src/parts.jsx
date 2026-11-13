@@ -35,7 +35,8 @@ export function Timelines({ list, compact, urgency, comms }) {
                 <span className="chips">
                   {s.wasted && <span className="chip flag">Wasted trip (outside entry window)</span>}
                   {s.overlap && <span className="chip bad">Double-booked</span>}
-                  {s.outsideShift && <span className="chip bad">Outside hours</span>}
+                  {s.beforeShift && <span className="chip bad">Starts before the shift</span>}
+                  {s.pastShift && !s.beforeShift && <span className="chip flag">Runs past the end of the shift: carried over</span>}
                   {s.skillMismatch && <span className="chip bad">Wrong skill</span>}
                 </span>
               </span>

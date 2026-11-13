@@ -27,6 +27,8 @@ export function simulate(ctx, plan, { ignoreWindows = false } = {}) {
         start,
         end,
         overlap: start < prevEnd,
+        beforeShift: start < ctx.shift[0],
+        pastShift: end > ctx.shift[1],
         outsideShift: start < ctx.shift[0] || end > ctx.shift[1],
         wasted: start < job.win[0] || end > job.win[1],
         skillMismatch: !tech.skills.includes(job.skill),
@@ -64,12 +66,14 @@ export function checkPlan(ctx, timelines) {
   const missing = ctx.jobs.filter((j) => !seen[j.id]).map((j) => j.id)
   const dupes = Object.keys(seen).filter((id) => seen[id] > 1)
   const overlaps = timelines.flatMap((tl) => tl.stops.filter((s) => s.overlap).map((s) => `${tl.tech.name} is in two places at ${fmt(s.start)} (${s.job.id})`))
-  const outside = timelines.flatMap((tl) => tl.stops.filter((s) => s.outsideShift).map((s) => `${s.job.id} falls outside ${tl.tech.name}'s hours`))
+  // A job that runs past the end of the shift is not impossible, it is carried over to tomorrow (it does not count as finished).
+  // Only a job that starts before the shift begins is an impossible plan.
+  const outside = timelines.flatMap((tl) => tl.stops.filter((s) => s.beforeShift).map((s) => `${s.job.id} starts before ${tl.tech.name}'s shift`))
   const checks = [
     { label: 'Every request is covered once', ok: !missing.length && !dupes.length,
       detail: missing.length ? `Missing: ${missing.join(', ')}` : dupes.length ? `Duplicated: ${dupes.join(', ')}` : '' },
     { label: 'Nobody is in two places at once', ok: !overlaps.length, detail: overlaps.join('; ') },
-    { label: `No job falls outside working hours (${fmt(ctx.shift[0])}–${fmt(ctx.shift[1])})`, ok: !outside.length, detail: outside.join('; ') },
+    { label: `No job starts before the shift (${fmt(ctx.shift[0])})`, ok: !outside.length, detail: outside.join('; ') },
   ]
   return { ok: checks.every((c) => c.ok), checks }
 }
@@ -88,6 +92,7 @@ export function score(ctx, timelines, urgencyMap) {
   const notesTotal = ctx.jobs.filter((j) => j.key).length
   const skill = stops.filter((s) => !s.skillMismatch).length
   const scheduled = stops.length
+  const carried = stops.filter((s) => s.pastShift && !s.beforeShift).length
   const work = stops.reduce((n, s) => n + s.job.dur, 0)
   let cost = wasted * 25
   for (const tl of timelines) {
@@ -96,7 +101,7 @@ export function score(ctx, timelines, urgencyMap) {
     else cost += ((tl.tech.rate ?? 38) * mine.reduce((n, s) => n + s.job.dur + (Number.isFinite(s.drive) ? s.drive : 0), 0)) / 60
   }
   const downgraded = ctx.jobs.filter((j) => j.urgency !== null && (urgencyMap[j.id] ?? j.urgency) < j.urgency)
-  return { driveMin, work, scheduled, urgentCount: urgent.length, wasted, finished, response, notes, notesTotal, skill, cost: Math.round(cost), total: ctx.jobs.length, downgraded }
+  return { driveMin, work, scheduled, carried, urgentCount: urgent.length, wasted, finished, response, notes, notesTotal, skill, cost: Math.round(cost), total: ctx.jobs.length, downgraded }
 }
 
 export function gates(ctx, planScore, handScore) {
@@ -133,6 +138,8 @@ export function measureRows(p, h) {
   const rows = []
   rows.push({ key: 'finished', label: 'Jobs finished', plan: `${p.finished} of ${p.total}`, hand: `${h.finished} of ${h.total}`, cmp: sign(p.finished - h.finished),
     say: (c) => (c > 0 ? `${plural(p.finished - h.finished, 'more job', 'more jobs')} finished` : `${plural(h.finished - p.finished, 'fewer job', 'fewer jobs')} finished`) })
+  rows.push({ key: 'carried', label: 'Jobs carried over to tomorrow', plan: p.carried, hand: h.carried, cmp: sign(h.carried - p.carried),
+    say: (c) => (c > 0 ? `${plural(h.carried - p.carried, 'fewer job', 'fewer jobs')} pushed to tomorrow` : `${plural(p.carried - h.carried, 'more job', 'more jobs')} pushed to tomorrow`) })
   rows.push({ key: 'wasted', label: 'Wasted trips', plan: p.wasted, hand: h.wasted, cmp: sign(h.wasted - p.wasted),
     say: (c) => (c > 0 ? plural(h.wasted - p.wasted, 'fewer wasted trip', 'fewer wasted trips') : plural(p.wasted - h.wasted, 'more wasted trip', 'more wasted trips')) })
   const both = p.urgentCount > 0 && h.urgentCount > 0
