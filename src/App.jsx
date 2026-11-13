@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { SCENARIOS } from './data.js'
-import { GATE_CAP, fmt, measureRows, runEvaluation, verdictFor } from './evaluate.js'
+import { BONUS_JOBS_MAX, BONUS_ROUTE_MAX, GATE_CAP, fmt, measureRows, runEvaluation, verdictFor } from './evaluate.js'
 import { liveScenario } from './planner.js'
 import { sampleDay } from './casefile.js'
 import Day from './Day.jsx'
@@ -315,6 +315,7 @@ function Scorecard({ r, ctx }) {
           </div>
           <div>
             <b>{r.pass ? verdictFor(r.final) : 'Fails a must-pass check'}</b>
+            {r.bonus && r.bonus.total > 0 && <p>Base score {r.planPts.total} + {r.bonus.total} extra credit</p>}
             <p>By hand: {r.handPts.total} / 100 · {delta === 0 ? 'the same as by hand' : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${delta > 0 ? 'better' : 'worse'} than by hand`}</p>
             {r.capped && <p>The plan earned {r.planPts.total} on the rubric, but a must-pass gate failed, so the score is capped at {GATE_CAP}.</p>}
           </div>
@@ -361,7 +362,14 @@ function Scorecard({ r, ctx }) {
                   </tr>
                 )
               })}
-              <tr><td><b>Total</b></td><td><b>{r.planPts.total}</b></td><td><b>{r.handPts.total}</b></td></tr>
+              <tr><td><b>Base score</b></td><td><b>{r.planPts.total}</b></td><td><b>{r.handPts.total}</b></td></tr>
+              {r.bonus && (
+                <>
+                  <tr><td>Extra credit: more jobs finished than by hand<br /><span className="note">+1 per extra job, up to +{BONUS_JOBS_MAX}</span></td><td className={r.bonus.jobs > 0 ? 'have' : ''}>+{r.bonus.jobs}<br /><span className="note">{r.bonus.extraJobs} more</span></td><td>–</td></tr>
+                  <tr><td>Extra credit: shorter routes<br /><span className="note">up to +{BONUS_ROUTE_MAX}; full marks for half the by-hand driving per visit</span></td><td className={r.bonus.route > 0 ? 'have' : ''}>+{r.bonus.route}<br /><span className="note">{r.bonus.savedPct}% less driving per visit</span></td><td>–</td></tr>
+                </>
+              )}
+              <tr><td><b>Score</b></td><td><b>{r.final}</b></td><td><b>{r.handPts.total}</b></td></tr>
             </tbody>
           </table>
         </div>

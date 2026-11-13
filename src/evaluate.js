@@ -156,6 +156,20 @@ export function measureRows(p, h) {
   return rows
 }
 
+// ---------- Extra credit, on top of the base score. Measured against the by-hand plan and only for a plan that passes. ----------
+export const BONUS_JOBS_MAX = 5 // +1 for every extra job finished compared with by hand
+export const BONUS_ROUTE_MAX = 5 // up to +5 for driving less per visit (full marks at half the by-hand driving per visit)
+
+export function bonusFor(p, h) {
+  const extra = Math.max(0, p.finished - h.finished)
+  const jobs = Math.min(BONUS_JOBS_MAX, extra)
+  const per = (s) => (s.scheduled ? s.driveMin / s.scheduled : 0)
+  // Shorter routes only earn credit when the plan also finished at least as many jobs: less driving from doing less is not efficiency.
+  const saved = p.finished >= h.finished && per(h) > 0 ? Math.max(0, (per(h) - per(p)) / per(h)) : 0
+  const route = Math.round(BONUS_ROUTE_MAX * Math.min(1, saved / 0.5) * 10) / 10
+  return { jobs, route, total: Math.round((jobs + route) * 10) / 10, extraJobs: extra, savedPct: Math.round(saved * 100) }
+}
+
 // ---------- The 0-100 score. Plan and by-hand plan are scored on the same rubric. ----------
 export const GATE_CAP = 40
 const clamp = (x) => Math.max(0, Math.min(1, x))
@@ -191,6 +205,8 @@ export function runEvaluation(ctx, entry) {
   const planPts = planScore ? points(planScore) : null
   const handPts = points(handScore)
   const capped = !!planPts && !pass
-  const final = planPts ? (capped ? Math.min(planPts.total, GATE_CAP) : planPts.total) : null
-  return { planTl, handTl, check, planScore, handScore, gateList, pass, planPts, handPts, capped, final }
+  // Extra credit only for a plan that passes every check and gate.
+  const bonus = planScore && pass ? bonusFor(planScore, handScore) : null
+  const final = planPts ? (capped ? Math.min(planPts.total, GATE_CAP) : Math.round((planPts.total + (bonus ? bonus.total : 0)) * 10) / 10) : null
+  return { planTl, handTl, check, planScore, handScore, gateList, pass, planPts, handPts, capped, bonus, final }
 }
