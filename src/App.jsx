@@ -191,7 +191,13 @@ function App() {
   // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule, customMaps])
-  const approvedOnRoutes = fullPlan.techs.reduce((n, x) => n + x.plan.stops.filter((st) => approved[st.job.id]).length, 0)
+  // The export covers only the signed-in person's own properties and their technicians, so it never lists other supervisors' jobs.
+  const myTeams = useMemo(() => allTeams.filter((t) => t.sites.some((x) => mySiteNames.includes(x))), [allTeams, mySiteNames])
+  // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const myPlan = useMemo(() => buildPlan(allOrders, tech, myTeams, schedule), [allOrders, tech, myTeams, schedule, customMaps])
+  const scopeLabel = sup ? sup.name : mgr ? `${mgr.area} property manager` : ''
+  const approvedOnRoutes = myPlan.techs.reduce((n, x) => n + x.plan.stops.filter((st) => approved[st.job.id]).length, 0)
   const addPhotos = (id, list) => {
     if (!list.filter(Boolean).length) return
     const { meta, chunks } = photoRecords(id, list, photometa[id], role === 'tech' ? 'technician' : 'supervisor')
@@ -701,16 +707,16 @@ function App() {
           {plan.afterHours && <p className="notice small">📟 After-hours plan for {schedule.day}: on-call technicians only, from 5 PM.</p>}
           <div className="card">
             <h2>Evaluate this day</h2>
-            <p className="small">Saves a file the separate Plan Evaluator can grade. It does not change anything here.</p>
-            {fullPlan.techs.length === 0 ? (
+            <p className="small">Saves a file the separate Plan Evaluator can grade. It covers only your own properties ({mySiteNames.length}) and their technicians, and it does not change anything here.</p>
+            {myPlan.techs.length === 0 ? (
               <p className="small">Nobody is on duty for this day and shift, so there is no plan to export.</p>
             ) : (
               <div className="row">
                 <button className="primary" disabled={approvedOnRoutes === 0}
-                  onClick={() => downloadCaseFile(buildCaseFile({ plan: fullPlan, orders: everyOrder, schedule, sites, approved }), 'technician-days-for-evaluation.json')}>
+                  onClick={() => downloadCaseFile(buildCaseFile({ plan: myPlan, orders: allOrders, schedule, sites, approved, scopeLabel }), 'technician-days-for-evaluation.json')}>
                   Export approved technician days ({approvedOnRoutes} {approvedOnRoutes === 1 ? 'job' : 'jobs'})
                 </button>
-                <button onClick={() => downloadCaseFile(buildCaseFile({ plan: fullPlan, orders: everyOrder, schedule, sites }), 'board-suggestions-for-evaluation.json')}>
+                <button onClick={() => downloadCaseFile(buildCaseFile({ plan: myPlan, orders: allOrders, schedule, sites, scopeLabel }), 'board-suggestions-for-evaluation.json')}>
                   Export the board's suggestions
                 </button>
               </div>

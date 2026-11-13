@@ -23,7 +23,8 @@ const noteFor = (o) => [...o.flags, `Bring: ${o.bring.join(', ')}`].join('. ')
 // `approved` (optional, {orderId: true}): export only what the supervisor approved, i.e. each technician's "My day".
 // Suggested jobs that are not approved yet are listed as on hold, so an urgent one shows up as a warning.
 // The crew is whoever the plan actually used that day (so days off and after-hours shifts are respected).
-export function buildCaseFile({ plan, orders, schedule, sites, approved = null }) {
+// `scopeLabel` (optional) names whose day this is, for example the signed-in supervisor.
+export function buildCaseFile({ plan, orders, schedule, sites, approved = null, scopeLabel = '' }) {
   const crewIn = plan.techs.map((x) => x.tech).filter((t) => t.sites?.length)
   const used = new Set()
   crewIn.forEach((t) => t.sites.forEach((s) => used.add(s)))
@@ -82,8 +83,8 @@ export function buildCaseFile({ plan, orders, schedule, sites, approved = null }
 
   return {
     format: 'plan-case/v1',
-    title: `Maintenance Hub ${schedule?.day ? `${schedule.day}${plan.afterHours ? ', after hours' : ''}` : 'day'}${approved ? ', approved technician days' : ''} (${orders.length} requests)`,
-    source: 'Exported from the Maintenance Hub triage board. Made-up sample data.',
+    title: `Maintenance Hub ${schedule?.day ? `${schedule.day}${plan.afterHours ? ', after hours' : ''}` : 'day'}${approved ? ', approved technician days' : ''}${scopeLabel ? ` for ${scopeLabel}` : ''} (${orders.length} requests)`,
+    source: `Exported from the Maintenance Hub triage board${scopeLabel ? ` for ${scopeLabel}` : ''}. Made-up sample data.`,
     shift: { start: clock(startHour), end: clock(endHour) },
     communities,
     travel: { within: 4, pairs },
