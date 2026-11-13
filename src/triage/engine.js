@@ -32,7 +32,7 @@ const PATTERNS = [
   ['toilet', /toilet|clog|plunger/i],
   ['appliance', /dishwasher|stove|oven|burner|washer|dryer|microwave|disposal|range hood/i],
   ['pest', /roach|cockroach|bed ?bug|mice|mouse|rodent|\brats?\b|ants?\b|pest|termite|wasp/i],
-  ['electrical', /outlet|light(s)?\b|breaker|switch|bulb|ceiling fan|doorbell/i],
+  ['electrical', /outlet|light(s)?\b|breaker|switch|bulb|\bfan\b|exhaust|doorbell/i],
   ['other', /mold|mildew/i],
   ['amenity', /gate|pool|gym|fitness|clubhouse|mailbox|dumpster|parking|hallway|laundry room|elevator/i],
   ['cosmetic', /paint|caulk|scuff|stain on (the )?wall|nail hole/i],
@@ -135,7 +135,7 @@ export function entryInfo(resident, sev, noEntry, okReceived, type) {
 }
 
 // ---------- 6. Build one finished work order ----------
-export function buildOrder(raw, state = {}) {
+export function buildOrder(raw, state = {}, ai = null) {
   const loc = parseLocation(raw.text)
   const resident = findResident(raw.text, raw.residentId, loc)
   const type = classify(raw.text)
@@ -143,6 +143,17 @@ export function buildOrder(raw, state = {}) {
   const repeats = raw.repeats || 0
   const region = resident?.region
   const scored = scoreSeverity(type, raw.text, region || 'Michigan', repeats)
+  // AI step (if it ran): it may raise the level, never lower it.
+  let ruleSev = scored.sev
+  if (ai && ai.severity > ruleSev) {
+    scored.reasons.push(`AI reading raised it from ${ruleSev} to ${ai.severity}: ${ai.reason}`)
+    ruleSev = ai.severity
+  } else if (ai && ai.severity < ruleSev) {
+    scored.reasons.push(`AI suggested ${ai.severity}, but the AI can't lower a rule-based level`)
+  } else if (ai) {
+    scored.reasons.push(`AI agrees: ${ai.reason}`)
+  }
+  scored.sev = ruleSev
   const sev = state.sevOverride || scored.sev
   const vendor = vendorFlag(raw.text, repeats)
   const entry = entryInfo(resident, sev, jt.noEntry, state.okReceived, type)
@@ -171,6 +182,7 @@ export function buildOrder(raw, state = {}) {
     entry,
     flags,
     okReceived: !!state.okReceived,
+    ai,
     window: type === 'lockout' ? [0, 24] : resident ? parseWindow(resident.window) : [8, 17],
     community: resident?.community || loc.site || null,
     loc,

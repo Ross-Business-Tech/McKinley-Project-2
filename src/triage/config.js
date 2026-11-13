@@ -22,11 +22,13 @@ export const DEFAULT_SITES = properties.map((p) => ({
 
 // Made-up maintenance supervisors, one per area. Each one oversees the properties listed.
 const inMarket = (...m) => DEFAULT_SITES.filter((x) => m.includes(x.market)).map((x) => x.name)
+// Staff sign-in PINs below are sample values. The property manager sets and resets them on the Access tab.
+
 export const DEFAULT_SUPERVISORS = [
-  { id: 'SUP-AA', name: 'Karen W.', phone: '734-555-0181', email: 'supervisor-annarbor@example.com', sites: inMarket('Ann Arbor') },
-  { id: 'SUP-YP', name: 'Devon R.', phone: '734-555-0182', email: 'supervisor-ypsilanti@example.com', sites: inMarket('Ypsilanti') },
-  { id: 'SUP-OR', name: 'Luis M.', phone: '407-555-0183', email: 'supervisor-orlando@example.com', sites: inMarket('Orlando') },
-  { id: 'SUP-WP', name: 'Monique T.', phone: '407-555-0184', email: 'supervisor-winterpark@example.com', sites: inMarket('Winter Park', 'Brevard') },
+  { id: 'SUP-AA', pin: '1201', name: 'Karen W.', phone: '734-555-0181', email: 'supervisor-annarbor@example.com', sites: inMarket('Ann Arbor') },
+  { id: 'SUP-YP', pin: '1202', name: 'Devon R.', phone: '734-555-0182', email: 'supervisor-ypsilanti@example.com', sites: inMarket('Ypsilanti') },
+  { id: 'SUP-OR', pin: '1203', name: 'Luis M.', phone: '407-555-0183', email: 'supervisor-orlando@example.com', sites: inMarket('Orlando') },
+  { id: 'SUP-WP', pin: '1204', name: 'Monique T.', phone: '407-555-0184', email: 'supervisor-winterpark@example.com', sites: inMarket('Winter Park', 'Brevard') },
 ]
 
 const BY_NAME = Object.fromEntries(DEFAULT_SITES.map((s) => [s.name, s]))
@@ -45,18 +47,18 @@ export function travelMinutes(a, b) {
 
 // Made-up technicians. Skills are what each person is strongest at.
 export const TECHS = [
-  { id: 'SK1', name: 'Dale', lang: 'en', phone: '734-555-0151', sites: ['Spruce Knob'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
-  { id: 'SK2', name: 'Tasha', lang: 'en', phone: '734-555-0152', sites: ['Spruce Knob'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
-  { id: 'GH1', name: 'Marcus', lang: 'en', phone: '734-555-0153', sites: ['Glencoe Hills'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
-  { id: 'GH2', name: 'Priya', lang: 'en', phone: '734-555-0154', sites: ['Glencoe Hills'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
-  { id: 'EV1', name: 'Jonah', lang: 'en', phone: '734-555-0155', sites: ['Evergreen'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
-  { id: 'EV2', name: 'Rosa', lang: 'es', phone: '734-555-0156', sites: ['Evergreen'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
-  { id: 'BC1', name: 'Carlos', lang: 'en', phone: '407-555-0157', sites: ['Bella Casa'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
-  { id: 'BC2', name: 'Alicia', lang: 'es', phone: '407-555-0158', sites: ['Bella Casa'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
-  { id: 'PO1', name: 'Terrence', lang: 'pt', phone: '407-555-0159', sites: ['Portofino'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
-  { id: 'PO2', name: 'Mei', lang: 'en', phone: '407-555-0160', sites: ['Portofino'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
-  { id: 'TP1', name: 'Andre', lang: 'ht', phone: '407-555-0161', sites: ['The Pines'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
-  { id: 'TP2', name: 'Lena', lang: 'en', phone: '407-555-0162', sites: ['The Pines'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'SK1', pin: '2101', name: 'Dale', lang: 'en', phone: '734-555-0151', sites: ['Spruce Knob'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'SK2', pin: '2102', name: 'Tasha', lang: 'en', phone: '734-555-0152', sites: ['Spruce Knob'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'GH1', pin: '2103', name: 'Marcus', lang: 'en', phone: '734-555-0153', sites: ['Glencoe Hills'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'GH2', pin: '2104', name: 'Priya', lang: 'en', phone: '734-555-0154', sites: ['Glencoe Hills'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'EV1', pin: '2105', name: 'Jonah', lang: 'en', phone: '734-555-0155', sites: ['Evergreen'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'EV2', pin: '2106', name: 'Rosa', lang: 'es', phone: '734-555-0156', sites: ['Evergreen'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'BC1', pin: '2107', name: 'Carlos', lang: 'en', phone: '407-555-0157', sites: ['Bella Casa'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'BC2', pin: '2108', name: 'Alicia', lang: 'es', phone: '407-555-0158', sites: ['Bella Casa'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'PO1', pin: '2109', name: 'Terrence', lang: 'pt', phone: '407-555-0159', sites: ['Portofino'], skills: ['hvac', 'plumbing', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'PO2', pin: '2110', name: 'Mei', lang: 'en', phone: '407-555-0160', sites: ['Portofino'], skills: ['electrical', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
+  { id: 'TP1', pin: '2111', name: 'Andre', lang: 'ht', phone: '407-555-0161', sites: ['The Pines'], skills: ['hvac', 'electrical', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Mon', 'Wed', 'Fri', 'Sat'] },
+  { id: 'TP2', pin: '2112', name: 'Lena', lang: 'en', phone: '407-555-0162', sites: ['The Pines'], skills: ['plumbing', 'appliance', 'locks', 'general'], shift: [8, 17], workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: ['Tue', 'Thu', 'Sun'] },
 ]
 
 // Minutes a typical job takes, and what to bring. Edit freely.
@@ -88,7 +90,7 @@ export const VENDOR_RULES = [
   { words: /compressor|replace(ment)? (the )?(ac|unit|hvac)|condenser (is )?(dead|failed)|furnace (is )?dead/i, vendor: 'HVAC vendor', why: 'Major HVAC part or unit replacement' },
   { words: /roof|ceiling (is )?(caving|collaps)|water (stain|coming) (from|through) (the )?ceiling/i, vendor: 'Roofing vendor', why: 'Roof or ceiling water damage' },
   { words: /mold|mildew/i, vendor: 'Mold remediation vendor', why: 'Mold needs certified cleanup' },
-  { words: /roach|cockroach|bed ?bug|rodent|mice|mouse|rats?|termite|ants?/i, vendor: 'Pest control vendor', why: 'Pest treatment, often building-wide' },
+  { words: /\b(roach(es)?|cockroach(es)?|bed ?bugs?|rodents?|mice|mouse|rats?|termites?|ants)\b/i, vendor: 'Pest control vendor', why: 'Pest treatment, often building-wide' },
   { words: /sewer (main|line)|main line|backs? up in (every|all)|tree root/i, vendor: 'Plumbing vendor', why: 'Main sewer line work' },
   { words: /elevator/i, vendor: 'Elevator vendor', why: 'Licensed elevator work only' },
   { words: /carpet (clean|replace)|flooring|replace the carpet/i, vendor: 'Flooring / carpet vendor', why: 'Flooring work' },

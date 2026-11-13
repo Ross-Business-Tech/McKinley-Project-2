@@ -1,61 +1,91 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import SiteMap from './SiteMap.jsx'
 import TechDay from './TechDay.jsx'
-import { readPhotos } from './photos.js'
-import { mapFor } from './triage/geo.js'
+import TeamHours from './TeamHours.jsx'
+import { readPhotos, photoRecords, assemblePhotos } from './photos.js'
+import { statusOf, STATUS_LABEL, timeOf } from './progress.js'
+import { useShared, useSyncMode, setWho, signedInEmail } from './shared.js'
+import './store.js'
+import { formatPhone, load, save } from './util.js'
+import { TechEditor, SupervisorsEditor } from './staff/TeamEditors.jsx'
+import { RoleChooser } from './staff/StaffSignIn.jsx'
+import { pinOf } from './staff/pins.js'
+import { SyncChip, TimeOffPanel, SitePicker } from './staff/Bits.jsx'
+import { aiRead } from './ai.js'
+import Stats from './Stats.jsx'
+import { VendorsEditor, VendorRequest } from './Vendors.jsx'
+import { PartsList, ResidentUpdate } from './JobExtras.jsx'
+import { mapFor, setCustomMaps, buildingsFor, SITE_GEO } from './triage/geo.js'
+import { AddSite, MapEditor } from './MapSetup.jsx'
+import { mapRecords, assembleMaps } from './mapStore.js'
 import { parseLocation } from './triage/location.js'
-import { LANGS, langInfo, workTicket, uiText } from './triage/translate.js'
-import { TEST_ORDERS } from './triage/testOrders.js'
+import { langInfo, workTicket, uiText } from './triage/translate.js'
 import { RESIDENTS, buildOrder, buildPlan, fmt, DAYS, isOnCall, isWorking } from './triage/engine.js'
-import { SEVERITY, TECHS, DEFAULT_SITES, DEFAULT_SUPERVISORS } from './triage/config.js'
-import { SKILLS, missingInfo, drafts } from './triage/followup.js'
+import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
+import { MANAGERS, hashEmail, passHashOf } from './auth.js'
+import Access, { MyPin } from './Access.jsx'
+import { PlanningTab, TechPlanned, VendorTracker, Scoreboard } from './Planning.jsx'
+import { scoreboard, VENDOR_STATUS, niceDate } from './planning.js'
+import { missingInfo, drafts } from './triage/followup.js'
 import { buildCaseFile, downloadCaseFile } from './triage/exportCase.js'
 
 const tag = (sev) => SEVERITY[sev]
-// Phone numbers: digits only, 10 of them, dashes added as you type (123-456-7890).
-const formatPhone = (v) => {
-  const d = v.replace(/\D/g, '').slice(0, 10)
-  return [d.slice(0, 3), d.slice(3, 6), d.slice(6)].filter(Boolean).join('-')
-}
-
-function load(key, fallback) {
-  try {
-    const v = JSON.parse(localStorage.getItem(key))
-    return v || fallback
-  } catch {
-    return fallback
-  }
-}
-function save(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* private mode: fine, just don't remember */
-  }
-}
 
 function App() {
-  const [raw, setRaw] = useState(TEST_ORDERS)
-  const [state, setState] = useState({})
-  const [tech, setTech] = useState({})
-  const [approved, setApproved] = useState({})
-  const [contacted, setContacted] = useState({})
+  const syncMode = useSyncMode()
+  const [raw, setRaw] = useShared('orders')
+  const [state, setState] = useShared('state')
+  const [tech, setTech] = useShared('assign')
+  const [approved, setApproved] = useShared('approved')
+  const [contacted, setContacted] = useShared('contacted')
+  const [aiRes, setAiRes] = useShared('ai')
+  const [parts, setParts] = useShared('parts')
+  const [timeoff, setTimeoff] = useShared('timeoff')
+  const [vendors, setVendors] = useShared('vendors')
+  const [sitemaps, setSitemaps] = useShared('sitemaps')
+  const [feedback] = useShared('feedback')
+  const [replies] = useShared('replies')
+  const [mapchunks, setMapchunks] = useShared('mapchunks')
+  // Site maps uploaded in the app for new properties, rebuilt from their saved pieces.
+  const customMaps = useMemo(() => assembleMaps(sitemaps, mapchunks), [sitemaps, mapchunks])
+  setCustomMaps(customMaps)
+  const saveMap = (name, img) => {
+    const { meta, chunkEntries } = mapRecords(name, img, sitemaps[name])
+    setMapchunks((c) => ({ ...c, ...chunkEntries }))
+    setSitemaps((m) => ({ ...m, [name]: meta }))
+  }
+  const [email, setEmail] = useState(null)
   const [tab, setTab] = useState('queue')
   const [msg, setMsg] = useState('')
   const [resId, setResId] = useState('')
+  const [chatSite, setChatSite] = useState('')
+  const [chatUnit, setChatUnit] = useState('')
+  const matchUnit = (site, unit) =>
+    RESIDENTS.find((r) => r.community === site && String(r.unit).replace(/^0+/, '') === String(unit).trim().replace(/^0+/, ''))?.id || ''
   const [reqPhone, setReqPhone] = useState('')
   const [reqEmail, setReqEmail] = useState('')
   const [showScale, setShowScale] = useState(false)
   const [open, setOpen] = useState({})
-  const [handled, setHandled] = useState({})
-  const [photos, setPhotos] = useState({})
+  const [handled, setHandled] = useShared('handled')
+  const [photometa, setPhotometa] = useShared('photometa')
+  const [photochunks, setPhotochunks] = useShared('photochunks')
+  const [progress, setProgress] = useShared('progress')
+  const [pmHashes, setPmHashes] = useShared('pmHashes')
+  const [emailHash, setEmailHash] = useState(null)
+  const [rescodes, setRescodes] = useShared('rescodes')
+  const [turns, setTurns] = useShared('turns')
+  const [pm, setPm] = useShared('pm')
+  const [vendorjobs, setVendorjobs] = useShared('vendorjobs')
+  // Photos are shared with the team (in pieces, see photos.js) on the team's site.
+  const photos = useMemo(() => assemblePhotos(photometa, photochunks), [photometa, photochunks])
   const [newPhotos, setNewPhotos] = useState([])
-  const [techDone, setTechDone] = useState({})
+  const [techDone, setTechDone] = useShared('techDone')
   const [role, setRole] = useState(() => load('mk-role', null))
+  const [staffPin, setStaffPin] = useState(() => load('mk-staff-pin', null))
   const [techId, setTechId] = useState(() => load('mk-tech', null))
   const [supId, setSupId] = useState(() => load('mk-sup', null))
-  const [sups, setSups] = useState(() => load('mk-sups-v1', DEFAULT_SUPERVISORS))
+  const [sups, setSups] = useShared('sups')
   const [techTab, setTechTab] = useState('day')
   const [techSite, setTechSite] = useState(null)
   // Which day and shift we're planning for. Starts from the real clock: evenings and weekends are on-call time.
@@ -67,22 +97,83 @@ function App() {
   })
   const [site, setSite] = useState('all')
   const [teamSite, setTeamSite] = useState('Evergreen')
-  const [sites, setSites] = useState(() => load('mk-sites-v2', DEFAULT_SITES))
-  const [teamsRaw, setTeamsRaw] = useState(() => load('mk-teams-v5', TECHS))
+  const [sites, setSites] = useShared('sites')
+  const [teamsRaw, setTeamsRaw] = useShared('teams')
 
-  useEffect(() => save('mk-sites-v2', sites), [sites])
-  useEffect(() => save('mk-teams-v5', teamsRaw), [teamsRaw])
+  // Sign-in: on a members-only or invite-only here.now site, the access gate knows who you are.
+  useEffect(() => {
+    signedInEmail().then(setEmail)
+  }, [])
   useEffect(() => save('mk-role', role), [role])
+  useEffect(() => save('mk-staff-pin', staffPin), [staffPin])
   useEffect(() => save('mk-tech', techId), [techId])
   useEffect(() => save('mk-sup', supId), [supId])
-  useEffect(() => save('mk-sups-v1', sups), [sups])
 
-  const allTeams = useMemo(() => teamsRaw.map((t) => ({ ...t, home: t.sites[0] || '' })), [teamsRaw])
-  const everyOrder = useMemo(() => raw.map((r) => buildOrder(r, state[r.id])), [raw, state])
-  // Each supervisor sees only their own properties. "Regional view" sees all of them.
+  // Days off (requested by technicians) take that weekday out of their shifts and on-call days.
+  const allTeams = useMemo(
+    () =>
+      teamsRaw.map((t) => {
+        const off = DAYS.filter((d) => timeoff[`${t.id}|${d}`])
+        const wd = t.workDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        return { ...t, home: t.sites[0] || '', daysOff: off, workDays: wd.filter((d) => !off.includes(d)), onCallDays: (t.onCallDays || []).filter((d) => !off.includes(d)), usualWorkDays: wd }
+      }),
+    [teamsRaw, timeoff],
+  )
+
+  // Signed in through the here.now gate with an email that's on a team? Open their view directly.
+  useEffect(() => {
+    if (!email || role) return
+    const t = allTeams.find((x) => (x.email || '').toLowerCase() === email)
+    const b = sups.find((x) => (x.email || '').toLowerCase() === email)
+    if (t) {
+      setRole('tech')
+      setTechId(t.id)
+    } else if (b) {
+      setRole('supervisor')
+      setSupId(b.id)
+    } else {
+      const m = emailHash && MANAGERS.find((x) => x.emailHash === emailHash)
+      if (m) {
+        setRole('supervisor')
+        setSupId(`pm:${m.id}`)
+      }
+    }
+  }, [email, emailHash, role, allTeams, sups])
+  useEffect(() => {
+    if (email) hashEmail(email).then(setEmailHash)
+  }, [email])
+  const everyOrder = useMemo(() => raw.map((r) => buildOrder(r, state[r.id], aiRes[r.id])), [raw, state, aiRes])
+
+  // AI step: read each request once and save the result for everyone. If the AI connection
+  // isn't set up (test links, no key yet), stop after the first failure and use the rules.
+  const aiTried = useRef(new Set())
+  const aiOff = useRef(false)
+  useEffect(() => {
+    if (aiOff.current || syncMode === 'starting') return
+    const todo = everyOrder.filter((o) => !aiRes[o.id] && !aiTried.current.has(o.id))
+    if (!todo.length) return
+    let cancelled = false
+    ;(async () => {
+      for (const o of todo.slice(0, 5)) {
+        if (cancelled || aiOff.current) return
+        aiTried.current.add(o.id)
+        try {
+          const r = await aiRead(o)
+          if (r) setAiRes((m) => ({ ...m, [o.id]: r }))
+        } catch {
+          aiOff.current = true
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [everyOrder, aiRes, syncMode, setAiRes])
+  // Each supervisor sees only their own properties; each property manager only the properties IT gave them.
   // Requests we couldn't match to a property show for everyone, so none get lost.
   const sup = sups.find((x) => x.id === supId) || null
-  const mySiteNames = useMemo(() => (sup ? sup.sites : sites.map((x) => x.name)), [sup, sites])
+  const mgr = String(supId || '').startsWith('pm:') ? MANAGERS.find((m) => m.id === supId.slice(3)) || null : null
+  const mySiteNames = useMemo(() => (sup ? sup.sites : mgr ? mgr.properties : []), [sup, mgr])
   const mySites = sites.filter((x) => mySiteNames.includes(x.name))
   const allOrders = useMemo(() => everyOrder.filter((o) => !o.community || mySiteNames.includes(o.community)), [everyOrder, mySiteNames])
   // Teams tab opens on: the site you picked, else the one you last edited, else your first site that has a team.
@@ -94,10 +185,20 @@ function App() {
     [allOrders, site],
   )
   const team = useMemo(() => allTeams.filter((t) => (site === 'all' ? t.sites.some((x) => mySiteNames.includes(x)) : t.sites.includes(site))), [allTeams, site, mySiteNames])
-  const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule])
-  const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule])
+  // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const plan = useMemo(() => buildPlan(orders, tech, team, schedule), [orders, tech, team, schedule, customMaps])
+  // customMaps is read inside buildPlan (through geo.js), so a new or re-marked map re-plans the routes.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  const fullPlan = useMemo(() => buildPlan(everyOrder, tech, allTeams, schedule), [everyOrder, tech, allTeams, schedule, customMaps])
   const approvedOnRoutes = fullPlan.techs.reduce((n, x) => n + x.plan.stops.filter((st) => approved[st.job.id]).length, 0)
-  const addPhotos = (id, list) => list.length && setPhotos((p) => ({ ...p, [id]: [...(p[id] || []), ...list] }))
+  const addPhotos = (id, list) => {
+    if (!list.filter(Boolean).length) return
+    const { meta, chunks } = photoRecords(id, list, photometa[id], role === 'tech' ? 'technician' : 'supervisor')
+    setPhotochunks((c) => ({ ...c, ...chunks }))
+    setPhotometa((m) => ({ ...m, [id]: meta }))
+  }
+  const statusFor = (o) => statusOf(o.id, { approved, techDone, progress, scheduled: fullPlan.techs.some((t) => t.plan.stops.some((st) => st.job.id === o.id)) })
   const siteInfo = sites.find((x) => x.name === site)
   const countFor = (k) => allOrders.filter((o) => (k === 'unassigned' ? !o.community : o.community === k)).length
   const ranked = [...orders].sort((a, b) => (handled[a.id] ? 1 : 0) - (handled[b.id] ? 1 : 0) || b.sev - a.sev || a.received.localeCompare(b.received))
@@ -128,16 +229,17 @@ function App() {
   function addOrder(e) {
     e.preventDefault()
     if (!msg.trim()) return
-    const n = raw.length + 1
-    const newId = `W${String(n).padStart(2, '0')}`
-    if (newPhotos.length) setPhotos((p) => ({ ...p, [newId]: newPhotos }))
+    const newId = `W${Date.now().toString(36).toUpperCase()}`
+    if (newPhotos.length) addPhotos(newId, newPhotos)
     setNewPhotos([])
     setRaw([
       ...raw,
-      { id: newId, residentId: resId || null, received: '10:30', text: msg.trim(), phone: reqPhone.trim(), email: reqEmail.trim() },
+      { id: newId, residentId: resId || null, received: '10:30', text: resId || !chatSite ? msg.trim() : `${chatSite} unit ${chatUnit}: ${msg.trim()}`, phone: reqPhone.trim(), email: reqEmail.trim() },
     ])
     setMsg('')
     setResId('')
+    setChatSite('')
+    setChatUnit('')
     setReqPhone('')
     setReqEmail('')
     setTab('followups')
@@ -153,8 +255,11 @@ function App() {
     ['followups', `Follow-ups${stats.missing ? ` (${stats.missing})` : ''}`],
     ['routes', 'Routes'],
     ['map', 'Map'],
+    ['planning', 'Planning'],
+    ['stats', 'Stats'],
     ['teams', 'Teams'],
     ['new', 'Add'],
+    ...(role === 'supervisor' && mgr ? [['access', 'Access']] : []),
   ]
 
   const markTechDone = (v) => {
@@ -167,11 +272,27 @@ function App() {
   }
 
   // ---------- Who is using the app? ----------
-  if (!role || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && supId !== 'all' && !sup)) {
+  setWho(role === 'tech' ? allTeams.find((t) => t.id === techId)?.name : sup?.name || (mgr ? `${mgr.area} property manager` : null))
+  const isManager = role === 'supervisor' && !!mgr
+
+  // Staff views need a staff sign-in: a verified here.now email on the team, or the person's PIN.
+  const meTech = allTeams.find((t) => t.id === techId)
+  const emailIs = (x) => !!email && (x?.email || '').toLowerCase() === email
+  const staffOk =
+    role === 'tech' ? !!meTech && (emailIs(meTech) || pinOf(meTech) === staffPin)
+      : role === 'supervisor' ? (mgr ? staffPin === passHashOf(mgr, pmHashes) || (!!emailHash && emailHash === mgr.emailHash) : !!sup && (emailIs(sup) || pinOf(sup) === staffPin))
+        : true
+  const signOut = () => {
+    setRole(null)
+    setStaffPin(null)
+  }
+
+  if (!role || role === 'resident' || !staffOk || (role === 'tech' && !allTeams.some((t) => t.id === techId)) || (role === 'supervisor' && !sup && !mgr)) {
     return (
-      <RoleChooser techs={allTeams} sups={sups} initialRole={role}
-        onPick={(r, id) => {
+      <RoleChooser techs={allTeams} sups={sups} email={email} pmHashes={pmHashes}
+        onPick={(r, id, pin) => {
           setRole(r)
+          setStaffPin(pin || null)
           if (r === 'tech') setTechId(id)
           else setSupId(id)
           setSite('all')
@@ -194,8 +315,9 @@ function App() {
         <header className="hero hero-tech">
           <div className="row between">
             <span className="wordmark">mckinley</span>
-            <button className="switch" onClick={() => setRole(null)}>Switch user</button>
+            <button className="switch" onClick={signOut}>Sign out</button>
           </div>
+          <SyncChip mode={syncMode} email={email} />
           <h1>{L.myDay} · {me.name}</h1>
           <p>{me.sites.join(', ')} · {langInfo(me.lang)?.native || 'English'} · {fmt(me.shift[0])}–{fmt(me.shift[1])}</p>
           {supervisorOf(me.home) && (
@@ -214,9 +336,10 @@ function App() {
             <button key={k} className={techTab === k ? 'on' : ''} onClick={() => setTechTab(k)}>{l}</button>
           ))}
         </nav>
+        {techTab === 'day' && <TechPlanned tech={me} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} L={L} />}
         {techTab === 'day' && (
-          <TechDay me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
-            addressOf={addressOf} photos={photos} addPhotos={addPhotos} />
+          <TechDay myPin={pinOf(me)} onPin={(p) => { setTeamsRaw(teamsRaw.map((x) => (x.id === me.id ? { ...x, pin: p } : x))); setStaffPin(p) }} me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
+            addressOf={addressOf} photos={photos} addPhotos={addPhotos} progress={progress} setProgress={setProgress} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
         )}
         {techTab === 'map' && (
           <>
@@ -238,9 +361,10 @@ function App() {
       <header className="hero">
         <div className="row between">
           <span className="wordmark">mckinley</span>
-          <button className="switch" onClick={() => setRole(null)}>Switch user</button>
+          <button className="switch" onClick={signOut}>Sign out</button>
         </div>
-        <span className="chip">Supervisor · {sup ? `${sup.name} · ${mySites.length} properties` : 'Regional view · all properties'} · sample data</span>
+        <span className="chip">{sup ? `Supervisor · ${sup.name}` : `Property manager · ${mgr?.area}`} · {mySites.length} properties · sample data</span>
+        <SyncChip mode={syncMode} email={email} />
         <h1>Maintenance Hub</h1>
         <p>Across McKinley's 49 communities: what to fix first, who should go, and the smartest route for the day.</p>
         <section className="stats">
@@ -282,6 +406,8 @@ function App() {
         })()}
         {schedule.afterHours && ' · only priority 4–5 jobs go out; the rest wait for regular hours'}
       </p>
+      <TimeOffPanel team={team} allTeams={allTeams} day={schedule.day} timeoff={timeoff} setTimeoff={setTimeoff} />
+      {site === 'all' && <TeamHours techs={team} siteNames={mySiteNames} day={schedule.day} afterHours={schedule.afterHours} />}
 
       <nav className="tabs">
         {TABS.map(([k, l]) => (
@@ -315,12 +441,17 @@ function App() {
             })()}
           </div>
           <div className="chat-form">
-            <label>Your name and apartment
-              <select value={resId} onChange={(e) => setResId(e.target.value)} required>
-                <option value="">Choose your name and apartment</option>
-                {RESIDENTS.map((r) => <option key={r.id} value={r.id}>{r.community} · Unit {r.unit} · {r.name}</option>)}
-              </select>
-            </label>
+            <div className="two">
+              <label>Property
+                <select value={chatSite} onChange={(e) => { setChatSite(e.target.value); setResId(matchUnit(e.target.value, chatUnit)) }} required>
+                  <option value="">Choose…</option>
+                  {mySites.map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+                </select>
+              </label>
+              <label>Unit number
+                <input value={chatUnit} onChange={(e) => { setChatUnit(e.target.value.slice(0, 8)); setResId(matchUnit(chatSite, e.target.value)) }} inputMode="numeric" required />
+              </label>
+            </div>
             <div className="two">
               <label>Best phone number
                 <input value={reqPhone} onChange={(e) => setReqPhone(formatPhone(e.target.value))} placeholder="067-550-2161" inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" required />
@@ -392,6 +523,7 @@ function App() {
 
       {tab === 'queue' && (
         <>
+          {isManager && <Scoreboard s={scoreboard({ orders: allOrders, approved, progress, techDone, feedback, vendorjobs, plan })} />}
           <button className="link" onClick={() => setShowScale(!showScale)}>{showScale ? 'Hide' : 'Show'} severity scale</button>
           {showScale && (
             <ul className="scale">
@@ -414,6 +546,9 @@ function App() {
                         ? <a className="btn go" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addressOf(o))}&travelmode=driving`} target="_blank" rel="noreferrer">📍 Go now</a>
                         : <span className="go-missing">Address unknown</span>}
                       {(o.resident?.phone || o.phone) && <a className="btn mini" href={`tel:${o.resident?.phone || o.phone}`}>Call</a>}
+                      {schedule.afterHours && assignedTo(o.id)?.phone && (
+                        <a className="btn mini" href={`sms:${assignedTo(o.id).phone}?&body=${encodeURIComponent(`📟 EMERGENCY ${o.id}: ${o.label} at ${addressOf(o) || o.community}${o.resident ? `, Bldg ${o.resident.building} Unit ${o.resident.unit}` : ''}. Open your Maintenance Hub "My day" for details.`)}`}>📟 Page {assignedTo(o.id).name}</a>
+                      )}
                       <button className="btn mini" onClick={() => setHandled({ ...handled, [o.id]: true })}>✓ Done</button>
                     </>
                   ) : o.sev >= 5 ? (
@@ -424,6 +559,7 @@ function App() {
                 </div>
                 <p className="small label">{o.label}{o.sev >= 5 && addressOf(o) && !handled[o.id] ? ` · ${addressOf(o)}` : ''}</p>
                 <p className="text">“{o.text}”</p>
+                {(replies[o.id] || []).map((r, i) => <p key={i} className="small reply">💬 Resident: “{r.text}”</p>)}
                 <p className="unit">
                   {o.resident ? <>{o.resident.building && <>Bldg <b>{o.resident.building}</b> · </>}Unit <b>{o.resident.unit}</b> · {o.resident.name} · {o.community}</> : o.loc?.building || o.loc?.unit
                     ? <><b className="warn">Not in our records</b> · read as {[o.loc.site, o.loc.building && `Building ${o.loc.building}`, o.loc.unit && `Unit ${o.loc.unit}`].filter(Boolean).join(', ')}</>
@@ -435,16 +571,28 @@ function App() {
                   </span>
                   {miss.length > 0 && !contacted[o.id] && <button className="chip c-missing chipbtn" onClick={() => setTab('followups')}>Missing info: follow up</button>}
                   {o.vendor && <span className="chip c-vendor">Vendor: {o.vendor.vendor}</span>}
+                  {vendorjobs[o.id]?.status && <span className="chip c-vendor">Vendor {VENDOR_STATUS[vendorjobs[o.id].status]?.toLowerCase()}{vendorjobs[o.id].date ? ` · ${niceDate(vendorjobs[o.id].date)}` : ''}</span>}
+                  {o.ai && <span className="chip c-ai" title={o.ai.reason}>🤖 AI read{o.ai.visit_needed === 'maybe_not' ? ': may not need a visit' : ''}</span>}
+                  {(parts[o.id] || []).length > 0 && <span className="chip">🔩 {parts[o.id].length} part{parts[o.id].length > 1 ? 's' : ''}</span>}
                   {(o.repeats || 0) >= 3 && <span className="chip c-repeat">Repeat ×{o.repeats}</span>}
                   {o.resident?.pets && <span className="chip">🐾 {o.resident.pets.split(' - ')[0]}</span>}
                   {t && <span className="chip c-tech">{t.name}</span>}
-                  {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}</span>}
+                  {techDone[o.id] && <span className="chip e-ok">✓ Done by {techDone[o.id].by}{techDone[o.id].at ? ` · ${timeOf(techDone[o.id].at)}` : ''}</span>}
+                  {!techDone[o.id] && approved[o.id] && (() => {
+                    const st = statusFor(o)
+                    return <span className={`chip status-${st.key}`}>{STATUS_LABEL[st.key]}{st.at ? ` · ${timeOf(st.at)}` : ''}</span>
+                  })()}
+                  {feedback[o.id] && (feedback[o.id].ok
+                    ? <span className="chip e-ok">Resident: fixed ✓</span>
+                    : <span className="chip e-emergency">Resident: still a problem</span>)}
+                  {(replies[o.id] || []).length > 0 && <span className="chip c-missing">💬 {replies[o.id].length} resident repl{replies[o.id].length > 1 ? 'ies' : 'y'}</span>}
+                  {o.from === 'resident' && <span className="chip">From resident app</span>}
                   {plan.deferred.some((x) => x.id === o.id) && <span className="chip">Waits for regular hours</span>}
                   {plan.unstaffed.some((x) => x.id === o.id) && <span className="chip e-emergency">No one scheduled{o.sev >= 4 && supervisorOf(o.community) ? `: ${supervisorOf(o.community).name} decides` : ''}</span>}
                   {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
                 </div>
                 {(photos[o.id] || []).length > 0 && (
-                  <div className="thumbs">{photos[o.id].map((p, i) => <a key={i} href={p.src} target="_blank" rel="noreferrer"><img src={p.src} alt={`Photo ${i + 1}`} /></a>)}</div>
+                  <div className="thumbs">{photos[o.id].map((p, i) => <a key={i} href={p.src} target="_blank" rel="noreferrer" title={p.by ? `Added by ${p.by}` : ''}><img src={p.src} alt={`Photo ${i + 1}${p.by ? ` from ${p.by}` : ''}`} /></a>)}</div>
                 )}
                 <label className="link photolink">📷 Add photo
                   <input type="file" accept="image/*" multiple onChange={async (e) => { addPhotos(o.id, await readPhotos(e.target.files)); e.target.value = '' }} />
@@ -455,10 +603,21 @@ function App() {
                     <p className="why">Why: {o.reasons.join('. ')}.</p>
                     <p><b>Entry:</b> {o.entry.text}</p>
                     {o.vendor && <p>Likely outside vendor: {o.vendor.vendor}. {o.vendor.why}. (Assumption. Confirm with McKinley.)</p>}
+                    {o.vendor && <VendorRequest order={o} vendors={vendors} sites={sites} />}
+                    {o.vendor && <VendorTracker orderId={o.id} vendorjobs={vendorjobs} setVendorjobs={setVendorjobs} vendors={vendors} />}
+                    {o.ai && (
+                      <p className="aibox">🤖 <b>AI reading</b>: likely cause: {o.ai.likely_cause}
+                        {o.ai.visit_needed === 'maybe_not' && <> · <b>may not need a visit</b>{o.ai.resident_tip ? `: try "${o.ai.resident_tip}"` : ''}</>}
+                        {o.ai.hidden_risks?.length > 0 && <> · watch for: {o.ai.hidden_risks.join(', ')}</>}
+                        {o.ai.english_translation && <><br />In English: “{o.ai.english_translation}”</>}
+                      </p>
+                    )}
                     {o.flags.map((f) => <p key={f}>⚑ {f}</p>)}
                     <p>Bring: {o.bring.join(', ')} · about {o.mins} min</p>
+                    <PartsList id={o.id} parts={parts} setParts={setParts} suggestions={o.bring} />
                   </div>
                 )}
+                {techDone[o.id] && <ResidentUpdate order={o} siteName={o.community} />}
                 {approved[o.id] && t && (() => {
                   const wt = workTicket(o, t, addressOf(o))
                   const other = wt.lang.code !== 'en'
@@ -490,7 +649,7 @@ function App() {
                 <div className="row actions">
                   <select aria-label="Change priority" value={state[o.id]?.sevOverride || o.sev}
                     onChange={(e) => patch(o.id, { sevOverride: Number(e.target.value) })}>
-                    {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>Priority {n}: {tag(n).label}</option>)}
+                    {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} · {tag(n).label}</option>)}
                   </select>
                   <select aria-label="Reassign" value={tech[o.id] || ''} onChange={(e) => setTech({ ...tech, [o.id]: e.target.value || undefined })}>
                     <option value="">{t ? `Auto: ${t.name}` : 'Auto-assign'}</option>
@@ -499,7 +658,7 @@ function App() {
                   {o.entry.status === 'hold' && (
                     <button onClick={() => patch(o.id, { okReceived: !o.okReceived })}>{o.okReceived ? 'OK received ✓' : 'Resident said OK'}</button>
                   )}
-                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => setApproved({ ...approved, [o.id]: !approved[o.id] })}>
+                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => setApproved({ ...approved, [o.id]: approved[o.id] ? undefined : new Date().toISOString() })}>
                     {approved[o.id] ? 'Approved ✓' : 'Approve'}
                   </button>
                 </div>
@@ -522,6 +681,20 @@ function App() {
         </section>
       )}
       {tab === 'map' && site !== 'all' && site !== 'unassigned' && <SiteMap key={site} site={site} plan={plan} orders={orders} />}
+
+      {tab === 'access' && isManager && (
+        <Access techs={teamsRaw} setTechs={setTeamsRaw} sups={sups} setSups={setSups} residents={RESIDENTS}
+          rescodes={rescodes} setRescodes={setRescodes} pinOf={pinOf} siteNames={mySiteNames} pmHash={passHashOf(mgr, pmHashes)}
+          setPmHash={(h) => { setPmHashes({ ...pmHashes, [mgr.id]: h }); setStaffPin(h) }} />
+      )}
+      {tab === 'access' && !isManager && <p className="notice">Only the property manager can manage PINs.</p>}
+
+      {tab === 'planning' && (
+        <PlanningTab siteNames={mySiteNames} sites={sites} techs={allTeams} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} supervisorName={sup?.name || `${mgr?.area} property manager`} />
+      )}
+
+      {tab === 'stats' && <Scoreboard s={scoreboard({ orders: allOrders, approved, progress, techDone, feedback, vendorjobs, plan })} />}
+      {tab === 'stats' && <Stats orders={allOrders} siteNames={mySiteNames} techDone={techDone} parts={parts} />}
 
       {tab === 'routes' && (
         <>
@@ -554,7 +727,7 @@ function App() {
                 {p.stops.map(({ job, arrive, done, travel, wait, late }) => (
                   <li key={job.id} className={tag(job.sev).color}>
                     <span className={`pill ${tag(job.sev).color}`}>{job.sev}</span>
-                    <b>{fmt(arrive)}</b> {job.resident?.building ? `Bldg ${job.resident.building} · ` : ''}Unit {job.resident?.unit || '?'} · {job.label}
+                    <b>{fmt(arrive)}</b> {approved[job.id] && <span className={`chip status-${statusFor(job).key}`}>{STATUS_LABEL[statusFor(job).key]}</span>} {job.resident?.building ? `Bldg ${job.resident.building} · ` : ''}Unit {job.resident?.unit || '?'} · {job.label}
                     <div className="small">{job.community || 'Unknown community'} · {travel} min {travel <= 12 ? 'walk' : 'drive'}{wait > 1 ? ` + ${Math.round(wait)} min wait for resident window` : ''} · until {fmt(done)}</div>
                     {late && <div className="small warn">Runs past end of shift: carry to tomorrow unless the manager says otherwise</div>}
                     {job.vendor && <div className="small">Needs {job.vendor.vendor}: schedule the vendor, tech does the first look only</div>}
@@ -583,7 +756,7 @@ function App() {
             <section className="card">
               <h2>Unit not found ({plan.unknown.length})</h2>
               <p className="small">No site team yet. Use the Follow-ups tab to reach the requester or alert the leasing office.</p>
-              <ul>{plan.unknown.map((o) => <li key={o.id}>{o.label}: “{o.text.slice(0, 60)}…”</li>)}</ul>
+              <ul>{plan.unknown.map((o) => <li key={o.id}>{o.label}: “{o.text}”</li>)}</ul>
             </section>
           )}
           {plan.held.length > 0 && (
@@ -598,7 +771,9 @@ function App() {
 
       {tab === 'teams' && (
         <>
-          <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} />
+          {sup && <MyPin current={pinOf(sup)} onSet={(p) => { setSups(sups.map((x) => (x.id === sup.id ? { ...x, pin: p } : x))); setStaffPin(p) }} />}
+          <SupervisorsEditor sups={sups} setSups={setSups} sites={sites} onlySites={mySiteNames} />
+          <VendorsEditor vendors={vendors} setVendors={setVendors} areas={[...new Set(sites.map((x) => x.market).filter(Boolean))]} formatPhone={formatPhone} />
           <p className="small notice">Set up each site, who is on its maintenance team, what they are best at, and where they work. Changes are saved on this device and update the routes right away.</p>
           <label>Site
             <SitePicker value={teamSiteEff} onChange={setTeamSite} sites={mySites} countFor={(k) => allTeams.filter((t) => t.sites.includes(k)).length} suffix="technicians" />
@@ -611,7 +786,10 @@ function App() {
                   <button className="link" onClick={() => { setSites(sites.filter((x) => x.name !== s.name)); setTeamsRaw(teamsRaw.map((t) => ({ ...t, sites: t.sites.filter((x) => x !== s.name) }))); setTeamSite('Evergreen') }}>Remove site</button>
                 )}
               </div>
-              {s.address && <p className="small">{s.address}, {s.city} {s.zip}{s.beds ? ` · ${s.beds}` : ''}</p>}
+              {s.address && <p className="small">{s.address}, {s.city} {s.zip || ''}{s.beds ? ` · ${s.beds}` : ''}</p>}
+              <MapEditor siteName={s.name} map={customMaps[s.name]} builtIn={SITE_GEO[s.name]?.map ? buildingsFor(s.name).length : 0}
+                onUpload={(img) => saveMap(s.name, img)}
+                onSave={(p) => setSitemaps({ ...sitemaps, [s.name]: { ...sitemaps[s.name], ...p } })} />
               <div className="two">
                 <label>Leasing office phone
                   <input value={s.phone || ''} onChange={(e) => setSites(sites.map((x) => (x.name === s.name ? { ...x, phone: e.target.value } : x)))} inputMode="tel" />
@@ -629,7 +807,13 @@ function App() {
               <button onClick={() => setTeamsRaw([...teamsRaw, { id: `N${Date.now()}`, name: 'New technician', lang: '', phone: '', workDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], onCallDays: [], sites: [s.name], skills: ['general'], shift: [8, 17] }])}>+ Add technician to {s.name}</button>
             </section>
           ))}
-          <AddSite onAdd={(s) => { setSites([...sites, s]); setTeamSite(s.name) }} existing={sites} />
+          <AddSite existing={sites} markets={[...new Set(sites.map((x) => x.market).filter(Boolean))]}
+            onAdd={(s, img) => {
+              setSites([...sites, s])
+              saveMap(s.name, img)
+              if (sup) setSups(sups.map((x) => (x.id === sup.id ? { ...x, sites: [...x.sites, s.name] } : x)))
+              setTeamSite(s.name)
+            }} />
           <button className="link" onClick={() => { setSites(DEFAULT_SITES); setTeamsRaw(TECHS) }}>Reset sites and teams to the sample setup</button>
         </>
       )}
@@ -637,203 +821,6 @@ function App() {
       </div>
       </div>
     </main>
-  )
-}
-
-function TechEditor({ t, sites, update, toggle, remove }) {
-  return (
-    <div className="tech">
-      <div className="row between">
-        <input className="name" value={t.name} onChange={(e) => update({ name: e.target.value })} aria-label="Technician name" />
-        <button className="link" onClick={remove}>Remove</button>
-      </div>
-      <div className="two">
-        <label className={t.lang ? '' : 'ask'}>{t.lang ? 'Primary language' : 'Ask them: what is your primary language?'}
-          <select value={t.lang || ''} onChange={(e) => update({ lang: e.target.value })}>
-            <option value="">Choose…</option>
-            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native === l.name ? l.name : `${l.native} (${l.name})`}</option>)}
-          </select>
-        </label>
-        <label>Mobile number (to text work orders)
-          <input value={t.phone || ''} onChange={(e) => update({ phone: formatPhone(e.target.value) })} placeholder="067-550-2161"
-            inputMode="numeric" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" maxLength={12} title="Enter a 10-digit phone number, like 067-550-2161" />
-          {t.phone && t.phone.replace(/\D/g, '').length < 10 && <span className="small warn">Enter all 10 digits</span>}
-        </label>
-      </div>
-      <p className="small">Works on</p>
-      <div className="chips">
-        {DAYS.map((d) => (
-          <button key={d} className={`chip chipbtn ${isWorking(t, d) ? 'sel' : ''}`} onClick={() => update({ workDays: toggle(t.workDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], d) })}>{d}</button>
-        ))}
-      </div>
-      <p className="small">📟 On call (after hours, 5 PM to midnight)</p>
-      <div className="chips">
-        {DAYS.map((d) => (
-          <button key={d} className={`chip chipbtn ${isOnCall(t, d) ? 'sel oncallchip' : ''}`} onClick={() => update({ onCallDays: toggle(t.onCallDays || [], d) })}>{d}</button>
-        ))}
-      </div>
-      <p className="small">Strengths</p>
-      <div className="chips">
-        {SKILLS.map((k) => (
-          <button key={k} className={`chip chipbtn ${t.skills.includes(k) ? 'sel' : ''}`} onClick={() => update({ skills: toggle(t.skills, k) })}>{k}</button>
-        ))}
-      </div>
-      <p className="small">Works at</p>
-      <div className="chips">
-        {t.sites.map((n) => (
-          <button key={n} className="chip chipbtn sel" title="Tap to remove" onClick={() => update({ sites: t.sites.filter((x) => x !== n) })}>{n} ✕</button>
-        ))}
-      </div>
-      <select aria-label="Add a site" value="" onChange={(e) => e.target.value && update({ sites: [...t.sites, e.target.value] })}>
-        <option value="">+ Also covers another site…</option>
-        {sites.filter((x) => !t.sites.includes(x.name)).map((x) => <option key={x.name} value={x.name}>{x.name} ({x.city})</option>)}
-      </select>
-      <div className="two">
-        <label>Shift starts
-          <select value={t.shift[0]} onChange={(e) => update({ shift: [Number(e.target.value), t.shift[1]] })}>
-            {[6, 7, 8, 9, 10].map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
-          </select>
-        </label>
-        <label>Shift ends
-          <select value={t.shift[1]} onChange={(e) => update({ shift: [t.shift[0], Number(e.target.value)] })}>
-            {[14, 15, 16, 17, 18, 19, 20].map((h) => <option key={h} value={h}>{fmt(h)}</option>)}
-          </select>
-        </label>
-      </div>
-    </div>
-  )
-}
-
-function RoleChooser({ techs, sups, initialRole, onPick }) {
-  const [pick, setPick] = useState(initialRole)
-  const [who, setWho] = useState(techs[0]?.id || '')
-  const [boss, setBoss] = useState(sups[0]?.id || 'all')
-  return (
-    <main className="app">
-      <header className="hero">
-        <span className="wordmark">mckinley</span>
-        <h1>Maintenance Hub</h1>
-        <p>Who's using the app?</p>
-      </header>
-      <div className={`card rolecard ${pick === 'supervisor' ? 'sel' : ''}`}>
-        <button className="rolebtn" onClick={() => setPick('supervisor')}>
-          <b>🗂️ Maintenance supervisor</b>
-          <span>Every request at the properties you oversee: priorities, follow-ups, routes, site maps, approvals and teams.</span>
-        </button>
-        {pick === 'supervisor' && (
-          <div className="rolepick">
-            <label>Your name
-              <select value={boss} onChange={(e) => setBoss(e.target.value)}>
-                {sups.map((x) => <option key={x.id} value={x.id}>{x.name} · {x.sites.length} properties</option>)}
-                <option value="all">Regional view (all properties)</option>
-              </select>
-            </label>
-            <button className="primary" onClick={() => onPick('supervisor', boss)}>Open my sites</button>
-          </div>
-        )}
-      </div>
-      <div className={`card rolecard ${pick === 'tech' ? 'sel' : ''}`}>
-        <button className="rolebtn" onClick={() => setPick('tech')}>
-          <b>🔧 Maintenance technician</b>
-          <span>Just your approved jobs for today, in order and in your language.</span>
-        </button>
-        {pick === 'tech' && (
-          <div className="rolepick">
-            <label>Your name
-              <select value={who} onChange={(e) => setWho(e.target.value)}>
-                {techs.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.sites.join(', ')}</option>)}
-              </select>
-            </label>
-            <button className="primary" onClick={() => onPick('tech', who)}>Start my day</button>
-          </div>
-        )}
-      </div>
-      <p className="small notice">Prototype: anyone can pick either view. A real version would have each person sign in, so technicians only ever see their own work.</p>
-    </main>
-  )
-}
-
-function SupervisorsEditor({ sups, setSups, sites }) {
-  const [open, setOpen] = useState(null)
-  const markets = [...new Set(sites.map((x) => x.market || x.city))]
-  const upd = (id, p) => setSups(sups.map((x) => (x.id === id ? { ...x, ...p } : x)))
-  return (
-    <section className="card">
-      <h2>Supervisors</h2>
-      <p className="small">Each supervisor sees only the properties they oversee. Technicians see their supervisor's name and number.</p>
-      {sups.map((x) => (
-        <div key={x.id} className="tech">
-          <div className="row between">
-            <b>{x.name}</b>
-            <span className="small">{x.sites.length} properties</span>
-            <button className="link" onClick={() => setOpen(open === x.id ? null : x.id)}>{open === x.id ? 'Close' : 'Edit'}</button>
-          </div>
-          {open === x.id && (
-            <>
-              <div className="two">
-                <label>Name<input value={x.name} onChange={(e) => upd(x.id, { name: e.target.value })} /></label>
-                <label>Phone
-                  <input value={x.phone || ''} onChange={(e) => upd(x.id, { phone: formatPhone(e.target.value) })} inputMode="numeric" placeholder="067-550-2161" maxLength={12} />
-                </label>
-              </div>
-              <label>Email<input type="email" value={x.email || ''} onChange={(e) => upd(x.id, { email: e.target.value })} /></label>
-              <p className="small">Oversees (tap ✕ to remove)</p>
-              <div className="chips">
-                {x.sites.map((n) => <button key={n} className="chip chipbtn sel" onClick={() => upd(x.id, { sites: x.sites.filter((y) => y !== n) })}>{n} ✕</button>)}
-              </div>
-              <div className="two">
-                <select aria-label="Add a property" value="" onChange={(e) => e.target.value && upd(x.id, { sites: [...x.sites, e.target.value] })}>
-                  <option value="">+ Add one property…</option>
-                  {sites.filter((y) => !x.sites.includes(y.name)).map((y) => <option key={y.name} value={y.name}>{y.name} ({y.city})</option>)}
-                </select>
-                <select aria-label="Add a whole area" value="" onChange={(e) => e.target.value && upd(x.id, { sites: [...new Set([...x.sites, ...sites.filter((y) => (y.market || y.city) === e.target.value).map((y) => y.name)])] })}>
-                  <option value="">+ Add a whole area…</option>
-                  {markets.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <button className="link" onClick={() => setSups(sups.filter((y) => y.id !== x.id))}>Remove supervisor</button>
-            </>
-          )}
-        </div>
-      ))}
-      <button onClick={() => { const id = `SUP-${Date.now()}`; setSups([...sups, { id, name: 'New supervisor', phone: '', email: '', sites: [] }]); setOpen(id) }}>+ Add supervisor</button>
-      {(() => {
-        const covered = new Set(sups.flatMap((x) => x.sites))
-        const gap = sites.filter((y) => !covered.has(y.name))
-        return gap.length ? <p className="small warn">No supervisor yet for: {gap.map((y) => y.name).join(', ')}</p> : null
-      })()}
-    </section>
-  )
-}
-
-function SitePicker({ value, onChange, sites, countFor, extra = [], suffix = 'requests' }) {
-  const markets = [...new Set(sites.map((s) => s.market || s.city))]
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}>
-      {extra.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-      {markets.map((m) => (
-        <optgroup key={m} label={m}>
-          {sites.filter((s) => (s.market || s.city) === m).map((s) => <option key={s.name} value={s.name}>{s.name} ({countFor(s.name)} {suffix})</option>)}
-        </optgroup>
-      ))}
-    </select>
-  )
-}
-
-function AddSite({ onAdd, existing }) {
-  const [name, setName] = useState('')
-  const [city, setCity] = useState('')
-  const dup = existing.some((s) => s.name.toLowerCase() === name.trim().toLowerCase())
-  return (
-    <form className="card" onSubmit={(e) => { e.preventDefault(); if (name.trim() && !dup) { onAdd({ name: name.trim(), market: city.trim(), city: city.trim(), phone: '', email: '' }); setName(''); setCity('') } }}>
-      <h2>Add a property not on the list</h2>
-      <div className="two">
-        <label>Property name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Heron Lake" /></label>
-        <label>City<input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Ann Arbor, MI" /></label>
-      </div>
-      {dup && <p className="small warn">That property is already on the list.</p>}
-      <button className="primary" type="submit">Add property</button>
-    </form>
   )
 }
 

@@ -7,9 +7,18 @@ import { travelMinutes } from './config.js'
 export const MAPS = data.maps
 export const SITE_GEO = data.sites
 
+// Site maps that supervisors upload in the app for new properties (see MapSetup.jsx).
+// Same shape as the built-in ones: w/h in pixels, b = buildings, n = landmarks.
+let CUSTOM = {}
+export function setCustomMaps(maps) {
+  CUSTOM = maps || {}
+}
+
 export function mapFor(siteName) {
   const s = SITE_GEO[siteName]
-  return s && s.map ? { slug: s.map, ...MAPS[s.map], dataName: s.dataName } : null
+  if (s && s.map) return { slug: s.map, ...MAPS[s.map], dataName: s.dataName }
+  const c = CUSTOM[siteName]
+  return c && c.file ? { slug: `custom:${siteName}`, ...c, dataName: siteName } : null
 }
 
 export function buildingsFor(siteName) {
@@ -52,10 +61,10 @@ function km(a, b) {
 // Different properties: straight-line distance from latitude/longitude, at city driving speed.
 export function travel(a, b) {
   if (!a?.site || !b?.site) return 10
-  const ma = SITE_GEO[a.site]?.map
-  const mb = SITE_GEO[b.site]?.map
-  if (ma && ma === mb && a.x != null && b.x != null) {
-    const m = MAPS[ma]
+  const ma = mapFor(a.site)
+  const mb = mapFor(b.site)
+  if (ma && mb && ma.slug === mb.slug && a.x != null && b.x != null) {
+    const m = ma
     const d = Math.hypot(a.x - b.x, a.y - b.y) / Math.hypot(m.w, m.h)
     const barrier = a.zone && b.zone && a.zone !== 'all' && b.zone !== 'all' && a.zone !== b.zone ? 6 : 0
     return Math.max(1, Math.round(1 + 9 * d + barrier))

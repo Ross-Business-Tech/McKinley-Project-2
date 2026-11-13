@@ -1,0 +1,416 @@
+[
+{
+"id": "I002",
+"res": "R001",
+"at": "2026-06-08 14:31",
+"subject": "AC not cooling",
+"text": "Resident: AC is running but blowing warm air, thermostat says 78 and climbing. I work from home so mornings are best. My dog is Biscuit, he's friendly but barks, I'll crate him if you tell me when you're coming.",
+"status": "closed",
+"resolved": "2026-06-09"
+},
+{
+"id": "I003",
+"res": "R001",
+"at": "2026-08-19 08:47",
+"subject": "AC out again",
+"text": "Resident: AC stopped cooling AGAIN. Same as June. Its 84 inside. Please come in the morning if possible, Biscuit will be in his crate.",
+"status": "closed",
+"resolved": "2026-08-20"
+},
+{
+"id": "I004",
+"res": "R001",
+"at": "2026-08-20 16:10",
+"subject": "Is the AC getting replaced?",
+"text": "Resident: Hi, AC is working again but this is the second time this summer. Is someone going to look at replacing the unit?",
+"status": "closed",
+"resolved": "2026-08-20"
+},
+{
+"id": "I005",
+"res": "R001",
+"at": "2026-09-02 11:15",
+"subject": "Callback: HVAC vendor visit",
+"text": "Call summary: Called resident back about the HVAC vendor evaluation promised on 8/20 (a few days later than promised). Vendor visit set for 9/5, 9-11 AM. Resident confirmed Biscuit will be crated.",
+"status": "closed",
+"resolved": "2026-09-02"
+},
+{
+"id": "I006",
+"res": "R001",
+"at": "2026-09-05 13:20",
+"subject": "HVAC vendor evaluation",
+"text": "Office-entered request: HVAC vendor to evaluate the system after two no-cool calls this summer.",
+"status": "closed",
+"resolved": "2026-09-05"
+},
+{
+"id": "I008",
+"res": "R001",
+"at": "2026-10-27 08:12",
+"subject": "AC rattling",
+"text": "Resident: AC makes a loud rattling noise when it kicks on. Still cools. Is this the same unit that was supposed to be replaced? Mornings please.",
+"status": "open",
+"resolved": null
+},
+{
+"id": "I010",
+"res": "R002",
+"at": "2026-03-03 07:55",
+"subject": "Slow kitchen drain",
+"text": "Resident: Kitchen sink drains really slow and there's a smell. ok to enter anytime.",
+"status": "closed",
+"resolved": "2026-03-03"
+},
+{
+"id": "I013",
+"res": "R003",
+"at": "2026-01-15 11:20",
+"subject": "Smoke detector chirping",
+"text": "Resident: Smoke detector chirping in the bedroom. I work nights so please don't come before 11. And please don't call before 10, text is best.",
+"status": "closed",
+"resolved": "2026-01-16"
+},
+{
+"id": "I014",
+"res": "R003",
+"at": "2026-04-07 10:45",
+"subject": "Bathroom fan loud",
+"text": "Resident: bathroom fan really loud, rattles. after 11am pls, I sleep days",
+"status": "closed",
+"resolved": "2026-04-08"
+},
+{
+"id": "I019",
+"res": "R004",
+"at": "2026-09-12 16:40",
+"subject": "Move-in items",
+"text": "Resident: Moved in today. few things: bedroom 2 blind is broken, closet door off track, and freezer isn't cold yet (maybe it needs time?). Fine to enter, someone is home most days this week. Waffles (dog) is friendly.",
+"status": "closed",
+"resolved": "2026-09-14"
+},
+{
+"id": "I022",
+"res": "R004",
+"at": "2026-10-06 21:05",
+"subject": "No heat",
+"text": "Resident: Heat not coming on. Thermostat set to 70, apartment is 61. Ok to enter.",
+"status": "closed",
+"resolved": "2026-10-07"
+},
+{
+"id": "I024",
+"res": "R005",
+"at": "2025-12-04 08:15",
+"subject": "Toilet keeps running",
+"text": "Resident: Toilet keeps running after flush, have to jiggle the handle.",
+"status": "closed",
+"resolved": "2025-12-04"
+},
+{
+"id": "I025",
+"res": "R005",
+"at": "2026-02-11 18:20",
+"subject": "Water heater popping",
+"text": "Resident: Water heater making a popping noise and the water isn't very hot.",
+"status": "closed",
+"resolved": "2026-02-12"
+},
+{
+"id": "I027",
+"res": "R005",
+"at": "2026-08-05 07:50",
+"subject": "Dishwasher not draining",
+"text": "Resident: Dishwasher not draining, standing water at the bottom.",
+"status": "closed",
+"resolved": "2026-08-06"
+},
+{
+"id": "I031",
+"res": "R006",
+"at": "2026-01-18 16:30",
+"subject": "Garbage disposal hums",
+"text": "Resident: Garbage disposal hums but won't spin.",
+"status": "closed",
+"resolved": "2026-01-19"
+},
+{
+"id": "I033",
+"res": "R006",
+"at": "2026-07-14 20:10",
+"subject": "Washer leaking",
+"text": "Resident: Washer leaking from the bottom during spin, puddle on the floor.",
+"status": "closed",
+"resolved": "2026-07-15"
+},
+{
+"id": "I036",
+"res": "R007",
+"at": "2026-05-12 07:20",
+"subject": "Bathroom outlet dead",
+"text": "Resident: Bathroom outlet stopped working. hairdryer tripped it maybe?",
+"status": "closed",
+"resolved": "2026-05-12"
+},
+{
+"id": "I039",
+"res": "R008",
+"at": "2025-11-10 09:40",
+"subject": "Leak under kitchen sink",
+"text": "Resident: Leak under the kitchen sink, cabinet floor is soaked.",
+"status": "closed",
+"resolved": "2025-11-10"
+},
+{
+"id": "I040",
+"res": "R008",
+"at": "2026-01-06 10:05",
+"subject": "Kitchen sink leaking again",
+"text": "Resident: kitchen sink leaking again, same spot as November.",
+"status": "closed",
+"resolved": "2026-01-07"
+},
+{
+"id": "I041",
+"res": "R008",
+"at": "2026-02-03 08:30",
+"subject": "Replace sink cabinet floor",
+"text": "Office-entered request: replace water-damaged base cabinet floor under kitchen sink.",
+"status": "closed",
+"resolved": "2026-02-10"
+},
+{
+"id": "I042",
+"res": "R008",
+"at": "2026-04-22 11:15",
+"subject": "Stain on bathroom ceiling",
+"text": "Resident: brown stain on the bathroom ceiling is getting bigger. Upstairs neighbor?",
+"status": "closed",
+"resolved": "2026-04-23"
+},
+{
+"id": "I043",
+"res": "R008",
+"at": "2026-05-20 13:50",
+"subject": "When will the ceiling be fixed?",
+"text": "Call summary: Resident called asking when the bathroom ceiling will be repaired; it has been a month since the leak. Told resident the manager would call back by Friday with a date. Resident prefers calls weekdays 9 AM - 3 PM.",
+"status": "closed",
+"resolved": "2026-05-20"
+},
+{
+"id": "I044",
+"res": "R008",
+"at": "2026-05-29 08:00",
+"subject": "Bathroom ceiling drywall repair",
+"text": "Office-entered request: drywall repair, bathroom ceiling (water damage from upstairs leak).",
+"status": "closed",
+"resolved": "2026-06-05"
+},
+{
+"id": "I045",
+"res": "R008",
+"at": "2026-08-11 10:20",
+"subject": "Slow tub, gurgling sink",
+"text": "Resident: Tub drain is slow and the kitchen sink gurgles. After everything with the plumbing this year I'm worried.",
+"status": "closed",
+"resolved": "2026-08-11"
+},
+{
+"id": "I046",
+"res": "R008",
+"at": "2026-10-23 09:45",
+"subject": "Kitchen sink leaking - 4th time",
+"text": "Resident: Kitchen sink leaking under the cabinet AGAIN. 4th time. Please send someone who can fix it for good.",
+"status": "open",
+"resolved": null
+},
+{
+"id": "I051",
+"res": "R010",
+"at": "2026-01-27 15:05",
+"subject": "Ceiling fan wobbles",
+"text": "Resident: Bedroom ceiling fan wobbles a lot on high. OK to enter but my cat Pepper hides under the bed and will try to run out the front door, please keep it closed!",
+"status": "closed",
+"resolved": "2026-01-28"
+},
+{
+"id": "I053",
+"res": "R010",
+"at": "2026-05-04 07:45",
+"subject": "Fridge leaking",
+"text": "Resident: Refrigerator is leaking water onto the floor. Please mind the door, Pepper is an escape artist",
+"status": "closed",
+"resolved": "2026-05-05"
+},
+{
+"id": "I055",
+"res": "R010",
+"at": "2026-10-20 18:22",
+"subject": "Bathroom faucet dripping",
+"text": "Resident: bathroom sink faucet dripping constantly. same cat rules as always, thanks!",
+"status": "closed",
+"resolved": "2026-10-21"
+},
+{
+"id": "I057",
+"res": "R011",
+"at": "2026-03-08 14:15",
+"subject": "Front door lock sticks",
+"text": "Resident: front door lock sticks, hard to turn the key",
+"status": "closed",
+"resolved": "2026-03-09"
+},
+{
+"id": "I059",
+"res": "R011",
+"at": "2026-07-14 13:30",
+"subject": "Weak airflow",
+"text": "Resident: AC airflow is weak, filter looks dusty",
+"status": "closed",
+"resolved": "2026-07-15"
+},
+{
+"id": "I062",
+"res": "R012",
+"at": "2026-02-14 09:30",
+"subject": "El horno no calienta",
+"text": "Resident: Hola, el horno no calienta. \u00bfPueden venir ma\u00f1ana por la tarde?",
+"status": "closed",
+"resolved": "2026-02-15"
+},
+{
+"id": "I063",
+"res": "R012",
+"at": "2026-04-30 18:10",
+"subject": "Hormigas en la cocina",
+"text": "Resident: Hay hormigas en la cocina, cerca del fregadero.",
+"status": "closed",
+"resolved": "2026-05-01"
+},
+{
+"id": "I066",
+"res": "R012",
+"at": "2026-10-18 11:05",
+"subject": "Puerta del balc\u00f3n trabada",
+"text": "Resident: La puerta del balc\u00f3n no cierra bien, se queda trabada.",
+"status": "closed",
+"resolved": "2026-10-20"
+},
+{
+"id": "I068",
+"res": "R013",
+"at": "2026-02-20 17:40",
+"subject": "Closet door off track",
+"text": "Resident: Closet bifold door came off the track.",
+"status": "closed",
+"resolved": "2026-02-21"
+},
+{
+"id": "I075",
+"res": "R015",
+"at": "2025-12-15 21:30",
+"subject": "Roaches in kitchen",
+"text": "Resident: seeing roaches in the kitchen at night, small ones. under the stove and in the cabinets",
+"status": "closed",
+"resolved": "2025-12-16"
+},
+{
+"id": "I076",
+"res": "R015",
+"at": "2026-01-05 08:00",
+"subject": "Pest follow-up",
+"text": "Office-entered request: pest control follow-up.",
+"status": "closed",
+"resolved": "2026-01-05"
+},
+{
+"id": "I077",
+"res": "R015",
+"at": "2026-03-30 19:15",
+"subject": "Roaches back",
+"text": "Resident: Roaches are back. Is this coming from next door? I keep my kitchen clean.",
+"status": "closed",
+"resolved": "2026-03-31"
+},
+{
+"id": "I078",
+"res": "R015",
+"at": "2026-07-08 12:30",
+"subject": "Bathroom fan not working",
+"text": "Resident: bathroom exhaust fan doesn't work",
+"status": "closed",
+"resolved": "2026-07-09"
+},
+{
+"id": "I079",
+"res": "R015",
+"at": "2026-09-16 20:45",
+"subject": "Roaches again",
+"text": "Resident: few roaches again in the kitchen. not as bad as winter. pls treat the neighbors too like last time",
+"status": "closed",
+"resolved": "2026-09-17"
+},
+{
+"id": "I080",
+"res": "R016",
+"at": "2026-01-20 07:30",
+"subject": "Furnace blowing cold",
+"text": "Resident: Furnace blowing cold air",
+"status": "closed",
+"resolved": "2026-01-20"
+},
+{
+"id": "I081",
+"res": "R016",
+"at": "2026-04-14 18:00",
+"subject": "Dryer takes two cycles",
+"text": "Resident: Dryer takes 2 cycles to dry clothes",
+"status": "closed",
+"resolved": "2026-04-15"
+},
+{
+"id": "I084",
+"res": "R016",
+"at": "2026-10-16 16:45",
+"subject": "Small repairs before move-out",
+"text": "Resident: Want to fix a couple things before I move out. hole in the bedroom wall from a TV mount and a cracked outlet cover.",
+"status": "closed",
+"resolved": "2026-10-20"
+},
+{
+"id": "I086",
+"res": "R017",
+"at": "2025-12-29 19:20",
+"subject": "Dishwasher leaves dishes gritty",
+"text": "Resident: dishwasher leaving dishes dirty and gritty",
+"status": "closed",
+"resolved": "2025-12-30"
+},
+{
+"id": "I087",
+"res": "R017",
+"at": "2026-02-24 08:40",
+"subject": "Dishwasher leaking at door",
+"text": "Resident: Dishwasher again, now leaking out the door.",
+"status": "closed",
+"resolved": "2026-02-25"
+},
+{
+"id": "I088",
+"res": "R017",
+"at": "2026-05-18 18:30",
+"subject": "Dishwasher broken a third time",
+"text": "Resident: Dishwasher is broken AGAIN, third time. Can we just get a new one?",
+"status": "closed",
+"resolved": "2026-05-21"
+},
+{
+"id": "I091",
+"res": "R018",
+"at": "2026-07-04 23:40",
+"subject": "After-hours lockout",
+"text": "Call summary: After-hours call at 11:40 PM. Resident locked out. On-call tech let resident in after checking ID. Explained the lockout fee in the lease.",
+"status": "closed",
+"resolved": "2026-07-05"
+}
+]

@@ -111,7 +111,7 @@ export default function SiteMap({ site, plan, orders }) {
         <section className="card">
           <h2>Not on the map ({unplaced.length})</h2>
           <p className="small">We couldn't match these to a building yet.</p>
-          <ul>{unplaced.map((o) => <li key={o.id}>{o.label}: “{o.text.slice(0, 50)}…”</li>)}</ul>
+          <ul>{unplaced.map((o) => <li key={o.id}>{o.label}: “{o.text}”</li>)}</ul>
         </section>
       )}
     </>

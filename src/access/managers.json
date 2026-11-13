@@ -1,0 +1,86 @@
+{
+ "_note": "Owned by IT. One entry per property manager. emailHash = SHA-256 of the manager's lowercase work email; passcodeHash = SHA-256 of a demo/tablet passcode (optional). See ACCESS.md. These four are SAMPLE managers.",
+ "managers": [
+  {
+   "id": "PM-AA",
+   "area": "Ann Arbor",
+   "emailHash": "faf77e979fe1808b6adf7889f59a37f92e5bb4b9818491a97ab4e4711630be33",
+   "passcodeHash": "92372d5e6333b3fc365e58b5d561fbdea62c26fce13bba5c33d9ee79a37e3255",
+   "properties": [
+    "Evergreen",
+    "Glencoe Hills",
+    "Glencoe Oaks",
+    "Hillcrest Manor",
+    "Manchester Flats",
+    "Manchester West",
+    "McDonald Mansion",
+    "Meadowbrook Village",
+    "Medical Center Court",
+    "Park Place",
+    "Spruce Knob",
+    "State Street Village",
+    "Traver Courts",
+    "Traver Crossing",
+    "Traver Heights",
+    "Traver Ridge"
+   ]
+  },
+  {
+   "id": "PM-YP",
+   "area": "Ypsilanti",
+   "emailHash": "1a8d0d09155f51f7384677d08bc532af489ba50d19f47b16f7a2f5ab8aec8523",
+   "passcodeHash": "cedb5ad8731ec929ecd5a3c9dd1a8e65ab308d2d17b1f3c37d8af68c7a18817c",
+   "properties": [
+    "Aspen Chase",
+    "Golfside Lake",
+    "Roundtree",
+    "Schooner Cove",
+    "The Villas"
+   ]
+  },
+  {
+   "id": "PM-OR",
+   "area": "Orlando",
+   "emailHash": "aef27f12df53702eede304371b92ea9ed8153065597828822e3bda0efc9dae0e",
+   "passcodeHash": "80fab9c6099334b1ef926d37406c996437836cf127fdfd0d52028d702cc900b9",
+   "properties": [
+    "Amalfi",
+    "Aria Beach",
+    "Bella Capri",
+    "Bella Casa",
+    "Bella Vita",
+    "Bellagio",
+    "Celano",
+    "Coconut Palms",
+    "Conway Forest",
+    "Harbor Beach",
+    "Iris Flats",
+    "Monterey Lake",
+    "Palio",
+    "Portofino",
+    "Positano",
+    "Riva",
+    "Studio Parc",
+    "The Frederick",
+    "The Pines",
+    "The Watson",
+    "The Wesley",
+    "Westwood Suites"
+   ]
+  },
+  {
+   "id": "PM-WP",
+   "area": "Winter Park & Brevard",
+   "emailHash": "bd9be7718fc64f36183eebf69340a664914b0ed732b30a86f9050128fb4dd7cf",
+   "passcodeHash": "612e791ec76e6eee187a68da13206b49d8fe1f1076513f3ffe52db87a81fd11f",
+   "properties": [
+    "Azure Winter Park",
+    "Indigo Winter Park",
+    "Sapphire Winter Park",
+    "Serena Winter Park",
+    "Soraya",
+    "Rockledge Villas"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+{
+  "proxies": {
+    "/api/claude/*": {
+      "upstream": "https://api.anthropic.com",
+      "method": "POST",
+      "headers": {
+        "x-api-key": "${ANTHROPIC_API_KEY}"
+      },
+      "rateLimit": "200/hour/ip"
+    }
+  }
+}
