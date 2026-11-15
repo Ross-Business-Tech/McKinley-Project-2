@@ -13,7 +13,8 @@
 import { useSyncExternalStore } from 'react'
 
 const LS_KEY = 'mk-shared-v1'
-const API = './.herenow/data/events'
+// Site-root paths (not ./), so the resident app at /resident/ uses the same saved data as the staff app.
+const API = '/.herenow/data/events'
 const POLL_MS = 8000
 
 const defs = {}
@@ -229,7 +230,7 @@ export async function connect() {
 // Who is signed in through the here.now access gate (members-only or invite-only sites).
 export async function signedInEmail() {
   try {
-    const res = await fetch('./.herenow/me')
+    const res = await fetch('/.herenow/me')
     if (!res.ok) return null
     const { email } = await res.json()
     return typeof email === 'string' && email.includes('@') ? email.toLowerCase() : null
