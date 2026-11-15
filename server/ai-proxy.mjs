@@ -187,6 +187,19 @@ export function createServer(env = process.env) {
         console.log(`empty answer from UM GPT (finish_reason: ${data?.choices?.[0]?.finish_reason ?? 'unknown'}). If it is "length", raise UMGPT_MAX_TOKENS.`)
         return send(res, 502, { error: 'unexpected_answer' }, cors)
       }
+      // If the answer is not the JSON the board expects, the board silently ignores it. Say so here, with the start of it.
+      const usable = (() => {
+        const i = text.indexOf('{')
+        const j = text.lastIndexOf('}')
+        if (i < 0 || j < i) return false
+        try {
+          const n = Number(JSON.parse(text.slice(i, j + 1))?.severity)
+          return Number.isInteger(n) && n >= 1 && n <= 5
+        } catch {
+          return false
+        }
+      })()
+      if (!usable) console.log(`answer not usable by the board (${text.length} characters, finish_reason ${data?.choices?.[0]?.finish_reason ?? 'unknown'}). Start of it: ${text.replace(/\s+/g, ' ').slice(0, 200)}`)
       return send(res, 200, { text, model: env.UMGPT_MODEL || data.model || 'umgpt' }, cors)
     } catch {
       return send(res, 504, { error: 'upstream_unreachable' }, cors)

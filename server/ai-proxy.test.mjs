@@ -201,3 +201,23 @@ test('the temporary model list page explains a failure, with the key blanked out
   assert.ok(body.asked.endsWith('/models'))
   stop(on.server, up.server)
 })
+
+test('says in the log when an answer is not the JSON the board needs, and stays quiet when it is', async () => {
+  const bad = await pretendUpstream(200, { choices: [{ message: { content: 'Sorry, I cannot help with that request.' }, finish_reason: 'stop' }] })
+  const good1 = await pretendUpstream()
+  const lines = []
+  const original = console.log
+  console.log = (...a) => lines.push(a.join(' '))
+  try {
+    const p1 = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: bad.url, ALLOWED_ORIGINS: SITE })
+    assert.equal((await p1.ask(good)).status, 200)
+    const p2 = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: good1.url, ALLOWED_ORIGINS: SITE })
+    assert.equal((await p2.ask(good)).status, 200)
+    stop(p1.server, p2.server, bad.server, good1.server)
+  } finally {
+    console.log = original
+  }
+  const logged = lines.filter((l) => l.includes('answer not usable'))
+  assert.equal(logged.length, 1, 'only the unusable answer is reported')
+  assert.ok(logged[0].includes('Sorry, I cannot help'))
+})
