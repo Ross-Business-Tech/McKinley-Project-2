@@ -28,7 +28,7 @@ async function pretendUpstream(status = 200, answer = { choices: [{ message: { c
     })
   })
   const port = await listen(server)
-  return { seen, server, url: `http://127.0.0.1:${port}/chat?api-version=1` }
+  return { seen, server, url: `http://127.0.0.1:${port}/chat/completions?api-version=1` }
 }
 
 async function proxyWith(env) {
@@ -56,7 +56,7 @@ test('attaches the key on the server and returns only the text', async () => {
   assert.equal(up.seen[0].body.model, 'forced-model')
   assert.equal(up.seen[0].body.max_tokens, 500)
   assert.equal(up.seen[0].body.messages[1].content, 'The sink is leaking')
-  assert.equal(up.seen[0].url, '/chat?api-version=1')
+  assert.equal(up.seen[0].url, '/chat/completions?api-version=1')
   stop(p.server, up.server)
 })
 
@@ -127,11 +127,11 @@ test('hides upstream details when UM GPT fails', async () => {
 
 test('adds /chat/completions when only a base address is given, and leaves a full address alone', async () => {
   const up = await pretendUpstream()
-  const base = up.url.replace('/chat?api-version=1', '/v1')
+  const base = up.url.replace('/chat/completions?api-version=1', '/v1')
   const p = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: base, ALLOWED_ORIGINS: SITE })
   await p.ask(good)
   assert.equal(up.seen[0].url, '/v1/chat/completions')
-  const full = up.url.replace('/chat?api-version=1', '/openai/chat/completions?api-version=2024-02-01')
+  const full = up.url.replace('/chat/completions?api-version=1', '/openai/chat/completions?api-version=2024-02-01')
   const p2 = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: full, ALLOWED_ORIGINS: SITE })
   await p2.ask(good)
   assert.equal(up.seen[1].url, '/openai/chat/completions?api-version=2024-02-01')
