@@ -139,6 +139,24 @@ const check = (name, ok, detail = '') => {
     check('Supervisor sees "Resident: fixed"', (await page.locator(`article:has-text("${TEXT}")`).textContent()).includes('Resident: fixed'))
     await signOut()
 
+    // 6. Approving locks in the technician: a routine job still reaches them at any time of day
+    await staff('supervisor', 'SUP-OR', '1203')
+    await page.selectOption('.sitepick select', 'The Pines')
+    await wait()
+    const light = page.locator('article:has-text("Hallway light")')
+    await light.locator('button:text-is("Approve")').click()
+    await wait()
+    const chip = (await light.locator('.chip:has-text("Assigned to")').textContent()) || ''
+    const who = chip.replace(/.*Assigned to\s*/, '').trim()
+    check('Approving shows who it is assigned to', !!who, who)
+    await signOut()
+    const ids = { Andre: ['TP1', '2111'], Lena: ['TP2', '2112'] }
+    if (ids[who]) {
+      await staff('tech', ...ids[who])
+      check('Assigned technician sees the routine job (today or next shift)', (await page.locator('article:has-text("Hallway light")').count()) === 1)
+      await signOut()
+    }
+
     // 5c. A manager only sees their own properties
     await staff('manager', null, 'ypsilanti-demo')
     const opts = await page.$$eval('.sitepick option', (o) => o.map((x) => x.textContent))

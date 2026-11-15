@@ -2,7 +2,7 @@ import { SEVERITY } from './triage/config.js'
 import { fmt } from './triage/engine.js'
 import { workTicket, uiText, fill } from './triage/translate.js'
 import { readPhotos } from './photos.js'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DAYS } from './triage/engine.js'
 import { PartsList, ResidentUpdate } from './JobExtras.jsx'
 import { MyPin } from './Access.jsx'
@@ -17,12 +17,12 @@ function canNotify() {
 
 // What one technician sees on their phone: only work orders the manager has approved
 // for them, in route order and in their own language.
-export default function TechDay({ myPin, onPin, me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, progress, setProgress, parts, setParts, timeoff, setTimeoff }) {
+export default function TechDay({ later = [], myPin, onPin, me, techs, plan, approved, techDone, setTechDone, addressOf, photos, addPhotos, progress, setProgress, parts, setParts, timeoff, setTimeoff }) {
   const t = techs.find((x) => x.id === me)
   const mine = plan.techs.find((x) => x.tech.id === me)
-  const stops = mine ? mine.plan.stops : []
-  const ready = stops.filter((s) => approved[s.job.id])
-  const waiting = stops.length - ready.length
+  const stops = useMemo(() => (mine ? mine.plan.stops : []), [mine])
+  const ready = useMemo(() => [...stops.filter((s) => approved[s.job.id]), ...later.map((job) => ({ job, arrive: null }))], [stops, approved, later])
+  const waiting = stops.filter((s) => !approved[s.job.id]).length
   const L = uiText(t?.lang)
 
   // Phone alerts: while this page is open, a newly approved urgent job pops up a notification.
@@ -66,7 +66,7 @@ export default function TechDay({ myPin, onPin, me, techs, plan, approved, techD
           <article key={o.id} className={`card order ${SEVERITY[o.sev].color} ${done ? 'faded' : ''}`}>
             <div className="row">
               <span className="stopnum">{i + 1}</span>
-              <b>{L.arrive} {fmt(arrive)}</b>
+              <b>{arrive == null ? L.nextShift : `${L.arrive} ${fmt(arrive)}`}</b>
               <span className={`pill ${SEVERITY[o.sev].color}`}>{wt.lines[1][1].split(' · ').slice(0, 2).join(' · ')}</span>
             </div>
             <dl className="techlines" dir={t.lang === 'ar' ? 'auto' : undefined}>
