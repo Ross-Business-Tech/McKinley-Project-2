@@ -116,6 +116,7 @@ const JOBS = {
 // Words on the technician's screen.
 const UI = {
  "en": {
+  "nextShift": "Next shift",
   "planned": "Planned work",
   "turnFor": "Move-out turn",
   "tapUnit": "tap each unit when finished",
@@ -151,6 +152,7 @@ const UI = {
   "iam": "I am"
  },
  "es": {
+  "nextShift": "Próximo turno",
   "planned": "Trabajo programado",
   "turnFor": "Preparación por mudanza",
   "tapUnit": "toque cada unidad al terminar",
@@ -186,6 +188,7 @@ const UI = {
   "iam": "Soy"
  },
  "pt": {
+  "nextShift": "Próximo turno",
   "planned": "Trabalho programado",
   "turnFor": "Preparação de mudança",
   "tapUnit": "toque em cada unidade ao terminar",
@@ -221,6 +224,7 @@ const UI = {
   "iam": "Eu sou"
  },
  "fr": {
+  "nextShift": "Prochain service",
   "planned": "Travaux planifiés",
   "turnFor": "Remise en état après départ",
   "tapUnit": "touchez chaque logement une fois terminé",
@@ -256,6 +260,7 @@ const UI = {
   "iam": "Je suis"
  },
  "ht": {
+  "nextShift": "Pwochen chif",
   "planned": "Travay ki planifye",
   "turnFor": "Preparasyon apre demenajman",
   "tapUnit": "peze chak inite lè ou fini",

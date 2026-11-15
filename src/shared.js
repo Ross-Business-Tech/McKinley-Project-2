@@ -13,7 +13,8 @@
 import { useSyncExternalStore } from 'react'
 
 const LS_KEY = 'mk-shared-v1'
-const API = './.herenow/data/events'
+// Site-root paths (not ./), so the resident app at /resident/ uses the same saved data as the staff app.
+const API = '/.herenow/data/events'
 const POLL_MS = 8000
 
 const defs = {}
@@ -149,15 +150,18 @@ export const useSyncMode = () =>
     () => mode,
   )
 
+// here.now returns records as { id, data: { k, i, v, by }, createdAt }.
+const createdOf = (r) => r.createdAt || r.created_at || ''
 function toEvent(r) {
+  const f = r.data || r
   let v = null
   try {
-    v = JSON.parse(r.v)
+    v = JSON.parse(f.v)
   } catch {
     return null
   }
-  if (typeof r.k !== 'string') return null
-  return { k: r.k, i: r.i || undefined, v, at: r.created_at }
+  if (typeof f.k !== 'string') return null
+  return { k: f.k, i: f.i || undefined, v, at: createdOf(r) }
 }
 
 async function fetchNew(all) {
@@ -179,7 +183,7 @@ async function fetchNew(all) {
     if ((!all && hitSeen) || !nextCursor) break
     cursor = nextCursor
   }
-  fresh.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+  fresh.sort((a, b) => String(createdOf(a)).localeCompare(String(createdOf(b))))
   return fresh
 }
 
@@ -226,7 +230,7 @@ export async function connect() {
 // Who is signed in through the here.now access gate (members-only or invite-only sites).
 export async function signedInEmail() {
   try {
-    const res = await fetch('./.herenow/me')
+    const res = await fetch('/.herenow/me')
     if (!res.ok) return null
     const { email } = await res.json()
     return typeof email === 'string' && email.includes('@') ? email.toLowerCase() : null

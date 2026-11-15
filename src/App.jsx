@@ -26,7 +26,7 @@ import { SEVERITY, TECHS, DEFAULT_SITES } from './triage/config.js'
 import { MANAGERS, hashEmail, passHashOf } from './auth.js'
 import Access, { MyPin } from './Access.jsx'
 import { PlanningTab, TechPlanned, VendorTracker, Scoreboard } from './Planning.jsx'
-import { scoreboard, VENDOR_STATUS, niceDate } from './planning.js'
+import { scoreboard, VENDOR_STATUS, niceDate, pickTechFor } from './planning.js'
 import { missingInfo, drafts } from './triage/followup.js'
 
 const tag = (sev) => SEVERITY[sev]
@@ -307,6 +307,10 @@ function App() {
     const mine = fullPlan.techs.find((x) => x.tech.id === me.id)
     const myStops = mine ? mine.plan.stops.filter((st) => approved[st.job.id]) : []
     const mySite = techSite && me.sites.includes(techSite) ? techSite : me.sites[0]
+    // Approved jobs locked to me that aren't on today's route (e.g. routine work after hours): next shift.
+    const later = everyOrder
+      .filter((o) => approved[o.id] && tech[o.id] === me.id && !techDone[o.id] && !myStops.some((st) => st.job.id === o.id) && !(o.entry.status === 'hold' && !o.okReceived))
+      .sort((a, b) => b.sev - a.sev)
     const myPlan = mine ? { techs: [{ ...mine, plan: { ...mine.plan, stops: myStops } }] } : { techs: [] }
     return (
       <main className="app">
@@ -322,7 +326,7 @@ function App() {
             <p className="supline">{L.supervisor}: <b>{supervisorOf(me.home).name}</b>{supervisorOf(me.home).phone && <> · <a href={`tel:${supervisorOf(me.home).phone}`}>📞 {supervisorOf(me.home).phone}</a></>}</p>
           )}
           <section className="stats stats3">
-            <div><b>{myStops.length}</b><span>{L.jobsToday}</span></div>
+            <div><b>{myStops.length + later.length}</b><span>{L.jobsToday}</span></div>
             <div><b>{myStops.filter((st) => st.job.sev >= 5).length}</b><span>{L.emergencies}</span></div>
             <div><b>{myStops.filter((st) => techDone[st.job.id]).length}</b><span>{L.done}</span></div>
           </section>
@@ -336,7 +340,7 @@ function App() {
         </nav>
         {techTab === 'day' && <TechPlanned tech={me} turns={turns} setTurns={setTurns} pm={pm} setPm={setPm} L={L} />}
         {techTab === 'day' && (
-          <TechDay myPin={pinOf(me)} onPin={(p) => { setTeamsRaw(teamsRaw.map((x) => (x.id === me.id ? { ...x, pin: p } : x))); setStaffPin(p) }} me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
+          <TechDay later={later} myPin={pinOf(me)} onPin={(p) => { setTeamsRaw(teamsRaw.map((x) => (x.id === me.id ? { ...x, pin: p } : x))); setStaffPin(p) }} me={me.id} techs={allTeams} plan={fullPlan} approved={approved} techDone={techDone} setTechDone={markTechDone}
             addressOf={addressOf} photos={photos} addPhotos={addPhotos} progress={progress} setProgress={setProgress} parts={parts} setParts={setParts} timeoff={timeoff} setTimeoff={setTimeoff} />
         )}
         {techTab === 'map' && (
@@ -587,7 +591,11 @@ function App() {
                   {o.from === 'resident' && <span className="chip">From resident app</span>}
                   {plan.deferred.some((x) => x.id === o.id) && <span className="chip">Waits for regular hours</span>}
                   {plan.unstaffed.some((x) => x.id === o.id) && <span className="chip e-emergency">No one scheduled{o.sev >= 4 && supervisorOf(o.community) ? `: ${supervisorOf(o.community).name} decides` : ''}</span>}
-                  {approved[o.id] && t && !techDone[o.id] && <span className="chip">Sent to {t.name}'s day</span>}
+                  {approved[o.id] && !techDone[o.id] && (() => {
+                    const who = allTeams.find((x) => x.id === tech[o.id]) || t
+                    if (o.entry.status === 'hold' && !o.okReceived) return <span className="chip e-hold">Approved · goes out when the resident says OK</span>
+                    return who ? <span className="chip e-ok">👷 Assigned to {who.name}</span> : <span className="chip e-emergency">Approved · no technician free: pick one</span>
+                  })()}
                 </div>
                 {(photos[o.id] || []).length > 0 && (
                   <div className="thumbs">{photos[o.id].map((p, i) => <a key={i} href={p.src} target="_blank" rel="noreferrer" title={p.by ? `Added by ${p.by}` : ''}><img src={p.src} alt={`Photo ${i + 1}${p.by ? ` from ${p.by}` : ''}`} /></a>)}</div>
@@ -656,7 +664,13 @@ function App() {
                   {o.entry.status === 'hold' && (
                     <button onClick={() => patch(o.id, { okReceived: !o.okReceived })}>{o.okReceived ? 'OK received ✓' : 'Resident said OK'}</button>
                   )}
-                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => setApproved({ ...approved, [o.id]: approved[o.id] ? undefined : new Date().toISOString() })}>
+                  <button className={approved[o.id] ? 'done' : 'primary'} onClick={() => {
+                    // Approving locks in the technician shown, so the job stays theirs whatever day or shift is on screen.
+                    // Nobody on tonight's route (routine job after hours)? Give it to the best technician at that property.
+                    const lock = t?.id || (o.community ? pickTechFor(allTeams)(o.community, o.skill) : null)
+                    if (!approved[o.id] && lock && !tech[o.id]) setTech({ ...tech, [o.id]: lock })
+                    setApproved({ ...approved, [o.id]: approved[o.id] ? undefined : new Date().toISOString() })
+                  }}>
                     {approved[o.id] ? 'Approved ✓' : 'Approve'}
                   </button>
                 </div>
