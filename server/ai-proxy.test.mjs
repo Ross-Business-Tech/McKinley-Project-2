@@ -116,11 +116,11 @@ test('limits how often one visitor can call, and how big a call can be', async (
 })
 
 test('hides upstream details when UM GPT fails', async () => {
-  const up = await pretendUpstream(401, { error: 'bad key sk-should-not-leak' })
+  const up = await pretendUpstream(401, { error: 'bad key upstream-secret-should-not-leak' })
   const p = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: up.url, ALLOWED_ORIGINS: SITE })
   const r = await p.ask(good)
   assert.equal(r.status, 502)
   const text = await r.text()
-  assert.ok(!text.includes('sk-should-not-leak') && !text.includes(FAKE_KEY))
+  assert.ok(!text.includes('upstream-secret-should-not-leak') && !text.includes(FAKE_KEY))
   stop(p.server, up.server)
 })
