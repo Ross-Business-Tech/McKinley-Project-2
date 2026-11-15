@@ -164,3 +164,18 @@ test('logs UM GPT\'s explanation privately, with the key blanked out and the req
   assert.ok(!browserSaw.includes('model not found'), 'the browser must not see UM GPT\'s message')
   stop(p.server, up.server)
 })
+
+test('lists model names only when switched on, and never shows the key', async () => {
+  const up = await pretendUpstream(200, { data: [{ id: 'gpt-x-1' }, { id: 'other-model' }] })
+  const off = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: up.url, ALLOWED_ORIGINS: SITE })
+  assert.equal((await off.call('/models')).status, 404, 'off by default')
+  const on = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: up.url, ALLOWED_ORIGINS: SITE, ALLOW_MODEL_LIST: '1' })
+  const r = await on.call('/models')
+  assert.equal(r.status, 200)
+  const body = await r.json()
+  assert.deepEqual(body.models, ['gpt-x-1', 'other-model'])
+  assert.ok(!JSON.stringify(body).includes(FAKE_KEY))
+  assert.equal(up.seen.at(-1).url, '/models?api-version=1', 'asks UM GPT for /models with the same ?options')
+  assert.equal(up.seen.at(-1).headers.authorization, `Bearer ${FAKE_KEY}`)
+  stop(off.server, on.server, up.server)
+})

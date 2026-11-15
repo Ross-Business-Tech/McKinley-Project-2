@@ -56,6 +56,7 @@ Only **made-up sample data** may be sent: the text of each request goes to UM GP
 | `/health` says `configured: false` | A required variable is missing |
 | The AI server answers `origin_not_allowed` | `ALLOWED_ORIGINS` does not exactly match the website's address |
 | The AI server answers `upstream_error` with a number | UM GPT refused the call: 401/403 means a wrong key or auth style, 404 a wrong address, 400 a model or setting it dislikes (try `UMGPT_TOKEN_FIELD` or remove `UMGPT_TEMPERATURE`) |
+| `upstream status 500` or `400` and you are unsure of the model name | Switch on the model list: add the variable `ALLOW_MODEL_LIST` = `1`, deploy, open `https://<your-ai-server>.onrender.com/models`, copy the exact ID you want into `UMGPT_MODEL`, then **delete `ALLOW_MODEL_LIST`** and deploy again |
 | The first request after a quiet spell is slow | The free Render plan sleeps when idle. The board falls back to its rules for that moment |
 
 ## Safety built in

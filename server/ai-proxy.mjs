@@ -16,6 +16,7 @@
 //   ALLOWED_ORIGINS     required  the website address(es) allowed to call this, comma separated,
 //                                 for example https://mckinley-maintenance-hub.onrender.com
 //   RATE_LIMIT_PER_HOUR optional  calls per visitor address per hour, default 120
+//   ALLOW_MODEL_LIST    optional  set to 1 only while you look up model names at /models, then remove it
 //   PORT                optional  Render sets this itself
 import http from 'node:http'
 
@@ -45,6 +46,13 @@ export function createServer(env = process.env) {
     } catch {
       return env.UMGPT_BASE_URL
     }
+  }
+
+  const authHeaders = () => {
+    const h = { 'content-type': 'application/json' }
+    if (env.UMGPT_AUTH_STYLE === 'api-key') h['api-key'] = env.UMGPT_API_KEY
+    else h.authorization = `Bearer ${env.UMGPT_API_KEY}`
+    return h
   }
 
   const rateOk = (ip) => {
@@ -96,6 +104,29 @@ export function createServer(env = process.env) {
       return send(res, 204, {}, { ...cors, 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '600' })
     }
 
+    // Temporary helper to find the exact model names UM GPT accepts. Off unless ALLOW_MODEL_LIST=1; turn it off again afterwards.
+    if (req.method === 'GET' && req.url === '/models') {
+      if (env.ALLOW_MODEL_LIST !== '1' || !env.UMGPT_API_KEY || !env.UMGPT_BASE_URL) return send(res, 404, { error: 'not_found' })
+      const who = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim()
+      if (!rateOk(who)) return send(res, 429, { error: 'rate_limited' })
+      try {
+        const u = new URL(endpoint())
+        u.pathname = u.pathname.replace(/\/chat\/completions\/?$/, '/models')
+        u.search = new URL(env.UMGPT_BASE_URL).search
+        const up = await fetch(u, { headers: authHeaders(), signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) })
+        if (!up.ok) {
+          console.log(`model list: upstream status ${up.status}`)
+          return send(res, 502, { error: 'upstream_error', status: up.status })
+        }
+        const data = await up.json()
+        const list = Array.isArray(data) ? data : data?.data || data?.models || []
+        const ids = list.map((m) => (typeof m === 'string' ? m : m?.id || m?.name)).filter((x) => typeof x === 'string').slice(0, 300)
+        return send(res, 200, { models: ids })
+      } catch {
+        return send(res, 504, { error: 'upstream_unreachable' })
+      }
+    }
+
     if (req.method !== 'POST' || req.url !== '/ai-read') return send(res, 404, { error: 'not_found' })
     // Only the website's own address may call this. A request with no allowed Origin is refused.
     if (!cors['access-control-allow-origin']) return send(res, 403, { error: 'origin_not_allowed' })
@@ -119,9 +150,7 @@ export function createServer(env = process.env) {
     const body = { messages: [{ role: 'system', content: system }, { role: 'user', content: user }], [env.UMGPT_TOKEN_FIELD || 'max_tokens']: maxTokens }
     if (env.UMGPT_MODEL) body.model = env.UMGPT_MODEL
     if (env.UMGPT_TEMPERATURE !== undefined && env.UMGPT_TEMPERATURE !== '') body.temperature = Number(env.UMGPT_TEMPERATURE)
-    const headers = { 'content-type': 'application/json' }
-    if (env.UMGPT_AUTH_STYLE === 'api-key') headers['api-key'] = env.UMGPT_API_KEY
-    else headers.authorization = `Bearer ${env.UMGPT_API_KEY}`
+    const headers = authHeaders()
 
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), UPSTREAM_TIMEOUT_MS)
