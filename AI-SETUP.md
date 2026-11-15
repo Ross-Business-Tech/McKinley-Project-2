@@ -35,8 +35,9 @@ Only **made-up sample data** may be sent: the text of each request goes to UM GP
 | `UMGPT_MODEL` | the model name |
 | `ALLOWED_ORIGINS` | the website's address only, for example `https://mckinley-maintenance-hub.onrender.com` (no path, no slash needed). Add the resident site too if it is on another address, separated by a comma. |
 | `UMGPT_AUTH_STYLE` | only if needed: `api-key` (the default is `bearer`) |
-| `UMGPT_TOKEN_FIELD` | only if UM GPT complains about `max_tokens`: set `max_completion_tokens` |
+| `UMGPT_TOKEN_FIELD` | `max_completion_tokens` for newer models (UM GPT's gpt-6.1-sol needs it). The default is `max_tokens`. |
 | `UMGPT_TEMPERATURE` | only if needed: some models reject it, so leave it out |
+| `UMGPT_MAX_TOKENS` | optional: the length limit for each answer, default 2000 |
 | `RATE_LIMIT_PER_HOUR` | optional, default 120 calls per visitor per hour |
 
 5. Create the service. When it is live, open `https://<your-ai-server>.onrender.com/health`. You should see `{"ok":true,"configured":true}`. If `configured` is `false`, one of the first four variables is missing.

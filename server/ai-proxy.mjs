@@ -13,6 +13,7 @@
 //   UMGPT_AUTH_STYLE    optional  "bearer" (default: Authorization: Bearer <key>) or "api-key" (api-key: <key>)
 //   UMGPT_TOKEN_FIELD   optional  name of the length-limit field, default "max_tokens" (some models want "max_completion_tokens")
 //   UMGPT_TEMPERATURE   optional  a number, only sent if set (some models reject it)
+//   UMGPT_MAX_TOKENS    optional  length limit for each answer, default 2000
 //   ALLOWED_ORIGINS     required  the website address(es) allowed to call this, comma separated,
 //                                 for example https://mckinley-maintenance-hub.onrender.com
 //   RATE_LIMIT_PER_HOUR optional  calls per visitor address per hour, default 120
@@ -22,7 +23,8 @@ import http from 'node:http'
 
 const MAX_BODY = 32 * 1024 // bytes the website may send
 const MAX_FIELD = 8000 // characters in the system and user text
-const MAX_TOKENS_CAP = 1200
+const DEFAULT_TOKENS = 2000 // generous: reasoning models spend part of the limit thinking before they answer
+const MAX_TOKENS_CAP = 4000
 const UPSTREAM_TIMEOUT_MS = 30000
 
 export function createServer(env = process.env) {
@@ -153,7 +155,8 @@ export function createServer(env = process.env) {
     if (typeof system !== 'string' || typeof user !== 'string' || !user.trim() || system.length > MAX_FIELD || user.length > MAX_FIELD) {
       return send(res, 400, { error: 'bad_request' }, cors)
     }
-    const maxTokens = Math.min(Math.max(Number(input.max_tokens) || 800, 50), MAX_TOKENS_CAP)
+    // The server decides the length limit (the website's request is ignored), so a small limit can never starve a reasoning model.
+    const maxTokens = Math.min(Math.max(Number(env.UMGPT_MAX_TOKENS) || DEFAULT_TOKENS, 50), MAX_TOKENS_CAP)
 
     const body = { messages: [{ role: 'system', content: system }, { role: 'user', content: user }], [env.UMGPT_TOKEN_FIELD || 'max_tokens']: maxTokens }
     if (env.UMGPT_MODEL) body.model = env.UMGPT_MODEL
@@ -180,7 +183,10 @@ export function createServer(env = process.env) {
       }
       const data = await up.json()
       const text = data?.choices?.[0]?.message?.content
-      if (typeof text !== 'string') return send(res, 502, { error: 'unexpected_answer' }, cors)
+      if (typeof text !== 'string' || !text.trim()) {
+        console.log(`empty answer from UM GPT (finish_reason: ${data?.choices?.[0]?.finish_reason ?? 'unknown'}). If it is "length", raise UMGPT_MAX_TOKENS.`)
+        return send(res, 502, { error: 'unexpected_answer' }, cors)
+      }
       return send(res, 200, { text, model: env.UMGPT_MODEL || data.model || 'umgpt' }, cors)
     } catch {
       return send(res, 504, { error: 'upstream_unreachable' }, cors)
