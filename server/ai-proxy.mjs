@@ -28,8 +28,9 @@ export function createServer(env = process.env) {
   const allowed = new Set(
     String(env.ALLOWED_ORIGINS || '')
       .split(',')
-      .map((s) => s.trim().replace(/\/$/, ''))
-      .filter(Boolean),
+      .map((s) => s.trim().replace(/\/+$/, ''))
+      .filter(Boolean)
+      .map((s) => (s.includes('://') ? s : `https://${s}`)), // forgive a missing https://
   )
   const limit = Number(env.RATE_LIMIT_PER_HOUR) > 0 ? Number(env.RATE_LIMIT_PER_HOUR) : 120
   const hits = new Map() // visitor address -> { count, resetAt }
@@ -82,6 +83,10 @@ export function createServer(env = process.env) {
 
   return http.createServer(async (req, res) => {
     const origin = String(req.headers.origin || '').replace(/\/$/, '')
+    // One line per call so problems can be found in Render's Logs. Never the request text, the answer or the key.
+    if (!process.env.NODE_TEST_CONTEXT && req.url !== '/health') {
+      res.on('finish', () => console.log(`${req.method} ${req.url} -> ${res.statusCode}${res.statusCode === 403 ? ` (origin received: "${origin || 'none'}"; allowed: ${[...allowed].join(', ') || 'none set'})` : ''}`))
+    }
     const cors = origin && allowed.has(origin) ? { 'access-control-allow-origin': origin, vary: 'Origin' } : {}
 
     if (req.method === 'GET' && req.url === '/health') return send(res, 200, { ok: true, configured: configured() })

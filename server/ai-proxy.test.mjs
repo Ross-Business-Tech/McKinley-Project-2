@@ -137,3 +137,10 @@ test('adds /chat/completions when only a base address is given, and leaves a ful
   assert.equal(up.seen[1].url, '/openai/chat/completions?api-version=2024-02-01')
   stop(p.server, p2.server, up.server)
 })
+
+test('forgives an allowed address typed without https://', async () => {
+  const up = await pretendUpstream()
+  const p = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: up.url, ALLOWED_ORIGINS: 'site.example/' })
+  assert.equal((await p.ask(good)).status, 200)
+  stop(p.server, up.server)
+})
