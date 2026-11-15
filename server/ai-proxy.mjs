@@ -8,7 +8,7 @@
 //
 // Settings (environment variables, set in the Render dashboard, never in the repository):
 //   UMGPT_API_KEY       required  the key
-//   UMGPT_BASE_URL      required  the full address of UM GPT's chat endpoint, including any ?api-version=...
+//   UMGPT_BASE_URL      required  UM GPT's address: either the full chat address or the base address ("/chat/completions" is added if missing)
 //   UMGPT_MODEL         optional  forces this model name into every call (recommended)
 //   UMGPT_AUTH_STYLE    optional  "bearer" (default: Authorization: Bearer <key>) or "api-key" (api-key: <key>)
 //   UMGPT_TOKEN_FIELD   optional  name of the length-limit field, default "max_tokens" (some models want "max_completion_tokens")
@@ -34,6 +34,17 @@ export function createServer(env = process.env) {
   const limit = Number(env.RATE_LIMIT_PER_HOUR) > 0 ? Number(env.RATE_LIMIT_PER_HOUR) : 120
   const hits = new Map() // visitor address -> { count, resetAt }
   const configured = () => !!(env.UMGPT_API_KEY && env.UMGPT_BASE_URL && allowed.size)
+  // Accept either the full chat address or just the "base" address a portal usually shows (for example ending in /v1):
+  // if the path does not already end in /chat/completions, add it.
+  const endpoint = () => {
+    try {
+      const u = new URL(env.UMGPT_BASE_URL)
+      if (!/\/chat\/completions\/?$/.test(u.pathname)) u.pathname = `${u.pathname.replace(/\/$/, '')}/chat/completions`
+      return u.toString()
+    } catch {
+      return env.UMGPT_BASE_URL
+    }
+  }
 
   const rateOk = (ip) => {
     const now = Date.now()
@@ -110,7 +121,7 @@ export function createServer(env = process.env) {
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), UPSTREAM_TIMEOUT_MS)
     try {
-      const up = await fetch(env.UMGPT_BASE_URL, { method: 'POST', headers, body: JSON.stringify(body), signal: ctl.signal })
+      const up = await fetch(endpoint(), { method: 'POST', headers, body: JSON.stringify(body), signal: ctl.signal })
       if (!up.ok) {
         console.log(`upstream status ${up.status}`) // status only: never the request, the answer or the key
         return send(res, 502, { error: 'upstream_error', status: up.status }, cors)

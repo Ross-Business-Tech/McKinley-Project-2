@@ -14,7 +14,7 @@ The website is public, so it never holds the key. The small server (`server/ai-p
 
 | Ask for | Goes into |
 |---|---|
-| The address UM GPT's chat endpoint is called at (the full address, including anything after a `?`) | `UMGPT_BASE_URL` |
+| The address UM GPT is called at. Either the full chat address or the "base" address the portal shows both work: `/chat/completions` is added if it is missing. Keep anything after a `?`. | `UMGPT_BASE_URL` |
 | The key, and whether it is sent as `Authorization: Bearer ...` or as an `api-key` header | `UMGPT_API_KEY`, `UMGPT_AUTH_STYLE` |
 | The model name you may use | `UMGPT_MODEL` |
 | Whether the key may be shared across a project team, and any usage limit | (a rule to follow) |
@@ -31,7 +31,7 @@ Only **made-up sample data** may be sent: the text of each request goes to UM GP
 | Name | Value |
 |---|---|
 | `UMGPT_API_KEY` | the key (type it here only) |
-| `UMGPT_BASE_URL` | UM GPT's chat address |
+| `UMGPT_BASE_URL` | UM GPT's address (full chat address or base address) |
 | `UMGPT_MODEL` | the model name |
 | `ALLOWED_ORIGINS` | the website's address only, for example `https://mckinley-maintenance-hub.onrender.com` (no path, no slash needed). Add the resident site too if it is on another address, separated by a comma. |
 | `UMGPT_AUTH_STYLE` | only if needed: `api-key` (the default is `bearer`) |

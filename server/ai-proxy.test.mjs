@@ -124,3 +124,16 @@ test('hides upstream details when UM GPT fails', async () => {
   assert.ok(!text.includes('upstream-secret-should-not-leak') && !text.includes(FAKE_KEY))
   stop(p.server, up.server)
 })
+
+test('adds /chat/completions when only a base address is given, and leaves a full address alone', async () => {
+  const up = await pretendUpstream()
+  const base = up.url.replace('/chat?api-version=1', '/v1')
+  const p = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: base, ALLOWED_ORIGINS: SITE })
+  await p.ask(good)
+  assert.equal(up.seen[0].url, '/v1/chat/completions')
+  const full = up.url.replace('/chat?api-version=1', '/openai/chat/completions?api-version=2024-02-01')
+  const p2 = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: full, ALLOWED_ORIGINS: SITE })
+  await p2.ask(good)
+  assert.equal(up.seen[1].url, '/openai/chat/completions?api-version=2024-02-01')
+  stop(p.server, p2.server, up.server)
+})
