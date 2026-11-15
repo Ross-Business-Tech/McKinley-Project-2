@@ -149,15 +149,18 @@ export const useSyncMode = () =>
     () => mode,
   )
 
+// here.now returns records as { id, data: { k, i, v, by }, createdAt }.
+const createdOf = (r) => r.createdAt || r.created_at || ''
 function toEvent(r) {
+  const f = r.data || r
   let v = null
   try {
-    v = JSON.parse(r.v)
+    v = JSON.parse(f.v)
   } catch {
     return null
   }
-  if (typeof r.k !== 'string') return null
-  return { k: r.k, i: r.i || undefined, v, at: r.created_at }
+  if (typeof f.k !== 'string') return null
+  return { k: f.k, i: f.i || undefined, v, at: createdOf(r) }
 }
 
 async function fetchNew(all) {
@@ -179,7 +182,7 @@ async function fetchNew(all) {
     if ((!all && hitSeen) || !nextCursor) break
     cursor = nextCursor
   }
-  fresh.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
+  fresh.sort((a, b) => String(createdOf(a)).localeCompare(String(createdOf(b))))
   return fresh
 }
 
