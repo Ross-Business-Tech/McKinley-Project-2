@@ -128,7 +128,16 @@ export function createServer(env = process.env) {
     try {
       const up = await fetch(endpoint(), { method: 'POST', headers, body: JSON.stringify(body), signal: ctl.signal })
       if (!up.ok) {
-        console.log(`upstream status ${up.status}`) // status only: never the request, the answer or the key
+        // Private log only (never sent to the browser): UM GPT's own explanation, shortened, with the key blanked out.
+        // The request text is never logged.
+        let why = ''
+        try {
+          why = (await up.text()).replace(/\s+/g, ' ').slice(0, 400)
+          if (env.UMGPT_API_KEY) why = why.split(env.UMGPT_API_KEY).join('***')
+        } catch {
+          /* no body */
+        }
+        console.log(`upstream status ${up.status}${why ? `: ${why}` : ''}`)
         return send(res, 502, { error: 'upstream_error', status: up.status }, cors)
       }
       const data = await up.json()

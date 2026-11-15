@@ -144,3 +144,23 @@ test('forgives an allowed address typed without https://', async () => {
   assert.equal((await p.ask(good)).status, 200)
   stop(p.server, up.server)
 })
+
+test('logs UM GPT\'s explanation privately, with the key blanked out and the request text left out', async () => {
+  const up = await pretendUpstream(500, { error: { message: `model not found, key was ${FAKE_KEY}` } })
+  const p = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: up.url, ALLOWED_ORIGINS: SITE })
+  const lines = []
+  const original = console.log
+  console.log = (...a) => lines.push(a.join(' '))
+  let browserSaw
+  try {
+    browserSaw = await (await p.ask({ system: 'sys', user: 'secret resident words' })).text()
+  } finally {
+    console.log = original
+  }
+  const logged = lines.join('\n')
+  assert.ok(logged.includes('upstream status 500') && logged.includes('model not found'))
+  assert.ok(!logged.includes(FAKE_KEY), 'the key must be blanked out in the log')
+  assert.ok(!logged.includes('secret resident words'), 'the request text must never be logged')
+  assert.ok(!browserSaw.includes('model not found'), 'the browser must not see UM GPT\'s message')
+  stop(p.server, up.server)
+})
