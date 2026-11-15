@@ -123,7 +123,8 @@ export function createServer(env = process.env) {
             /* no body */
           }
           console.log(`model list: asked ${u.origin}${u.pathname}; upstream status ${up.status}${why ? `: ${why}` : ''}`)
-          return send(res, 502, { error: 'upstream_error', status: up.status })
+          // This helper page only exists while ALLOW_MODEL_LIST=1, so it may show the reason (key already blanked out).
+          return send(res, 502, { error: 'upstream_error', status: up.status, asked: `${u.origin}${u.pathname}`, detail: why })
         }
         const data = await up.json()
         const list = Array.isArray(data) ? data : data?.data || data?.models || []

@@ -179,3 +179,21 @@ test('lists model names only when switched on, and never shows the key', async (
   assert.equal(up.seen.at(-1).headers.authorization, `Bearer ${FAKE_KEY}`)
   stop(off.server, on.server, up.server)
 })
+
+test('the temporary model list page explains a failure, with the key blanked out', async () => {
+  const up = await pretendUpstream(500, { error: { message: `no such route, key ${FAKE_KEY}` } })
+  const on = await proxyWith({ UMGPT_API_KEY: FAKE_KEY, UMGPT_BASE_URL: up.url, ALLOWED_ORIGINS: SITE, ALLOW_MODEL_LIST: '1' })
+  const quiet = console.log
+  console.log = () => {}
+  let body
+  try {
+    body = await (await on.call('/models')).json()
+  } finally {
+    console.log = quiet
+  }
+  assert.equal(body.status, 500)
+  assert.ok(body.detail.includes('no such route'))
+  assert.ok(!JSON.stringify(body).includes(FAKE_KEY))
+  assert.ok(body.asked.endsWith('/models'))
+  stop(on.server, up.server)
+})
