@@ -1,6 +1,34 @@
 # Context: McKinley Project 2 (Business+Tech AI Sprint 26), final package
 
-Paste this whole file into a new chat. Ask for help writing the final package deliverables (slide deck, test results sheet, demo videos, user guide, README, exit email). Everything below comes from a review of the team's GitHub repository on Nov 15, 2026. The demo/reveal is **November 17**.
+Everything below comes from a review of the team's GitHub repository on Nov 15, 2026. The demo/reveal is **November 17**.
+
+---
+
+## YOUR TASKS (instructions for Claude)
+
+You are helping a business-school team (not programmers) finish their final package for the client, McKinley. Use only the facts in this file. Don't invent numbers, features or client details. Where something is unknown or not done yet, write a clearly marked placeholder like **[LIVE LINK]** or **[SCREENSHOT: supervisor Priority tab]**. All data is made up, so never add real people's information. Write in plain, confident business language for a property-management client, not developers.
+
+Do the tasks in this order. After each one, show it to me and wait for my OK or changes before starting the next.
+
+1. **Slide deck (8–10 slides).** For each slide give the title, 3–5 short bullets or one key number, a visual suggestion, and 2–3 sentences of speaker notes. Follow the story problem → solution → how it works → proof → recommendation. Use the outline in section 7 as a starting point. The recommendation slide should say what McKinley should do next (pilot at one area, connect Yardi/RentCafe, add the AI key, measure on real messages).
+
+2. **Test results sheet.** Output it as tables I can paste into Google Sheets (tab-separated or CSV in code blocks):
+   - Tab 1, "Work order tests": the score at the top (22/22 = 100%), then one row per test order W01–W22 with columns ID, Resident, Message, Expected result, Actual result, Pass/Fail. All 22 passed.
+   - Tab 2, "Journey checks": the 11 end-to-end checks, all passed.
+   - Tab 3, "Evaluator scorecard": the Triage Board plan vs the by-hand plan, broken down by score part.
+   - A short note row for what's not yet tested (AI accuracy with the live key).
+
+3. **Demo videos.**
+   - Finalize the two 60-second voiceover scripts (fill in the [N] of [N] placeholder with "5 of 5 checks pass" and remove any claim this file doesn't support).
+   - Write a **2–3 minute workflow walkthrough script** as a shot list: what to click, what to say, and about how many seconds each part takes. Follow the flow in section 4.
+
+4. **User guide.** Write it step by step, one section per role (Resident, Technician, Supervisor, Property manager), plus a section on using the Plan Evaluator. Use numbered steps and mark where each screenshot goes. Include sample demo sign-ins (property manager passcode such as `annarbor-demo`), and say they are demo-only.
+
+5. **README (one page).** Put **[LIVE LINK]** at the very top. Then cover: what it is, who it's for, how it works (the 6 steps), how to keep it running (API key, manager list, `npm test`), known limits, and next steps. It must fit on one page.
+
+6. **Exit email.** A short email from the team lead to the McKinley contact. It should include a thank-you, the shared Drive folder link [DRIVE LINK], the live link [LIVE LINK], a note that tool access and the AI key end on [DATE], and confirmation that no real client data was used and any shared client files have been deleted. Keep it under 150 words.
+
+7. **Final check.** List every placeholder left across all deliverables and every open item from section 6 (merging the code, creating the `development` branch, adding the API key, recording the videos), as a checklist with who should do each one.
 
 ---
 
