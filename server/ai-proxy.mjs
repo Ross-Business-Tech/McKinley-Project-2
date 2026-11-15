@@ -115,7 +115,14 @@ export function createServer(env = process.env) {
         u.search = new URL(env.UMGPT_BASE_URL).search
         const up = await fetch(u, { headers: authHeaders(), signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) })
         if (!up.ok) {
-          console.log(`model list: upstream status ${up.status}`)
+          let why = ''
+          try {
+            why = (await up.text()).replace(/\s+/g, ' ').slice(0, 400)
+            if (env.UMGPT_API_KEY) why = why.split(env.UMGPT_API_KEY).join('***')
+          } catch {
+            /* no body */
+          }
+          console.log(`model list: asked ${u.origin}${u.pathname}; upstream status ${up.status}${why ? `: ${why}` : ''}`)
           return send(res, 502, { error: 'upstream_error', status: up.status })
         }
         const data = await up.json()
@@ -166,7 +173,8 @@ export function createServer(env = process.env) {
         } catch {
           /* no body */
         }
-        console.log(`upstream status ${up.status}${why ? `: ${why}` : ''}`)
+        const asked = new URL(endpoint())
+        console.log(`chat call: asked ${asked.origin}${asked.pathname}; upstream status ${up.status}${why ? `: ${why}` : ''}`)
         return send(res, 502, { error: 'upstream_error', status: up.status }, cors)
       }
       const data = await up.json()
