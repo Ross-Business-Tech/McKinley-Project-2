@@ -155,6 +155,7 @@ Each property manager is set by IT and sees only their own properties. On the **
 
 ## Good to know
 
-- **Live sharing:** on the team site, every change reaches every phone within a few seconds, and the header says **● Live: shared with your team**. Screenshots in this guide were taken on a test copy, which says *Saved on this device only*.
+- **Live sharing:** on the team site, every change reaches every phone and computer within a few seconds, and the header says **● Live: shared with your team**. If a page says *Saved on this device only*, it's an old test link or an old copy of the page: open the live link above and refresh.
+- **Employee sign-in:** staff sign in with name + PIN on any device; PINs are managed on the property manager's Access tab. On a members-only here.now site, staff can sign in with their work email instead.
 - **Messages:** Text, Email and Call buttons open the phone's own apps with the message written. Nothing is sent automatically.
 - **Assumptions to confirm with McKinley:** the severity scale, entry-notice hours (Florida 12, Michigan 24), on-call hours, vendor list and preventive maintenance rules. This is not legal advice.
